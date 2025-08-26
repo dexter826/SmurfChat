@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { Form, Modal, Select, Spin, Avatar } from 'antd';
 import { AppContext } from '../../Context/AppProvider';
 import { debounce } from 'lodash';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 
 function DebounceSelect({
@@ -57,21 +58,20 @@ function DebounceSelect({
 }
 
 async function fetchUserList(search, curMembers) {
-  return db
-    .collection('users')
-    .where('keywords', 'array-contains', search?.toLowerCase())
-    .orderBy('displayName')
-    .limit(20)
-    .get()
-    .then((snapshot) => {
-      return snapshot.docs
-        .map((doc) => ({
-          label: doc.data().displayName,
-          value: doc.data().uid,
-          photoURL: doc.data().photoURL,
-        }))
-        .filter((opt) => !curMembers.includes(opt.value));
-    });
+  const usersRef = collection(db, 'users');
+  const q = query(
+    usersRef,
+    where('keywords', 'array-contains', search?.toLowerCase())
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((doc) => ({
+      label: doc.data().displayName,
+      value: doc.data().uid,
+      photoURL: doc.data().photoURL,
+    }))
+    .filter((opt) => !curMembers.includes(opt.value));
 }
 
 export default function InviteMemberModal() {
@@ -90,9 +90,9 @@ export default function InviteMemberModal() {
     setValue([]);
 
     // update members in current room
-    const roomRef = db.collection('rooms').doc(selectedRoomId);
+    const roomRef = doc(db, 'rooms', selectedRoomId);
 
-    roomRef.update({
+    updateDoc(roomRef, {
       members: [...selectedRoom.members, ...value.map((val) => val.value)],
     });
 
@@ -111,7 +111,7 @@ export default function InviteMemberModal() {
     <div>
       <Modal
         title='Mời thêm thành viên'
-        visible={isInviteMemberVisible}
+        open={isInviteMemberVisible}
         onOk={handleOk}
         onCancel={handleCancel}
         destroyOnClose={true}

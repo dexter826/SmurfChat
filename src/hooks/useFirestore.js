@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
-const useFirestore = (collection, condition) => {
+const useFirestore = (collectionName, condition) => {
   const [documents, setDocuments] = useState([]);
 
   React.useEffect(() => {
-    let collectionRef = db.collection(collection).orderBy('createdAt');
+    const collectionRef = collection(db, collectionName);
+    let q = query(collectionRef);
+
     if (condition) {
       if (!condition.compareValue || !condition.compareValue.length) {
         // reset documents data
@@ -13,24 +16,34 @@ const useFirestore = (collection, condition) => {
         return;
       }
 
-      collectionRef = collectionRef.where(
-        condition.fieldName,
-        condition.operator,
-        condition.compareValue
+      q = query(
+        collectionRef,
+        where(
+          condition.fieldName,
+          condition.operator,
+          condition.compareValue
+        )
       );
     }
 
-    const unsubscribe = collectionRef.onSnapshot((snapshot) => {
-      const documents = snapshot.docs.map((doc) => ({
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map((doc) => ({
         ...doc.data(),
         id: doc.id,
       }));
 
-      setDocuments(documents);
+      // client-side sort by createdAt if present
+      docs.sort((a, b) => {
+        const aTime = a?.createdAt?.seconds || 0;
+        const bTime = b?.createdAt?.seconds || 0;
+        return aTime - bTime;
+      });
+
+      setDocuments(docs);
     });
 
     return unsubscribe;
-  }, [collection, condition]);
+  }, [collectionName, condition]);
 
   return documents;
 };

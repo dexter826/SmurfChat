@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { Spin } from 'antd';
 
@@ -11,7 +12,7 @@ export default function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   React.useEffect(() => {
-    const unsubscibed = auth.onAuthStateChanged((user) => {
+    const unsubscibed = onAuthStateChanged(auth, (user) => {
       if (user) {
         const { displayName, email, uid, photoURL } = user;
         setUser({

@@ -33,7 +33,7 @@ export default function AddRoomModal() {
     <div>
       <Modal
         title='Tạo phòng'
-        visible={isAddRoomVisible}
+        open={isAddRoomVisible}
         onOk={handleOk}
         onCancel={handleCancel}
       >

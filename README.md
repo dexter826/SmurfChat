@@ -1,76 +1,110 @@
-# Ứng dụng nhắn tin real-time bằng ReactJS và Firebase 2021
+# 🚀 SmurfChat - Ứng dụng Chat thời gian thực
 
-Youtube: [https://youtu.be/YZhNUU4_Pjw](https://youtu.be/YZhNUU4_Pjw)
+## 📋 Mô tả
 
-Live Demo: [https://chatapp.holetex.com](https://chatapp.holetex.com)
+SmurfChat là một ứng dụng chat thời gian thực được xây dựng bằng React và Firebase, cho phép người dùng tạo phòng chat, gửi tin nhắn và tương tác với nhau.
 
-# Getting Started with Create React App
+## ✨ Tính năng chính
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+- 🔐 Đăng nhập/Đăng ký với Email
+- 💬 Chat thời gian thực
+- 🏠 Tạo và quản lý phòng chat
+- 👥 Mời thành viên vào phòng
+- 📱 Responsive design
+- 🎨 Giao diện đẹp với Ant Design
 
-## Available Scripts
+## 🛠️ Công nghệ sử dụng
 
-In the project directory, you can run:
+- **Frontend**: React 17, Ant Design 4
+- **Backend**: Firebase 9 (Firestore, Authentication)
+- **Styling**: Styled Components
+- **Build Tool**: Create React App 5
 
-### `yarn start`
+## 🚀 Cài đặt và chạy
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+### Yêu cầu hệ thống
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- Node.js 14+
+- npm hoặc yarn
 
-### `yarn test`
+### Bước 1: Clone dự án
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+git clone <repository-url>
+cd SmurfChat
+```
 
-### `yarn build`
+### Bước 2: Cài đặt dependencies
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+npm install
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Bước 3: Cấu hình Firebase
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Tạo Firebase project mới tại [Firebase Console](https://console.firebase.google.com/)
+2. Bật Authentication (Email/Password)
+3. Tạo Firestore Database
+4. Cập nhật thông tin cấu hình trong `src/firebase/config.js`
 
-### `yarn eject`
+Xem chi tiết trong file [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+### Bước 4: Chạy ứng dụng
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+npm start
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Ứng dụng sẽ chạy tại http://localhost:3000
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+## 📁 Cấu trúc dự án
 
-## Learn More
+```
+src/
+├── components/          # React components
+│   ├── ChatRoom/       # Components cho chat room
+│   ├── Login/          # Components đăng nhập
+│   └── Modals/         # Modal components
+├── Context/            # React Context providers
+├── firebase/           # Firebase configuration
+├── hooks/              # Custom React hooks
+└── App.js              # Component chính
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 🔧 Scripts có sẵn
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- `npm start` - Chạy ứng dụng ở chế độ development
+- `npm run build` - Build ứng dụng cho production
+- `npm test` - Chạy tests
+- `npm run eject` - Eject từ Create React App
 
-### Code Splitting
+## 📱 Firebase Emulators (Tùy chọn)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Để sử dụng Firebase emulators cho development:
 
-### Analyzing the Bundle Size
+```bash
+cd emulators
+firebase emulators:start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 🚀 Deploy
 
-### Making a Progressive Web App
+```bash
+npm run build
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Thư mục `build/` sẽ chứa các file production-ready.
 
-### Advanced Configuration
+## 📝 Lưu ý
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- Đây là đồ án môn học, không phải production app
+- Các package đã được cập nhật để đảm bảo tương thích
+- Firebase project cần được tạo mới (project cũ đã bị xóa)
 
-### Deployment
+## 🤝 Đóng góp
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Mọi đóng góp đều được chào đón! Hãy tạo issue hoặc pull request.
 
-### `yarn build` fails to minify
+## 📄 License
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+MIT License
