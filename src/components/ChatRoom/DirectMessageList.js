@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
-import { Collapse, Typography, Button, Input, Avatar, List } from 'antd';
+import { Collapse, Button, Input, Avatar } from 'antd';
 import styled from 'styled-components';
-import { MessageOutlined, SearchOutlined } from '@ant-design/icons';
+import { MessageOutlined } from '@ant-design/icons';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
 import useFirestore from '../../hooks/useFirestore';

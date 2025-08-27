@@ -3,7 +3,7 @@ import { Calendar as AntCalendar, Badge, List, Avatar, Button, Popover, Typograp
 import { CalendarOutlined, ClockCircleOutlined, UserOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { AppContext } from '../../Context/AppProvider';
-import { AuthContext } from '../../Context/AuthProvider';
+// import { AuthContext } from '../../Context/AuthProvider';
 import useFirestore from '../../hooks/useFirestore';
 import moment from 'moment';
 import EventModal from '../Modals/EventModal';
@@ -59,7 +59,9 @@ const EventPopoverContent = styled.div`
 
 export default function Calendar() {
   const { selectedRoom } = useContext(AppContext);
-  const { user } = useContext(AuthContext);
+  // const {
+  //   user: { uid },
+  // } = useContext(AuthContext);
   const [selectedDate, setSelectedDate] = useState(moment());
   const [eventModalVisible, setEventModalVisible] = useState(false);
 

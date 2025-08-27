@@ -2,23 +2,47 @@ import React from 'react';
 import { Avatar, Typography } from 'antd';
 import styled from 'styled-components';
 import { formatRelative } from 'date-fns/esm';
+import { AuthContext } from '../../Context/AuthProvider';
 
 const WrapperStyled = styled.div`
   margin-bottom: 10px;
+  display: flex;
+  flex-direction: ${props => props.isOwn ? 'row-reverse' : 'row'};
+  align-items: flex-start;
+  
+  .message-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 70%;
+    margin: ${props => props.isOwn ? '0 8px 0 0' : '0 0 0 8px'};
+  }
+  
+  .message-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    flex-direction: ${props => props.isOwn ? 'row-reverse' : 'row'};
+  }
 
   .author {
-    margin-left: 5px;
+    margin: ${props => props.isOwn ? '0 0 0 5px' : '0 5px 0 0'};
     font-weight: bold;
+    font-size: 12px;
   }
 
   .date {
-    margin-left: 10px;
-    font-size: 11px;
+    font-size: 10px;
     color: #a7a7a7;
   }
 
   .content {
-    margin-left: 30px;
+    background: ${props => props.isOwn ? '#1890ff' : '#f0f0f0'};
+    color: ${props => props.isOwn ? 'white' : 'black'};
+    padding: 8px 12px;
+    border-radius: 18px;
+    ${props => props.isOwn ? 'border-top-right-radius: 4px;' : 'border-top-left-radius: 4px;'}
+    word-wrap: break-word;
+    max-width: 100%;
   }
 `;
 
@@ -35,20 +59,24 @@ function formatDate(seconds) {
   return formattedDate;
 }
 
-export default function Message({ text, displayName, createdAt, photoURL }) {
+export default function Message({ text, displayName, createdAt, photoURL, uid }) {
+  const { user } = React.useContext(AuthContext);
+  const isOwn = uid === user?.uid;
   return (
-    <WrapperStyled>
-      <div>
-        <Avatar size='small' src={photoURL}>
-          {photoURL ? '' : displayName?.charAt(0)?.toUpperCase()}
-        </Avatar>
-        <Typography.Text className='author'>{displayName}</Typography.Text>
-        <Typography.Text className='date'>
-          {formatDate(createdAt?.seconds)}
-        </Typography.Text>
-      </div>
-      <div>
-        <Typography.Text className='content'>{text}</Typography.Text>
+    <WrapperStyled isOwn={isOwn}>
+      <Avatar size='small' src={photoURL}>
+        {photoURL ? '' : displayName?.charAt(0)?.toUpperCase()}
+      </Avatar>
+      <div className='message-container'>
+        <div className='message-header'>
+          <Typography.Text className='author'>{displayName}</Typography.Text>
+          <Typography.Text className='date'>
+            {formatDate(createdAt?.seconds)}
+          </Typography.Text>
+        </div>
+        <div className='content'>
+          <Typography.Text style={{ color: 'inherit' }}>{text}</Typography.Text>
+        </div>
       </div>
     </WrapperStyled>
   );

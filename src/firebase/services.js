@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from './config';
 
 export const addDocument = (collectionName, data) => {
@@ -103,6 +103,74 @@ export const dissolveRoom = async (roomId) => {
     return true;
   } catch (error) {
     console.error('Error dissolving room:', error);
+    throw error;
+  }
+};
+
+// Vote management services
+export const createVote = async (voteData) => {
+  try {
+    const docRef = await addDoc(collection(db, 'votes'), {
+      ...voteData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      votes: {}, // Object to store user votes: { userId: optionIndex }
+      voteCounts: voteData.options.map(() => 0), // Array of vote counts for each option
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating vote:', error);
+    throw error;
+  }
+};
+
+export const castVote = async (voteId, userId, optionIndex) => {
+  const voteRef = doc(db, 'votes', voteId);
+  
+  try {
+    // Get current vote data
+    const voteDoc = await getDoc(voteRef);
+    if (!voteDoc.exists()) {
+      throw new Error('Vote not found');
+    }
+    
+    const voteData = voteDoc.data();
+    const currentVotes = voteData.votes || {};
+    const currentCounts = [...(voteData.voteCounts || [])];
+    
+    // Remove previous vote if exists
+    if (currentVotes[userId] !== undefined) {
+      const previousOption = currentVotes[userId];
+      currentCounts[previousOption] = Math.max(0, currentCounts[previousOption] - 1);
+    }
+    
+    // Add new vote
+    currentVotes[userId] = optionIndex;
+    currentCounts[optionIndex] = (currentCounts[optionIndex] || 0) + 1;
+    
+    await updateDoc(voteRef, {
+      votes: currentVotes,
+      voteCounts: currentCounts,
+      updatedAt: serverTimestamp(),
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error casting vote:', error);
+    throw error;
+  }
+};
+
+export const deleteVote = async (voteId) => {
+  const voteRef = doc(db, 'votes', voteId);
+  
+  try {
+    await updateDoc(voteRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error deleting vote:', error);
     throw error;
   }
 };

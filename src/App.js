@@ -7,6 +7,7 @@ import AppProvider from './Context/AppProvider';
 import AddRoomModal from './components/Modals/AddRoomModal';
 import InviteMemberModal from './components/Modals/InviteMemberModal';
 import CalendarModal from './components/Modals/CalendarModal';
+import VoteModal from './components/Modals/VoteModal';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <AddRoomModal />
           <InviteMemberModal />
           <CalendarModal />
+          <VoteModal />
         </AppProvider>
       </AuthProvider>
     </BrowserRouter>

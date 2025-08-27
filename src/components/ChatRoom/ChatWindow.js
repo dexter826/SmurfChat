@@ -1,9 +1,10 @@
-import { UserAddOutlined, DeleteOutlined, MoreOutlined, CalendarOutlined } from '@ant-design/icons';
+import { UserAddOutlined, DeleteOutlined, MoreOutlined, CalendarOutlined, BarChartOutlined } from '@ant-design/icons';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Button, Avatar, Form, Input, Alert, Dropdown, Menu, Popconfirm, Tooltip, message } from 'antd';
 import Message from './Message';
 import EventMessage from './EventMessage';
+import VoteMessage from './VoteMessage';
 import { AppContext } from '../../Context/AppProvider';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -74,8 +75,7 @@ const MessageListStyled = styled.div`
 `;
 
 export default function ChatWindow() {
-  const { selectedRoom, members, setIsInviteMemberVisible, selectedRoomId, setIsCalendarVisible } =
-    useContext(AppContext);
+  const { selectedRoom, members, setIsAddRoomVisible, setIsCalendarVisible, setIsVoteModalVisible } = useContext(AppContext);
   const {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
@@ -182,47 +182,50 @@ export default function ChatWindow() {
 
   const messages = useFirestore('messages', condition);
 
-  // Get events for this room to display in chat
-  const eventsCondition = React.useMemo(
-    () => ({
-      fieldName: 'roomId',
-      operator: '==',
-      compareValue: selectedRoom.id,
-    }),
-    [selectedRoom.id]
-  );
+  // Fetch events for this room
+  const eventsCondition = React.useMemo(() => ({
+    fieldName: 'roomId',
+    operator: '==',
+    compareValue: selectedRoom?.id,
+  }), [selectedRoom?.id]);
 
-  const roomEvents = useFirestore('events', eventsCondition);
+  const events = useFirestore('events', eventsCondition);
+
+  // Fetch votes for this room
+  const votesCondition = React.useMemo(() => ({
+    fieldName: 'roomId',
+    operator: '==',
+    compareValue: selectedRoom?.id,
+  }), [selectedRoom?.id]);
+
+  const allVotes = useFirestore('votes', votesCondition);
+  const votes = React.useMemo(() => {
+    return (allVotes || []).filter(vote => !vote.deleted);
+  }, [allVotes]);
 
   // Combine messages and events, then sort by timestamp
-  const chatItems = React.useMemo(() => {
-    const items = [];
-    
-    // Add regular messages
-    messages.forEach(message => {
-      items.push({
-        type: 'message',
-        data: message,
-        timestamp: message.createdAt
-      });
-    });
-    
-    // Add events that are not deleted
-    roomEvents.filter(event => !event.deleted).forEach(event => {
-      items.push({
-        type: 'event',
-        data: event,
-        timestamp: event.createdAt
-      });
-    });
-    
-    // Sort by timestamp
-    return items.sort((a, b) => {
-      const timeA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp);
-      const timeB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
-      return timeA - timeB;
-    });
-  }, [messages, roomEvents]);
+  const combinedMessages = React.useMemo(() => {
+    const messageItems = (messages || []).map(msg => ({
+      ...msg,
+      type: 'message',
+      timestamp: msg.createdAt?.toDate?.() || new Date()
+    }));
+
+    const eventItems = (events || []).map(event => ({
+      ...event,
+      type: 'event',
+      timestamp: event.createdAt?.toDate?.() || new Date()
+    }));
+
+    const voteItems = (votes || []).map(vote => ({
+      ...vote,
+      type: 'vote',
+      timestamp: vote.createdAt?.toDate?.() || new Date()
+    }));
+
+    return [...messageItems, ...eventItems, ...voteItems]
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [messages, events, votes]);
 
   useEffect(() => {
     // scroll to bottom after chat items changed
@@ -230,11 +233,11 @@ export default function ChatWindow() {
       messageListRef.current.scrollTop =
         messageListRef.current.scrollHeight + 50;
     }
-  }, [chatItems]);
+  }, [combinedMessages]);
 
   const handleRemoveMember = async (memberIdToRemove) => {
-    if (selectedRoomId) {
-      const roomRef = doc(db, 'rooms', selectedRoomId);
+    if (selectedRoom.id) {
+      const roomRef = doc(db, 'rooms', selectedRoom.id);
 
       // Get the current members array and filter out the member to be removed
       const updatedMembers = selectedRoom.members.filter(
@@ -293,19 +296,24 @@ export default function ChatWindow() {
               </span>
             </div>
             <ButtonGroupStyled>
-              <Tooltip title="Xem lịch phòng">
-                <Button
+              <Tooltip title="Mở lịch">
+                <Button 
+                  type="text" 
                   icon={<CalendarOutlined />}
-                  type='text'
                   onClick={() => setIsCalendarVisible(true)}
-                >
-                  Lịch
-                </Button>
+                />
+              </Tooltip>
+              <Tooltip title="Tạo vote">
+                <Button 
+                  type="text" 
+                  icon={<BarChartOutlined />}
+                  onClick={() => setIsVoteModalVisible(true)}
+                />
               </Tooltip>
               <Button
                 icon={<UserAddOutlined />}
                 type='text'
-                onClick={() => setIsInviteMemberVisible(true)}
+                onClick={() => setIsAddRoomVisible(true)}
               >
                 Mời
               </Button>
@@ -332,26 +340,27 @@ export default function ChatWindow() {
           </HeaderStyled>
           <ContentStyled>
             <MessageListStyled ref={messageListRef}>
-              {chatItems.map((item) => {
-                if (item.type === 'message') {
+              {combinedMessages.map((item) => {
+                if (item.type === 'event') {
+                  return (
+                    <EventMessage key={item.id} event={item} />
+                  );
+                } else if (item.type === 'vote') {
+                  return (
+                    <VoteMessage key={item.id} vote={item} />
+                  );
+                } else {
                   return (
                     <Message
-                      key={item.data.id}
-                      text={item.data.text}
-                      photoURL={item.data.photoURL}
-                      displayName={item.data.displayName}
-                      createdAt={item.data.createdAt}
-                    />
-                  );
-                } else if (item.type === 'event') {
-                  return (
-                    <EventMessage
-                      key={item.data.id}
-                      event={item.data}
+                      key={item.id}
+                      text={item.text}
+                      photoURL={item.photoURL}
+                      displayName={item.displayName}
+                      createdAt={item.createdAt}
+                      uid={item.uid}
                     />
                   );
                 }
-                return null;
               })}
             </MessageListStyled>
             <FormStyled form={form}>
