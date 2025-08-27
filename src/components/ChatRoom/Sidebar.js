@@ -11,7 +11,7 @@ import styled from 'styled-components';
 
 const SidebarStyled = styled.div`
   background: ${props => props.theme.colors.sidebar};
-  color: ${props => props.theme.colors.text};
+  color: ${props => props.theme.colors.sidebarText};
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -54,15 +54,15 @@ const ActionButtonsStyled = styled.div`
   
   .logout-button {
     background: transparent;
-    border: 1px solid ${props => props.theme.colors.border};
-    color: ${props => props.theme.colors.text};
+    border: 1px solid ${props => props.theme.colors.borderLight};
+    color: ${props => props.theme.colors.sidebarText};
     border-radius: 6px;
     font-weight: 500;
     transition: all 0.2s ease;
     
     &:hover {
-      background: #ff4d4f;
-      border-color: #ff4d4f;
+      background: ${props => props.theme.colors.error};
+      border-color: ${props => props.theme.colors.error};
       color: white;
     }
   }

@@ -53,13 +53,13 @@ const ChatItemStyled = styled.div`
   
   .chat-info {
     flex: 1;
-    color: ${props => props.theme.colors.text};
+    color: ${props => props.theme.colors.sidebarText};
   }
   
   .chat-name {
     font-weight: ${props => props.hasUnread ? 'bold' : '500'};
     margin: 0;
-    color: ${props => props.hasUnread ? props.theme.colors.unread : props.theme.colors.text};
+    color: ${props => props.hasUnread ? props.theme.colors.unread : props.theme.colors.sidebarText};
   }
   
   .chat-description {
@@ -69,7 +69,7 @@ const ChatItemStyled = styled.div`
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: ${props => props.hasUnread ? 'bold' : 'normal'};
-    color: ${props => props.hasUnread ? props.theme.colors.unread : props.theme.colors.textSecondary};
+    color: ${props => props.hasUnread ? props.theme.colors.unread : props.theme.colors.textMuted};
   }
   
   .chat-type-badge {
@@ -92,7 +92,7 @@ const ChatItemStyled = styled.div`
     .ant-btn {
       background: ${props => props.theme.colors.surface};
       border: 1px solid ${props => props.theme.colors.border};
-      color: ${props => props.theme.colors.text};
+      color: ${props => props.theme.colors.sidebarText};
       
       &:hover {
         background: ${props => props.theme.colors.primary};
@@ -215,7 +215,7 @@ export default function UnifiedChatList() {
 
   return (
     <div style={{ padding: '16px 0' }}>
-      <h4 style={{ color: 'white', margin: '0 0 16px 16px', fontSize: '14px', fontWeight: 'bold' }}>
+      <h4 style={{ color: theme.colors.sidebarText, margin: '0 0 16px 16px', fontSize: '14px', fontWeight: 'bold' }}>
         Cuộc trò chuyện
       </h4>
       <div>

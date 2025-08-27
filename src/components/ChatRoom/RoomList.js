@@ -3,6 +3,7 @@ import { Avatar, Upload, message } from 'antd';
 import { CameraOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { AppContext } from '../../Context/AppProvider';
+import { useTheme } from '../../Context/ThemeProvider';
 import { updateRoomAvatar } from '../../firebase/services';
 
 
@@ -46,13 +47,14 @@ const RoomItemStyled = styled.div`
   
   .room-name {
     flex: 1;
-    color: white;
+    color: ${props => props.theme.colors.sidebarText};
     font-weight: 500;
   }
 `;
 
 export default function RoomList() {
   const { rooms, setSelectedRoomId } = React.useContext(AppContext);
+  const theme = useTheme();
 
   const handleAvatarUpload = async (file, roomId) => {
     try {
@@ -76,10 +78,10 @@ export default function RoomList() {
 
   return (
     <div style={{ padding: '16px 0' }}>
-      <h4 style={{ color: 'white', margin: '0 0 16px 16px', fontSize: '14px', fontWeight: 'bold' }}>Danh sách các phòng</h4>
+      <h4 style={{ color: theme.colors.sidebarText, margin: '0 0 16px 16px', fontSize: '14px', fontWeight: 'bold' }}>Danh sách các phòng</h4>
       <div style={{ padding: '0 16px' }}>
         {rooms.map((room) => (
-          <RoomItemStyled key={room.id} onClick={() => setSelectedRoomId(room.id)}>
+          <RoomItemStyled key={room.id} onClick={() => setSelectedRoomId(room.id)} theme={theme}>
             <div className="room-avatar">
               <Avatar 
                 size={40}

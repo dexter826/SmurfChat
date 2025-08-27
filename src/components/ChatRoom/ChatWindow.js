@@ -9,6 +9,7 @@ import RoomInfoModal from './RoomInfoModal';
 import { AppContext } from '../../Context/AppProvider';
 import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, dissolveRoom } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
+import { useTheme } from '../../Context/ThemeProvider';
 import useFirestore from '../../hooks/useFirestore';
 
 const HeaderStyled = styled.div`
@@ -78,7 +79,7 @@ const WelcomeScreenStyled = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: ${props => props.theme.colors.backgroundGradient};
   
   .welcome-content {
     text-align: center;
@@ -89,38 +90,18 @@ const WelcomeScreenStyled = styled.div`
   .welcome-title {
     font-size: 32px;
     font-weight: bold;
-    color: #1890ff;
+    color: ${props => props.theme.colors.primary};
     margin-bottom: 16px;
   }
   
   .welcome-subtitle {
     font-size: 16px;
-    color: #666;
+    color: ${props => props.theme.colors.textSecondary};
     margin-bottom: 32px;
   }
   
   .welcome-image {
     margin-bottom: 32px;
-  }
-  
-  .welcome-features {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .feature-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    
-    .feature-icon {
-      font-size: 24px;
-    }
   }
 `;
 
@@ -136,6 +117,7 @@ export default function ChatWindow() {
   const {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
+  const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
   const [form] = Form.useForm();
   const inputRef = useRef(null);
@@ -454,30 +436,16 @@ export default function ChatWindow() {
           </ContentStyled>
         </>
       ) : (
-        <WelcomeScreenStyled>
+        <WelcomeScreenStyled theme={theme}>
           <div className="welcome-content">
             <h1 className="welcome-title">Chào mừng đến với SmurfChat! 👋</h1>
             <p className="welcome-subtitle">Chọn một cuộc trò chuyện hoặc phòng để bắt đầu nhắn tin</p>
             <div className="welcome-image">
-              <img 
-                src="https://via.placeholder.com/300x200/1890ff/ffffff?text=SmurfChat" 
+            <img 
+                src="/welcome.png" 
                 alt="SmurfChat Welcome"
-                style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                style={{ borderRadius: '12px', maxWidth: '200px', height: 'auto' }}
               />
-            </div>
-            <div className="welcome-features">
-              <div className="feature-item">
-                <span className="feature-icon">💬</span>
-                <span>Trò chuyện nhóm và cá nhân</span>
-              </div>
-              <div className="feature-item">
-                <span className="feature-icon">📅</span>
-                <span>Tạo sự kiện và lịch hẹn</span>
-              </div>
-              <div className="feature-item">
-                <span className="feature-icon">🗳️</span>
-                <span>Tạo vote và thăm dò ý kiến</span>
-              </div>
             </div>
           </div>
         </WelcomeScreenStyled>

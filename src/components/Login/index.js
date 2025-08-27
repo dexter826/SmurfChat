@@ -1,20 +1,67 @@
 import React, { useState } from 'react';
-import { Row, Col, Button, Typography, Form, Input, Alert, Divider } from 'antd';
+import { Button, Typography, Form, Input, Alert, Divider } from 'antd';
 import { GoogleOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
 import { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase/config';
 import { generateKeywords, loginWithEmailAndPassword } from '../../firebase/services';
+import { useTheme } from '../../Context/ThemeProvider';
+import styled from 'styled-components';
 import Register from './Register';
 
 const { Title, Text } = Typography;
 
 const googleProvider = new GoogleAuthProvider();
 
+const LoginContainerStyled = styled.div`
+  min-height: 100vh;
+  background: ${props => props.theme.colors.backgroundGradient};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+`;
+
+const LoginCardStyled = styled.div`
+  background: ${props => props.theme.colors.surfaceElevated};
+  border-radius: 12px;
+  box-shadow: ${props => props.theme.colors.shadowElevated};
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid ${props => props.theme.colors.borderLight};
+  
+  .login-title {
+    color: ${props => props.theme.colors.primary} !important;
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: bold;
+  }
+  
+  .ant-form-item-label > label {
+    color: ${props => props.theme.colors.text};
+  }
+  
+  .ant-input, .ant-input-password {
+    background: ${props => props.theme.colors.surface};
+    border-color: ${props => props.theme.colors.border};
+    color: ${props => props.theme.colors.text};
+    
+    &:focus, &:hover {
+      border-color: ${props => props.theme.colors.primary};
+    }
+  }
+  
+  .ant-input-prefix {
+    color: ${props => props.theme.colors.textSecondary};
+  }
+`;
+
 export default function Login() {
   const [showRegister, setShowRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const theme = useTheme();
 
   const handleGoogleLogin = async () => {
     try {
@@ -84,13 +131,11 @@ export default function Login() {
   }
 
   return (
-    <div>
-      <Row justify='center' style={{ height: '100vh', alignItems: 'center' }}>
-        <Col xs={20} sm={16} md={12} lg={8} xl={6}>
-          <div style={{ padding: '20px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <Title style={{ textAlign: 'center', marginBottom: 30 }} level={3}>
-              Đăng nhập SmurfChat
-            </Title>
+    <LoginContainerStyled theme={theme}>
+      <LoginCardStyled theme={theme}>
+        <Title className="login-title" level={3}>
+          Đăng nhập SmurfChat
+        </Title>
             
             {error && (
               <Alert
@@ -164,9 +209,7 @@ export default function Login() {
                 </Button>
               </Text>
             </div>
-          </div>
-        </Col>
-      </Row>
-    </div>
+      </LoginCardStyled>
+    </LoginContainerStyled>
   );
 }

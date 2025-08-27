@@ -26,7 +26,7 @@ const WrapperStyled = styled.div`
   }
 
   .username {
-    color: ${props => props.theme.colors.text};
+    color: ${props => props.theme.colors.sidebarText};
     margin-left: 12px;
     font-weight: 500;
     font-size: 14px;
@@ -38,8 +38,8 @@ const WrapperStyled = styled.div`
     align-items: center;
     
     .ant-btn {
-      color: ${props => props.theme.colors.text};
-      border: 1px solid ${props => props.theme.colors.border};
+      color: ${props => props.theme.colors.sidebarText};
+      border: 1px solid ${props => props.theme.colors.borderLight};
       background: transparent;
       border-radius: 6px;
       transition: all 0.2s ease;
@@ -47,7 +47,7 @@ const WrapperStyled = styled.div`
       &:hover {
         color: ${props => props.theme.colors.primary};
         border-color: ${props => props.theme.colors.primary};
-        background: ${props => props.theme.colors.surface};
+        background: ${props => props.theme.colors.surfaceElevated};
       }
     }
     

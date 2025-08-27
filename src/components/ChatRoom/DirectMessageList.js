@@ -3,6 +3,7 @@ import { Avatar } from 'antd';
 import styled from 'styled-components';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
+import { useTheme } from '../../Context/ThemeProvider';
 import useFirestore from '../../hooks/useFirestore';
 
 
@@ -44,6 +45,7 @@ const ConversationItemStyled = styled.div`
 export default function DirectMessageList() {
   const { setSelectedConversationId, selectedConversationId, conversations } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  const theme = useTheme();
 
   // Get all users for search functionality
   const allUsersCondition = React.useMemo(() => ({
@@ -63,7 +65,7 @@ export default function DirectMessageList() {
 
   return (
     <div style={{ padding: '16px 0' }}>
-      <h4 style={{ color: 'white', margin: '0 0 16px 16px', fontSize: '14px', fontWeight: 'bold' }}>Tin nhắn trực tiếp</h4>
+      <h4 style={{ color: theme.colors.sidebarText, margin: '0 0 16px 16px', fontSize: '14px', fontWeight: 'bold' }}>Tin nhắn trực tiếp</h4>
       <div style={{ padding: '0 16px' }}>
         {conversations.map((conversation) => {
           const otherUser = getOtherParticipant(conversation);

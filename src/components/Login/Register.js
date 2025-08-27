@@ -2,12 +2,59 @@ import React, { useState } from 'react';
 import { Form, Input, Button, Typography, Alert, Divider } from 'antd';
 import { UserOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
 import { registerWithEmailAndPassword } from '../../firebase/services';
+import { useTheme } from '../../Context/ThemeProvider';
+import styled from 'styled-components';
 
 const { Title, Text } = Typography;
+
+const RegisterContainerStyled = styled.div`
+  min-height: 100vh;
+  background: ${props => props.theme.colors.backgroundGradient};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+`;
+
+const RegisterCardStyled = styled.div`
+  background: ${props => props.theme.colors.surfaceElevated};
+  border-radius: 12px;
+  box-shadow: ${props => props.theme.colors.shadowElevated};
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid ${props => props.theme.colors.borderLight};
+  
+  .register-title {
+    color: ${props => props.theme.colors.primary} !important;
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: bold;
+  }
+  
+  .ant-form-item-label > label {
+    color: ${props => props.theme.colors.text};
+  }
+  
+  .ant-input, .ant-input-password {
+    background: ${props => props.theme.colors.surface};
+    border-color: ${props => props.theme.colors.border};
+    color: ${props => props.theme.colors.text};
+    
+    &:focus, &:hover {
+      border-color: ${props => props.theme.colors.primary};
+    }
+  }
+  
+  .ant-input-prefix {
+    color: ${props => props.theme.colors.textSecondary};
+  }
+`;
 
 export default function Register({ onSwitchToLogin }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const theme = useTheme();
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -37,10 +84,11 @@ export default function Register({ onSwitchToLogin }) {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '0 auto', padding: '20px' }}>
-      <Title level={3} style={{ textAlign: 'center', marginBottom: 30 }}>
-        Đăng ký tài khoản
-      </Title>
+    <RegisterContainerStyled theme={theme}>
+      <RegisterCardStyled theme={theme}>
+        <Title className="register-title" level={3}>
+          Đăng ký tài khoản
+        </Title>
       
       {error && (
         <Alert
@@ -140,6 +188,7 @@ export default function Register({ onSwitchToLogin }) {
           </Button>
         </Text>
       </div>
-    </div>
+      </RegisterCardStyled>
+    </RegisterContainerStyled>
   );
 }

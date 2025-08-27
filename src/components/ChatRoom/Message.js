@@ -3,6 +3,7 @@ import { Avatar, Typography } from 'antd';
 import styled from 'styled-components';
 import { formatRelative } from 'date-fns/esm';
 import { AuthContext } from '../../Context/AuthProvider';
+import { useTheme } from '../../Context/ThemeProvider';
 
 const WrapperStyled = styled.div`
   margin-bottom: 10px;
@@ -28,21 +29,23 @@ const WrapperStyled = styled.div`
     margin: ${props => props.isOwn ? '0 0 0 5px' : '0 5px 0 0'};
     font-weight: bold;
     font-size: 12px;
+    color: ${props => props.theme.colors.text};
   }
 
   .date {
     font-size: 10px;
-    color: #a7a7a7;
+    color: ${props => props.theme.colors.textMuted};
   }
 
   .content {
-    background: ${props => props.isOwn ? '#1890ff' : '#f0f0f0'};
-    color: ${props => props.isOwn ? 'white' : 'black'};
+    background: ${props => props.isOwn ? props.theme.colors.primary : props.theme.colors.surface};
+    color: ${props => props.isOwn ? 'white' : props.theme.colors.text};
     padding: 8px 12px;
     border-radius: 18px;
     ${props => props.isOwn ? 'border-top-right-radius: 4px;' : 'border-top-left-radius: 4px;'}
     word-wrap: break-word;
     max-width: 100%;
+    border: 1px solid ${props => props.isOwn ? props.theme.colors.primary : props.theme.colors.border};
   }
 `;
 
@@ -61,9 +64,10 @@ function formatDate(seconds) {
 
 export default function Message({ text, displayName, createdAt, photoURL, uid }) {
   const { user } = React.useContext(AuthContext);
+  const theme = useTheme();
   const isOwn = uid === user?.uid;
   return (
-    <WrapperStyled isOwn={isOwn}>
+    <WrapperStyled isOwn={isOwn} theme={theme}>
       <Avatar size='small' src={photoURL}>
         {photoURL ? '' : displayName?.charAt(0)?.toUpperCase()}
       </Avatar>
