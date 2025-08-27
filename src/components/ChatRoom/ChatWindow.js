@@ -1,9 +1,11 @@
-import { UserAddOutlined } from '@ant-design/icons';
+import { UserAddOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Button, Tooltip, Avatar, Form, Input, Alert } from 'antd';
+import { Button, Avatar, Form, Input, Alert, Dropdown, Menu, Popconfirm } from 'antd';
 import Message from './Message';
 import { AppContext } from '../../Context/AppProvider';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 import { addDocument } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
 import useFirestore from '../../hooks/useFirestore';
@@ -71,7 +73,7 @@ const MessageListStyled = styled.div`
 `;
 
 export default function ChatWindow() {
-  const { selectedRoom, members, setIsInviteMemberVisible } =
+  const { selectedRoom, members, setIsInviteMemberVisible, selectedRoomId } =
     useContext(AppContext);
   const {
     user: { uid, photoURL, displayName },
@@ -123,6 +125,55 @@ export default function ChatWindow() {
     }
   }, [messages]);
 
+  const handleRemoveMember = async (memberIdToRemove) => {
+    if (selectedRoomId) {
+      const roomRef = doc(db, 'rooms', selectedRoomId);
+
+      // Get the current members array and filter out the member to be removed
+      const updatedMembers = selectedRoom.members.filter(
+        (memberUid) => memberUid !== memberIdToRemove
+      );
+
+      // Update the document in Firestore
+      await updateDoc(roomRef, {
+        members: updatedMembers,
+      });
+    }
+  };
+
+  const isAdmin = selectedRoom.admin === uid;
+
+  const membersMenu = (
+    <Menu>
+      {members.map((member) => (
+        <Menu.Item key={member.uid}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Avatar size='small' src={member.photoURL}>
+                {member.photoURL ? '' : member.displayName?.charAt(0)?.toUpperCase()}
+              </Avatar>
+              {` ${member.displayName}`}
+            </div>
+            {isAdmin && member.uid !== uid && (
+              <Popconfirm
+                title="Bạn chắc chắn muốn xóa thành viên này?"
+                onConfirm={() => handleRemoveMember(member.uid)}
+                okText="Xóa"
+                cancelText="Hủy"
+              >
+                <Button
+                  type="text"
+                  danger
+                  icon={<DeleteOutlined />}
+                />
+              </Popconfirm>
+            )}
+          </div>
+        </Menu.Item>
+      ))}
+    </Menu>
+  );
+
   return (
     <WrapperStyled>
       {selectedRoom.id ? (
@@ -142,17 +193,11 @@ export default function ChatWindow() {
               >
                 Mời
               </Button>
-              <Avatar.Group size='small' maxCount={2}>
-                {members.map((member) => (
-                  <Tooltip title={member.displayName} key={member.id}>
-                    <Avatar src={member.photoURL}>
-                      {member.photoURL
-                        ? ''
-                        : member.displayName?.charAt(0)?.toUpperCase()}
-                    </Avatar>
-                  </Tooltip>
-                ))}
-              </Avatar.Group>
+              <Dropdown overlay={membersMenu} trigger={['click']}>
+                <Button icon={<MoreOutlined />} type='text'>
+                  Thành viên ({members.length})
+                </Button>
+              </Dropdown>
             </ButtonGroupStyled>
           </HeaderStyled>
           <ContentStyled>
