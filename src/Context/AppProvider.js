@@ -193,6 +193,7 @@ export default function AppProvider({ children }) {
         isVoteModalVisible,
         setIsVoteModalVisible,
         userEvents,
+        allUsers,
         clearState,
         selectRoom,
         selectConversation,

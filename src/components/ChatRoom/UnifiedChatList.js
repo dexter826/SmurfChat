@@ -4,6 +4,7 @@ import { MoreOutlined, PushpinOutlined, DeleteOutlined } from '@ant-design/icons
 import styled from 'styled-components';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
+import { useTheme } from '../../Context/ThemeProvider';
 import useFirestore from '../../hooks/useFirestore';
 import { deleteConversation, togglePinChat, dissolveRoom } from '../../firebase/services';
 
@@ -14,11 +15,11 @@ const ChatItemStyled = styled.div`
   cursor: pointer;
   border-radius: 6px;
   transition: background-color 0.2s;
-  background-color: ${props => props.selected ? 'rgba(255, 255, 255, 0.2)' : 'transparent'};
+  background-color: ${props => props.selected ? props.theme.colors.sidebarHover : 'transparent'};
   position: relative;
   
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: ${props => props.theme.colors.sidebarHover};
     
     .chat-menu {
       opacity: 1;
@@ -52,27 +53,29 @@ const ChatItemStyled = styled.div`
   
   .chat-info {
     flex: 1;
-    color: white;
+    color: ${props => props.theme.colors.text};
   }
   
   .chat-name {
     font-weight: ${props => props.hasUnread ? 'bold' : '500'};
     margin: 0;
+    color: ${props => props.hasUnread ? props.theme.colors.unread : props.theme.colors.text};
   }
   
   .chat-description {
     font-size: 12px;
-    opacity: 0.7;
     margin: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: ${props => props.hasUnread ? 'bold' : 'normal'};
+    color: ${props => props.hasUnread ? props.theme.colors.unread : props.theme.colors.textSecondary};
   }
   
   .chat-type-badge {
     font-size: 10px;
-    background: rgba(255, 255, 255, 0.2);
+    background: ${props => props.theme.colors.primary};
+    color: white;
     padding: 2px 6px;
     border-radius: 10px;
     margin-left: 8px;
@@ -87,12 +90,12 @@ const ChatItemStyled = styled.div`
     transition: opacity 0.2s;
     
     .ant-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
-      color: white;
+      background: ${props => props.theme.colors.surface};
+      border: 1px solid ${props => props.theme.colors.border};
+      color: ${props => props.theme.colors.text};
       
       &:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background: ${props => props.theme.colors.primary};
         color: white;
       }
     }
@@ -117,6 +120,7 @@ export default function UnifiedChatList() {
     selectConversation
   } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  const theme = useTheme();
 
   // Get all users for conversation lookup
   const allUsersCondition = React.useMemo(() => ({
@@ -237,6 +241,7 @@ export default function UnifiedChatList() {
               key={`${chat.type}-${chat.id}`}
               selected={chat.isSelected}
               hasUnread={chat.hasUnread}
+              theme={theme}
               onClick={(e) => {
                 // Prevent click when clicking on menu
                 if (e.target.closest('.chat-menu')) return;

@@ -5,21 +5,41 @@ import UserInfo from './UserInfo';
 import UnifiedChatList from './UnifiedChatList';
 import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
+import { useTheme } from '../../Context/ThemeProvider';
 import styled from 'styled-components';
 
 
 const SidebarStyled = styled.div`
-  background: #3f0e40;
-  color: white;
+  background: ${props => props.theme.colors.sidebar};
+  color: ${props => props.theme.colors.text};
   height: 100vh;
   display: flex;
   flex-direction: column;
   position: relative;
+  border-right: 1px solid ${props => props.theme.colors.border};
   
   .chat-lists {
     flex: 1;
-    padding: 16px 0;
+    padding: 8px 0;
     overflow-y: auto;
+    
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: ${props => props.theme.colors.surface};
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: ${props => props.theme.colors.border};
+      border-radius: 3px;
+      
+      &:hover {
+        background: ${props => props.theme.colors.primary};
+      }
+    }
   }
 `;
 
@@ -29,16 +49,20 @@ const ActionButtonsStyled = styled.div`
   left: 0;
   right: 0;
   padding: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: #3f0e40;
+  background: ${props => props.theme.colors.sidebar};
+  border-top: 1px solid ${props => props.theme.colors.border};
   
   .logout-button {
-    background: rgba(255, 77, 79, 0.1);
-    border-color: #ff4d4f;
-    color: #ff4d4f;
+    background: transparent;
+    border: 1px solid ${props => props.theme.colors.border};
+    color: ${props => props.theme.colors.text};
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
     
     &:hover {
       background: #ff4d4f;
+      border-color: #ff4d4f;
       color: white;
     }
   }
@@ -47,6 +71,7 @@ const ActionButtonsStyled = styled.div`
 export default function Sidebar() {
   const { logout } = useContext(AuthContext);
   const { clearState } = useContext(AppContext);
+  const theme = useTheme();
 
   const handleLogout = async () => {
     await logout();
@@ -54,7 +79,7 @@ export default function Sidebar() {
   };
 
   return (
-    <SidebarStyled>
+    <SidebarStyled theme={theme}>
       <Row>
         <Col span={24}>
           <UserInfo />
@@ -65,12 +90,11 @@ export default function Sidebar() {
           </div>
         </Col>
       </Row>
-      <ActionButtonsStyled>
+      <ActionButtonsStyled theme={theme}>
         <Button 
           className="logout-button"
           icon={<LogoutOutlined />}
           onClick={handleLogout}
-          ghost
           style={{ width: '100%' }}
         >
           Đăng xuất
