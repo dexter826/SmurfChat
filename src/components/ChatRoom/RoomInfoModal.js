@@ -139,9 +139,9 @@ export default function RoomInfoModal({ visible, onClose, room }) {
   const handleRemoveMember = async (memberIdToRemove) => {
     if (room.id) {
       const roomRef = doc(db, 'rooms', room.id);
-      const updatedMembers = room.members.filter(
+      const updatedMembers = room?.members?.filter(
         (memberUid) => memberUid !== memberIdToRemove
-      );
+      ) || [];
 
       await updateDoc(roomRef, {
         members: updatedMembers,
@@ -165,7 +165,7 @@ export default function RoomInfoModal({ visible, onClose, room }) {
 
   const handleLeaveRoom = async () => {
     try {
-      if (isCurrentUserAdmin && room.members.length > 1) {
+      if (isCurrentUserAdmin && room?.members?.length > 1) {
         // Admin cần chọn người kế nhiệm
         if (!selectedNewAdmin) {
           message.error('Vui lòng chọn admin mới trước khi rời nhóm!');
@@ -184,7 +184,7 @@ export default function RoomInfoModal({ visible, onClose, room }) {
     }
   };
 
-  const availableAdmins = members.filter(member => member.uid !== user.uid);
+  const availableAdmins = members?.filter(member => member.uid !== user.uid) || [];
 
   return (
     <Modal
@@ -258,7 +258,7 @@ export default function RoomInfoModal({ visible, onClose, room }) {
         </div>
 
         <div className="actions-section">
-          {isCurrentUserAdmin && room.members.length > 1 && (
+          {isCurrentUserAdmin && room?.members?.length > 1 && (
             <div className="admin-transfer">
               <div className="transfer-label">
                 Chọn admin mới trước khi rời nhóm:

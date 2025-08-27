@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase/config';
+import { logoutUser } from '../firebase/services';
 import { Spin } from 'antd';
 
 export const AuthContext = React.createContext();
@@ -38,8 +39,12 @@ export default function AuthProvider({ children }) {
     };
   }, [history]);
 
+  const handleLogout = async () => {
+    await logoutUser();
+  };
+
   return (
-    <AuthContext.Provider value={{ user }}>
+    <AuthContext.Provider value={{ user, logout: handleLogout }}>
       {isLoading ? <Spin style={{ position: 'fixed', inset: 0 }} /> : children}
     </AuthContext.Provider>
   );

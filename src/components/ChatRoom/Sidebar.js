@@ -4,6 +4,7 @@ import { LogoutOutlined } from '@ant-design/icons';
 import UserInfo from './UserInfo';
 import UnifiedChatList from './UnifiedChatList';
 import { AuthContext } from '../../Context/AuthProvider';
+import { AppContext } from '../../Context/AppProvider';
 import styled from 'styled-components';
 
 
@@ -44,10 +45,11 @@ const ActionButtonsStyled = styled.div`
 `;
 
 export default function Sidebar() {
-  const { clearState } = useContext(AuthContext);
+  const { logout } = useContext(AuthContext);
+  const { clearState } = useContext(AppContext);
 
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     clearState();
   };
 
