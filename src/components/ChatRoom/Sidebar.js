@@ -1,10 +1,9 @@
 import React, { useContext } from 'react';
 import { Row, Col, Tabs } from 'antd';
-import { MessageOutlined, TeamOutlined, CalendarOutlined } from '@ant-design/icons';
+import { MessageOutlined, TeamOutlined } from '@ant-design/icons';
 import UserInfo from './UserInfo';
 import RoomList from './RoomList';
 import DirectMessageList from './DirectMessageList';
-import EventList from './EventList';
 import { AppContext } from '../../Context/AppProvider';
 import styled from 'styled-components';
 
@@ -82,17 +81,6 @@ export default function Sidebar() {
               key="direct"
             >
               <DirectMessageList />
-            </TabPane>
-            <TabPane 
-              tab={
-                <span>
-                  <CalendarOutlined />
-                  Sự kiện
-                </span>
-              } 
-              key="events"
-            >
-              <EventList />
             </TabPane>
           </Tabs>
         </Col>

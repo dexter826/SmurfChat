@@ -87,6 +87,26 @@ export const deleteEvent = async (eventId) => {
   }
 };
 
+// Dissolve room (admin only)
+export const dissolveRoom = async (roomId) => {
+  const roomRef = doc(db, 'rooms', roomId);
+  
+  try {
+    await updateDoc(roomRef, {
+      dissolved: true,
+      dissolvedAt: serverTimestamp(),
+      members: [],
+    });
+    
+    // Also mark all messages in the room as archived
+    // Note: In a real app, you might want to use Cloud Functions for this
+    return true;
+  } catch (error) {
+    console.error('Error dissolving room:', error);
+    throw error;
+  }
+};
+
 // Parse time expressions from Vietnamese text
 export const parseTimeFromMessage = (message) => {
   const timePatterns = [

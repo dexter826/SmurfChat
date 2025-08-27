@@ -3,10 +3,11 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Button, Avatar, Form, Input, Alert, Dropdown, Menu, Popconfirm, Tooltip, message } from 'antd';
 import Message from './Message';
+import EventMessage from './EventMessage';
 import { AppContext } from '../../Context/AppProvider';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent } from '../../firebase/services';
+import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, dissolveRoom } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
 import useFirestore from '../../hooks/useFirestore';
 
@@ -156,6 +157,20 @@ export default function ChatWindow() {
     }
   };
 
+  const handleDissolveRoom = async () => {
+    try {
+      await dissolveRoom(selectedRoom.id);
+      message.success('Nhóm đã được giải tán thành công!');
+      // Clear selected room after dissolving
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error('Error dissolving room:', error);
+      message.error('Có lỗi xảy ra khi giải tán nhóm!');
+    }
+  };
+
   const condition = React.useMemo(
     () => ({
       fieldName: 'roomId',
@@ -167,13 +182,55 @@ export default function ChatWindow() {
 
   const messages = useFirestore('messages', condition);
 
+  // Get events for this room to display in chat
+  const eventsCondition = React.useMemo(
+    () => ({
+      fieldName: 'roomId',
+      operator: '==',
+      compareValue: selectedRoom.id,
+    }),
+    [selectedRoom.id]
+  );
+
+  const roomEvents = useFirestore('events', eventsCondition);
+
+  // Combine messages and events, then sort by timestamp
+  const chatItems = React.useMemo(() => {
+    const items = [];
+    
+    // Add regular messages
+    messages.forEach(message => {
+      items.push({
+        type: 'message',
+        data: message,
+        timestamp: message.createdAt
+      });
+    });
+    
+    // Add events that are not deleted
+    roomEvents.filter(event => !event.deleted).forEach(event => {
+      items.push({
+        type: 'event',
+        data: event,
+        timestamp: event.createdAt
+      });
+    });
+    
+    // Sort by timestamp
+    return items.sort((a, b) => {
+      const timeA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp);
+      const timeB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
+      return timeA - timeB;
+    });
+  }, [messages, roomEvents]);
+
   useEffect(() => {
-    // scroll to bottom after message changed
+    // scroll to bottom after chat items changed
     if (messageListRef?.current) {
       messageListRef.current.scrollTop =
         messageListRef.current.scrollHeight + 50;
     }
-  }, [messages]);
+  }, [chatItems]);
 
   const handleRemoveMember = async (memberIdToRemove) => {
     if (selectedRoomId) {
@@ -257,19 +314,45 @@ export default function ChatWindow() {
                   Thành viên ({members.length})
                 </Button>
               </Dropdown>
+              {isAdmin && (
+                <Popconfirm
+                  title="Bạn có chắc chắn muốn giải tán nhóm này?"
+                  description="Hành động này không thể hoàn tác!"
+                  onConfirm={handleDissolveRoom}
+                  okText="Giải tán"
+                  cancelText="Hủy"
+                  okType="danger"
+                >
+                  <Button type='text' danger>
+                    Giải tán nhóm
+                  </Button>
+                </Popconfirm>
+              )}
             </ButtonGroupStyled>
           </HeaderStyled>
           <ContentStyled>
             <MessageListStyled ref={messageListRef}>
-              {messages.map((mes) => (
-                <Message
-                  key={mes.id}
-                  text={mes.text}
-                  photoURL={mes.photoURL}
-                  displayName={mes.displayName}
-                  createdAt={mes.createdAt}
-                />
-              ))}
+              {chatItems.map((item) => {
+                if (item.type === 'message') {
+                  return (
+                    <Message
+                      key={item.data.id}
+                      text={item.data.text}
+                      photoURL={item.data.photoURL}
+                      displayName={item.data.displayName}
+                      createdAt={item.data.createdAt}
+                    />
+                  );
+                } else if (item.type === 'event') {
+                  return (
+                    <EventMessage
+                      key={item.data.id}
+                      event={item.data}
+                    />
+                  );
+                }
+                return null;
+              })}
             </MessageListStyled>
             <FormStyled form={form}>
               <Form.Item name='message'>
