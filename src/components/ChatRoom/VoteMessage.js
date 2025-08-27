@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
-import { Card, Button, Progress, Typography, Space, message, Popconfirm } from 'antd';
-import { CheckCircleOutlined, DeleteOutlined, BarChartOutlined } from '@ant-design/icons';
+import { Card, Button, Progress, Typography, Space, message, Popconfirm, Modal, Avatar, List } from 'antd';
+import { CheckCircleOutlined, DeleteOutlined, BarChartOutlined, UserOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { castVote, deleteVote } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
@@ -63,6 +63,8 @@ const VoteMessage = ({ vote }) => {
   const { user: { uid } } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState([]);
+  const [votersModalVisible, setVotersModalVisible] = useState(false);
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState(null);
   
   // Real-time vote data
   const voteCondition = React.useMemo(() => ({
@@ -87,32 +89,41 @@ const VoteMessage = ({ vote }) => {
   const isCreator = voteData.createdBy === uid;
   const totalVotes = Object.keys(voteData.votes || {}).length;
 
-  const handleOptionToggle = (optionIndex) => {
+  // Get all users for voter information
+  const allUsersCondition = React.useMemo(() => ({
+    fieldName: 'uid',
+    operator: 'in',
+    compareValue: Object.keys(voteData.votes || {}),
+  }), [voteData.votes]);
+
+  const allUsers = useFirestore('users', Object.keys(voteData.votes || {}).length > 0 ? allUsersCondition : null);
+
+  const handleOptionToggle = async (optionIndex) => {
     if (hasVoted || loading) return;
     
-    setSelectedOptions(prev => {
-      if (prev.includes(optionIndex)) {
-        return prev.filter(idx => idx !== optionIndex);
-      } else {
-        return [...prev, optionIndex];
-      }
-    });
-  };
-  
-  const handleSubmitVote = async () => {
-    if (hasVoted || loading || selectedOptions.length === 0) return;
+    const newSelectedOptions = selectedOptions.includes(optionIndex)
+      ? selectedOptions.filter(idx => idx !== optionIndex)
+      : [...selectedOptions, optionIndex];
     
-    try {
-      setLoading(true);
-      await castVote(voteData.id, uid, selectedOptions);
-      message.success('Đã vote thành công!');
-    } catch (error) {
-      console.error('Error voting:', error);
-      message.error('Có lỗi xảy ra khi vote');
-    } finally {
-      setLoading(false);
+    setSelectedOptions(newSelectedOptions);
+    
+    // Auto-save vote if there are selected options
+    if (newSelectedOptions.length > 0) {
+      try {
+        setLoading(true);
+        await castVote(voteData.id, uid, newSelectedOptions);
+        message.success('Đã vote thành công!');
+      } catch (error) {
+        console.error('Error voting:', error);
+        message.error('Có lỗi xảy ra khi vote');
+        // Revert selection on error
+        setSelectedOptions(selectedOptions);
+      } finally {
+        setLoading(false);
+      }
     }
   };
+  
 
   const handleDelete = async () => {
     try {
@@ -138,6 +149,29 @@ const VoteMessage = ({ vote }) => {
     if (totalVotes === 0) return 0;
     const count = getOptionVoteCount(optionIndex);
     return Math.round((count / totalVotes) * 100);
+  };
+
+  const getVotersForOption = (optionIndex) => {
+    if (!voteData.votes || !allUsers) return [];
+    
+    const voterIds = Object.entries(voteData.votes)
+      .filter(([, vote]) => {
+        if (Array.isArray(vote)) {
+          return vote.includes(optionIndex);
+        }
+        return vote === optionIndex;
+      })
+      .map(([userId]) => userId);
+    
+    return voterIds.map(userId => {
+      const user = allUsers.find(u => u.uid === userId);
+      return user || { uid: userId, displayName: 'Unknown User', photoURL: '' };
+    });
+  };
+
+  const handleShowVoters = (optionIndex) => {
+    setSelectedOptionIndex(optionIndex);
+    setVotersModalVisible(true);
   };
 
   return (
@@ -189,7 +223,11 @@ const VoteMessage = ({ vote }) => {
                 <Text>{option}</Text>
               </Space>
               {hasVoted && (
-                <Text type="secondary">
+                <Text 
+                  type="secondary" 
+                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => handleShowVoters(index)}
+                >
                   {getOptionVoteCount(index)} vote{getOptionVoteCount(index) !== 1 ? 's' : ''}
                 </Text>
               )}
@@ -218,23 +256,38 @@ const VoteMessage = ({ vote }) => {
       
       {!hasVoted && (
         <div className="vote-stats">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text type="secondary">
-              Chọn một hoặc nhiều lựa chọn • Tạo bởi {voteData.creatorName}
-            </Text>
-            {selectedOptions.length > 0 && (
-              <Button 
-                type="primary" 
-                size="small"
-                loading={loading}
-                onClick={handleSubmitVote}
-              >
-                Vote ({selectedOptions.length})
-              </Button>
-            )}
-          </div>
+          <Text type="secondary">
+            Chọn một hoặc nhiều lựa chọn • Tạo bởi {voteData.creatorName}
+          </Text>
         </div>
       )}
+      
+      {/* Voters Modal */}
+      <Modal
+        title={`Người đã vote cho: ${voteData.options?.[selectedOptionIndex]}`}
+        visible={votersModalVisible}
+        onCancel={() => setVotersModalVisible(false)}
+        footer={null}
+        width={400}
+      >
+        <List
+          dataSource={selectedOptionIndex !== null ? getVotersForOption(selectedOptionIndex) : []}
+          renderItem={(voter) => (
+            <List.Item>
+              <List.Item.Meta
+                avatar={
+                  <Avatar src={voter.photoURL} icon={<UserOutlined />}>
+                    {voter.photoURL ? '' : voter.displayName?.charAt(0)?.toUpperCase()}
+                  </Avatar>
+                }
+                title={voter.displayName}
+                description={voter.uid === uid ? 'Bạn' : 'Thành viên'}
+              />
+            </List.Item>
+          )}
+          locale={{ emptyText: 'Chưa có ai vote cho lựa chọn này' }}
+        />
+      </Modal>
     </VoteCardStyled>
   );
 };

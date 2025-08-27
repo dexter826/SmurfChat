@@ -1,9 +1,11 @@
 import React, { useContext } from 'react';
-import { Avatar } from 'antd';
+import { Avatar, Dropdown, Button, message } from 'antd';
+import { MoreOutlined, PushpinOutlined, DeleteOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
 import useFirestore from '../../hooks/useFirestore';
+import { deleteConversation, togglePinChat, dissolveRoom } from '../../firebase/services';
 
 const ChatItemStyled = styled.div`
   display: flex;
@@ -13,9 +15,14 @@ const ChatItemStyled = styled.div`
   border-radius: 6px;
   transition: background-color 0.2s;
   background-color: ${props => props.selected ? 'rgba(255, 255, 255, 0.2)' : 'transparent'};
+  position: relative;
   
   &:hover {
     background-color: rgba(255, 255, 255, 0.1);
+    
+    .chat-menu {
+      opacity: 1;
+    }
   }
   
   .chat-avatar {
@@ -49,7 +56,7 @@ const ChatItemStyled = styled.div`
   }
   
   .chat-name {
-    font-weight: 500;
+    font-weight: ${props => props.hasUnread ? 'bold' : '500'};
     margin: 0;
   }
   
@@ -60,6 +67,7 @@ const ChatItemStyled = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: ${props => props.hasUnread ? 'bold' : 'normal'};
   }
   
   .chat-type-badge {
@@ -68,6 +76,34 @@ const ChatItemStyled = styled.div`
     padding: 2px 6px;
     border-radius: 10px;
     margin-left: 8px;
+  }
+  
+  .chat-menu {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s;
+    
+    .ant-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+    }
+  }
+  
+  .pin-indicator {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    color: #faad14;
+    font-size: 12px;
   }
 `;
 
@@ -100,6 +136,31 @@ export default function UnifiedChatList() {
     selectConversation(conversationId);
   };
 
+  const handlePinChat = async (chatId, isPinned, isConversation) => {
+    try {
+      await togglePinChat(chatId, isPinned, isConversation);
+      message.success(isPinned ? 'Đã bỏ ghim cuộc trò chuyện' : 'Đã ghim cuộc trò chuyện');
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+      message.error('Có lỗi xảy ra khi ghim/bỏ ghim');
+    }
+  };
+
+  const handleDeleteChat = async (chatId, isConversation) => {
+    try {
+      if (isConversation) {
+        await deleteConversation(chatId);
+        message.success('Đã xóa cuộc trò chuyện');
+      } else {
+        await dissolveRoom(chatId);
+        message.success('Đã xóa phòng chat');
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      message.error('Có lỗi xảy ra khi xóa');
+    }
+  };
+
   // Combine rooms and conversations into a single list
   const allChats = React.useMemo(() => {
     const getOtherParticipant = (conversation) => {
@@ -113,7 +174,10 @@ export default function UnifiedChatList() {
       displayName: room.name,
       description: room.description,
       avatar: room.avatar,
-      isSelected: selectedRoomId === room.id
+      isSelected: selectedRoomId === room.id,
+      hasUnread: room.lastSeen && room.lastSeen[user.uid] && room.lastMessageAt && 
+                 new Date(room.lastMessageAt.toDate()) > new Date(room.lastSeen[user.uid].toDate()),
+      isPinned: room.pinned || false
     }));
 
     const conversationItems = conversations.map(conversation => {
@@ -125,12 +189,20 @@ export default function UnifiedChatList() {
         description: conversation.lastMessage || 'Chưa có tin nhắn',
         avatar: otherUser.photoURL,
         isSelected: selectedConversationId === conversation.id,
-        otherUser
+        otherUser,
+        hasUnread: conversation.lastSeen && conversation.lastSeen[user.uid] && conversation.lastMessageAt && 
+                   new Date(conversation.lastMessageAt.toDate()) > new Date(conversation.lastSeen[user.uid].toDate()),
+        isPinned: conversation.pinned || false
       };
     });
 
+    // Sort by pinned first, then by last activity
     return [...roomItems, ...conversationItems].sort((a, b) => {
-      // Sort by last activity or creation date
+      // Pinned items first
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      
+      // Then by last activity or creation date
       const aTime = a.lastMessageAt || a.createdAt || new Date(0);
       const bTime = b.lastMessageAt || b.createdAt || new Date(0);
       return new Date(bTime) - new Date(aTime);
@@ -143,40 +215,82 @@ export default function UnifiedChatList() {
         Cuộc trò chuyện
       </h4>
       <div>
-        {allChats.map((chat) => (
-          <ChatItemStyled
-            key={`${chat.type}-${chat.id}`}
-            selected={chat.isSelected}
-            onClick={() => {
-              if (chat.type === 'room') {
-                handleRoomClick(chat.id);
-              } else {
-                handleConversationClick(chat.id);
-              }
-            }}
-          >
-            <div className="chat-avatar">
-              <Avatar 
-                size={40}
-                src={chat.avatar}
-                style={{ backgroundColor: '#1890ff' }}
-              >
-                {chat.avatar ? '' : chat.displayName?.charAt(0)?.toUpperCase()}
-              </Avatar>
-            </div>
-            <div className="chat-info">
-              <p className="chat-name">
-                {chat.displayName}
-                {chat.type === 'room' && (
-                  <span className="chat-type-badge">
-                    Nhóm
-                  </span>
-                )}
-              </p>
-              <p className="chat-description">{chat.description}</p>
-            </div>
-          </ChatItemStyled>
-        ))}
+        {allChats.map((chat) => {
+          const menuItems = [
+            {
+              key: 'pin',
+              label: chat.isPinned ? 'Bỏ ghim' : 'Ghim cuộc trò chuyện',
+              icon: <PushpinOutlined />,
+              onClick: () => handlePinChat(chat.id, chat.isPinned, chat.type === 'conversation')
+            },
+            {
+              key: 'delete',
+              label: chat.type === 'room' ? 'Xóa phòng chat' : 'Xóa cuộc trò chuyện',
+              icon: <DeleteOutlined />,
+              danger: true,
+              onClick: () => handleDeleteChat(chat.id, chat.type === 'conversation')
+            }
+          ];
+
+          return (
+            <ChatItemStyled
+              key={`${chat.type}-${chat.id}`}
+              selected={chat.isSelected}
+              hasUnread={chat.hasUnread}
+              onClick={(e) => {
+                // Prevent click when clicking on menu
+                if (e.target.closest('.chat-menu')) return;
+                
+                if (chat.type === 'room') {
+                  handleRoomClick(chat.id);
+                } else {
+                  handleConversationClick(chat.id);
+                }
+              }}
+            >
+              {chat.isPinned && (
+                <PushpinOutlined className="pin-indicator" />
+              )}
+              
+              <div className="chat-avatar">
+                <Avatar 
+                  size={40}
+                  src={chat.avatar}
+                  style={{ backgroundColor: '#1890ff' }}
+                >
+                  {chat.avatar ? '' : chat.displayName?.charAt(0)?.toUpperCase()}
+                </Avatar>
+              </div>
+              
+              <div className="chat-info">
+                <p className="chat-name">
+                  {chat.displayName}
+                  {chat.type === 'room' && (
+                    <span className="chat-type-badge">
+                      Nhóm
+                    </span>
+                  )}
+                </p>
+                <p className="chat-description">{chat.description}</p>
+              </div>
+              
+              <div className="chat-menu">
+                <Dropdown
+                  menu={{ items: menuItems }}
+                  trigger={['click']}
+                  placement="bottomRight"
+                >
+                  <Button
+                    type="text"
+                    icon={<MoreOutlined />}
+                    size="small"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </Dropdown>
+              </div>
+            </ChatItemStyled>
+          );
+        })}
       </div>
     </div>
   );

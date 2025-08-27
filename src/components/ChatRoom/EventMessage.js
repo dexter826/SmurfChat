@@ -53,10 +53,33 @@ const EventIcon = styled(Avatar)`
 `;
 
 export default function EventMessage({ event, showActions = true }) {
-  const eventTime = moment(event.datetime);
+  // Handle different datetime formats
+  let eventTime;
+  if (event.datetime) {
+    if (event.datetime.toDate) {
+      // Firestore Timestamp
+      eventTime = moment(event.datetime.toDate());
+    } else if (event.datetime instanceof Date) {
+      // JavaScript Date
+      eventTime = moment(event.datetime);
+    } else if (typeof event.datetime === 'string') {
+      // String date
+      eventTime = moment(event.datetime);
+    } else {
+      // Fallback to current time if invalid
+      eventTime = moment();
+    }
+  } else {
+    eventTime = moment();
+  }
+  
   const now = moment();
   
   const getTimeDisplay = () => {
+    if (!eventTime.isValid()) {
+      return 'Thời gian không hợp lệ';
+    }
+    
     if (eventTime.isSame(now, 'day')) {
       return `Hôm nay ${eventTime.format('HH:mm')}`;
     } else if (eventTime.isSame(now.clone().add(1, 'day'), 'day')) {

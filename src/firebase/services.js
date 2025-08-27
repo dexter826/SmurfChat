@@ -369,3 +369,93 @@ export const updateRoomAvatar = async (roomId, avatarUrl) => {
     throw error;
   }
 };
+
+// Delete message
+export const deleteMessage = async (messageId, collectionName = 'messages') => {
+  try {
+    const messageRef = doc(db, collectionName, messageId);
+    await updateDoc(messageRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    throw error;
+  }
+};
+
+// Mark message as read
+export const markMessageAsRead = async (messageId, userId, collectionName = 'messages') => {
+  try {
+    const messageRef = doc(db, collectionName, messageId);
+    const messageDoc = await getDoc(messageRef);
+    
+    if (messageDoc.exists()) {
+      const messageData = messageDoc.data();
+      const readBy = messageData.readBy || [];
+      
+      if (!readBy.includes(userId)) {
+        await updateDoc(messageRef, {
+          readBy: [...readBy, userId],
+          lastReadAt: serverTimestamp(),
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error marking message as read:', error);
+    throw error;
+  }
+};
+
+// Delete conversation
+export const deleteConversation = async (conversationId) => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    await updateDoc(conversationRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error deleting conversation:', error);
+    throw error;
+  }
+};
+
+// Pin/Unpin conversation or room
+export const togglePinChat = async (chatId, isPinned, isConversation = false) => {
+  try {
+    const collectionName = isConversation ? 'conversations' : 'rooms';
+    const docRef = doc(db, collectionName, chatId);
+    await updateDoc(docRef, {
+      pinned: !isPinned,
+      pinnedAt: !isPinned ? serverTimestamp() : null,
+    });
+  } catch (error) {
+    console.error('Error toggling pin status:', error);
+    throw error;
+  }
+};
+
+// Update last seen timestamp for user in room/conversation
+export const updateLastSeen = async (roomId, userId, isConversation = false) => {
+  try {
+    const collectionName = isConversation ? 'conversations' : 'rooms';
+    const docRef = doc(db, collectionName, roomId);
+    const docSnapshot = await getDoc(docRef);
+    
+    if (docSnapshot.exists()) {
+      const data = docSnapshot.data();
+      const lastSeen = data.lastSeen || {};
+      
+      await updateDoc(docRef, {
+        lastSeen: {
+          ...lastSeen,
+          [userId]: serverTimestamp()
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error updating last seen:', error);
+    throw error;
+  }
+};
