@@ -44,6 +44,141 @@ export const updateConversationLastMessage = async (conversationId, message, use
   }
 };
 
+// Event management services
+export const createEvent = async (eventData) => {
+  try {
+    const docRef = await addDoc(collection(db, 'events'), {
+      ...eventData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating event:', error);
+    throw error;
+  }
+};
+
+export const updateEvent = async (eventId, eventData) => {
+  const eventRef = doc(db, 'events', eventId);
+  
+  try {
+    await updateDoc(eventRef, {
+      ...eventData,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error updating event:', error);
+    throw error;
+  }
+};
+
+export const deleteEvent = async (eventId) => {
+  const eventRef = doc(db, 'events', eventId);
+  
+  try {
+    await updateDoc(eventRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    throw error;
+  }
+};
+
+// Parse time expressions from Vietnamese text
+export const parseTimeFromMessage = (message) => {
+  const timePatterns = [
+    // "lúc 3h chiều mai", "3h chiều mai", "15h mai"
+    /(lúc\s+)?(\d{1,2})h(\d{0,2})?(\s+(sáng|chiều|tối))?\s+(mai|ngày mai)/gi,
+    // "lúc 9h30 sáng thứ 2", "9h sáng thứ hai"
+    /(lúc\s+)?(\d{1,2})h(\d{0,2})?(\s+(sáng|chiều|tối))?\s+(thứ\s+(hai|ba|tư|năm|sáu|bảy|2|3|4|5|6|7)|chủ nhật)/gi,
+    // "15:30 ngày 25/12", "lúc 14:00 ngày 15/10"
+    /(lúc\s+)?(\d{1,2}):(\d{2})\s+(ngày\s+)?(\d{1,2})\/(\d{1,2})/gi,
+  ];
+
+  const dayMap = {
+    'hai': 1, 'ba': 2, 'tư': 3, 'năm': 4, 'sáu': 5, 'bảy': 6, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6
+  };
+
+  for (const pattern of timePatterns) {
+    const match = pattern.exec(message.toLowerCase());
+    if (match) {
+      const now = new Date();
+      let targetDate = new Date();
+
+      if (match[0].includes('mai')) {
+        targetDate.setDate(now.getDate() + 1);
+        const hour = parseInt(match[2]);
+        const minute = match[3] ? parseInt(match[3]) : 0;
+        const period = match[5];
+        
+        let finalHour = hour;
+        if (period === 'chiều' && hour < 12) finalHour += 12;
+        if (period === 'tối' && hour < 12) finalHour += 12;
+        
+        targetDate.setHours(finalHour, minute, 0, 0);
+        return targetDate;
+      }
+      
+      if (match[0].includes('thứ')) {
+        const dayName = match[7];
+        const targetDay = dayMap[dayName] || 0;
+        const currentDay = now.getDay();
+        const daysToAdd = (targetDay - currentDay + 7) % 7 || 7;
+        
+        targetDate.setDate(now.getDate() + daysToAdd);
+        const hour = parseInt(match[2]);
+        const minute = match[3] ? parseInt(match[3]) : 0;
+        const period = match[5];
+        
+        let finalHour = hour;
+        if (period === 'chiều' && hour < 12) finalHour += 12;
+        if (period === 'tối' && hour < 12) finalHour += 12;
+        
+        targetDate.setHours(finalHour, minute, 0, 0);
+        return targetDate;
+      }
+      
+      if (match[5] && match[6]) {
+        const hour = parseInt(match[2]);
+        const minute = parseInt(match[3]);
+        const day = parseInt(match[5]);
+        const month = parseInt(match[6]) - 1;
+        
+        targetDate.setMonth(month, day);
+        targetDate.setHours(hour, minute, 0, 0);
+        
+        if (targetDate < now) {
+          targetDate.setFullYear(now.getFullYear() + 1);
+        }
+        
+        return targetDate;
+      }
+    }
+  }
+  
+  return null;
+};
+
+// Extract event title from message
+export const extractEventTitle = (message) => {
+  const eventPatterns = [
+    /^(.+?)\s+(lúc|vào|tại)\s+/i,
+    /^(.+?)\s+(\d{1,2}h)/i,
+  ];
+  
+  for (const pattern of eventPatterns) {
+    const match = pattern.exec(message);
+    if (match) {
+      return match[1].trim();
+    }
+  }
+  
+  return message.length > 50 ? message.substring(0, 50) + '...' : message;
+};
+
 // tao keywords cho displayName, su dung cho search
 export const generateKeywords = (displayName) => {
   // liet ke tat cac hoan vi. vd: name = ["David", "Van", "Teo"]

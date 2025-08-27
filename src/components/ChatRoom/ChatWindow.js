@@ -1,12 +1,12 @@
-import { UserAddOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons';
+import { UserAddOutlined, DeleteOutlined, MoreOutlined, CalendarOutlined } from '@ant-design/icons';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Button, Avatar, Form, Input, Alert, Dropdown, Menu, Popconfirm } from 'antd';
+import { Button, Avatar, Form, Input, Alert, Dropdown, Menu, Popconfirm, Tooltip, message } from 'antd';
 import Message from './Message';
 import { AppContext } from '../../Context/AppProvider';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { addDocument } from '../../firebase/services';
+import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
 import useFirestore from '../../hooks/useFirestore';
 
@@ -73,7 +73,7 @@ const MessageListStyled = styled.div`
 `;
 
 export default function ChatWindow() {
-  const { selectedRoom, members, setIsInviteMemberVisible, selectedRoomId } =
+  const { selectedRoom, members, setIsInviteMemberVisible, selectedRoomId, setIsCalendarVisible } =
     useContext(AppContext);
   const {
     user: { uid, photoURL, displayName },
@@ -87,14 +87,40 @@ export default function ChatWindow() {
     setInputValue(e.target.value);
   };
 
-  const handleOnSubmit = () => {
+  const handleOnSubmit = async () => {
+    // Check if message contains time information for event creation
+    const detectedTime = parseTimeFromMessage(inputValue);
+    
     addDocument('messages', {
       text: inputValue,
       uid,
       photoURL,
       roomId: selectedRoom.id,
       displayName,
+      hasTimeInfo: !!detectedTime,
     });
+
+    // Show event creation suggestion if time is detected
+    if (detectedTime) {
+      const eventTitle = extractEventTitle(inputValue);
+      message.info({
+        content: (
+          <div>
+            <p>Phát hiện thời gian trong tin nhắn! Bạn có muốn tạo sự kiện?</p>
+            <Button 
+              size="small" 
+              type="primary" 
+              icon={<CalendarOutlined />}
+              onClick={() => handleCreateEventFromMessage(eventTitle, detectedTime)}
+            >
+              Tạo sự kiện
+            </Button>
+          </div>
+        ),
+        duration: 8,
+        key: 'event-suggestion',
+      });
+    }
 
     form.resetFields(['message']);
 
@@ -103,6 +129,30 @@ export default function ChatWindow() {
       setTimeout(() => {
         inputRef.current.focus();
       });
+    }
+  };
+
+  const handleCreateEventFromMessage = async (title, datetime) => {
+    try {
+      const eventData = {
+        title,
+        description: `Được tạo từ tin nhắn: "${inputValue}"`,
+        datetime,
+        roomId: selectedRoom.id,
+        roomName: selectedRoom.name,
+        createdBy: uid,
+        createdByName: displayName,
+        participants: selectedRoom.members,
+        reminderMinutes: 15,
+        status: 'active',
+        type: 'meeting'
+      };
+
+      await createEvent(eventData);
+      message.success('Sự kiện đã được tạo thành công!');
+    } catch (error) {
+      console.error('Error creating event from message:', error);
+      message.error('Có lỗi xảy ra khi tạo sự kiện!');
     }
   };
 
@@ -186,6 +236,15 @@ export default function ChatWindow() {
               </span>
             </div>
             <ButtonGroupStyled>
+              <Tooltip title="Xem lịch phòng">
+                <Button
+                  icon={<CalendarOutlined />}
+                  type='text'
+                  onClick={() => setIsCalendarVisible(true)}
+                >
+                  Lịch
+                </Button>
+              </Tooltip>
               <Button
                 icon={<UserAddOutlined />}
                 type='text'

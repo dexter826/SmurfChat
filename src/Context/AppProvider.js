@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import useFirestore from '../hooks/useFirestore';
 import { AuthContext } from './AuthProvider';
 import { createOrUpdateConversation } from '../firebase/services';
+import reminderService from '../components/Notifications/ReminderService';
 
 export const AppContext = React.createContext();
 
@@ -11,6 +12,7 @@ export default function AppProvider({ children }) {
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [selectedConversationId, setSelectedConversationId] = useState('');
   const [chatType, setChatType] = useState('room'); // 'room' or 'direct'
+  const [isCalendarVisible, setIsCalendarVisible] = useState(false);
 
   const {
     user: { uid },
@@ -51,6 +53,31 @@ export default function AppProvider({ children }) {
   }, [uid]);
 
   const conversations = useFirestore('conversations', conversationsCondition);
+
+  // Events for reminder system
+  const eventsCondition = React.useMemo(() => ({
+    fieldName: 'participants',
+    operator: 'array-contains',
+    compareValue: uid,
+  }), [uid]);
+
+  const userEvents = useFirestore('events', eventsCondition);
+
+  // Update reminder service when events change
+  useEffect(() => {
+    if (userEvents.length > 0) {
+      reminderService.updateReminders(userEvents);
+      
+      // Show daily agenda on first load
+      const hasShownAgenda = sessionStorage.getItem('dailyAgendaShown');
+      if (!hasShownAgenda) {
+        setTimeout(() => {
+          reminderService.showDailyAgenda(userEvents);
+          sessionStorage.setItem('dailyAgendaShown', 'true');
+        }, 2000);
+      }
+    }
+  }, [userEvents]);
 
   // Get all users for conversation lookup
   const allUsersCondition = React.useMemo(() => ({
@@ -142,6 +169,9 @@ export default function AppProvider({ children }) {
         setSelectedConversationId,
         chatType,
         setChatType,
+        isCalendarVisible,
+        setIsCalendarVisible,
+        userEvents,
         clearState,
       }}
     >
