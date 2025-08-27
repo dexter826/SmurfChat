@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Row, Col } from 'antd';
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
+import ConversationWindow from './ConversationWindow';
+import { AppContext } from '../../Context/AppProvider';
 
 export default function ChatRoom() {
+  const { chatType } = useContext(AppContext);
+
   return (
     <div>
       <Row>
@@ -11,7 +15,7 @@ export default function ChatRoom() {
           <Sidebar />
         </Col>
         <Col span={18}>
-          <ChatWindow />
+          {chatType === 'room' ? <ChatWindow /> : <ConversationWindow />}
         </Col>
       </Row>
     </div>

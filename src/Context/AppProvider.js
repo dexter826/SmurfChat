@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import useFirestore from '../hooks/useFirestore';
 import { AuthContext } from './AuthProvider';
+import { createOrUpdateConversation } from '../firebase/services';
 
 export const AppContext = React.createContext();
 
@@ -8,6 +9,8 @@ export default function AppProvider({ children }) {
   const [isAddRoomVisible, setIsAddRoomVisible] = useState(false);
   const [isInviteMemberVisible, setIsInviteMemberVisible] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [selectedConversationId, setSelectedConversationId] = useState('');
+  const [chatType, setChatType] = useState('room'); // 'room' or 'direct'
 
   const {
     user: { uid },
@@ -38,10 +41,87 @@ export default function AppProvider({ children }) {
 
   const members = useFirestore('users', usersCondition);
 
+  // Conversations for direct messaging
+  const conversationsCondition = React.useMemo(() => {
+    return {
+      fieldName: 'participants',
+      operator: 'array-contains',
+      compareValue: uid,
+    };
+  }, [uid]);
+
+  const conversations = useFirestore('conversations', conversationsCondition);
+
+  // Get all users for conversation lookup
+  const allUsersCondition = React.useMemo(() => ({
+    fieldName: 'uid',
+    operator: '!=',
+    compareValue: uid,
+  }), [uid]);
+
+  const allUsers = useFirestore('users', allUsersCondition);
+
+  const selectedConversation = React.useMemo(() => {
+    if (!selectedConversationId) return {};
+    
+    // Handle new conversation creation
+    if (selectedConversationId.startsWith('new_')) {
+      const otherUserId = selectedConversationId.replace('new_', '');
+      const otherUser = allUsers.find(u => u.uid === otherUserId);
+      
+      // Create new conversation
+      const newConversationId = [uid, otherUserId].sort().join('_');
+      
+      // Check if conversation already exists
+      const existingConversation = conversations.find(conv => 
+        conv.participants.includes(otherUserId) && conv.participants.includes(uid)
+      );
+      
+      if (existingConversation) {
+        setSelectedConversationId(existingConversation.id);
+        return {
+          ...existingConversation,
+          otherUser
+        };
+      }
+      
+      // Create new conversation in Firestore
+      createOrUpdateConversation({
+        id: newConversationId,
+        participants: [uid, otherUserId],
+        createdAt: new Date(),
+        lastMessage: '',
+        lastMessageAt: null,
+      });
+      
+      return {
+        id: newConversationId,
+        participants: [uid, otherUserId],
+        otherUser,
+        createdAt: new Date(),
+        lastMessage: '',
+        lastMessageAt: null,
+      };
+    }
+    
+    const conversation = conversations.find((conv) => conv.id === selectedConversationId) || {};
+    if (conversation.participants) {
+      const otherUserId = conversation.participants.find(participantId => participantId !== uid);
+      const otherUser = allUsers.find(u => u.uid === otherUserId);
+      return {
+        ...conversation,
+        otherUser
+      };
+    }
+    return conversation;
+  }, [conversations, selectedConversationId, uid, allUsers]);
+
   const clearState = () => {
     setSelectedRoomId('');
+    setSelectedConversationId('');
     setIsAddRoomVisible(false);
     setIsInviteMemberVisible(false);
+    setChatType('room');
   };
 
   return (
@@ -56,6 +136,12 @@ export default function AppProvider({ children }) {
         setSelectedRoomId,
         isInviteMemberVisible,
         setIsInviteMemberVisible,
+        conversations,
+        selectedConversation,
+        selectedConversationId,
+        setSelectedConversationId,
+        chatType,
+        setChatType,
         clearState,
       }}
     >

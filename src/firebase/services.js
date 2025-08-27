@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './config';
 
 export const addDocument = (collectionName, data) => {
@@ -8,6 +8,40 @@ export const addDocument = (collectionName, data) => {
     ...data,
     createdAt: serverTimestamp(),
   });
+};
+
+// Create or update conversation
+export const createOrUpdateConversation = async (conversationData) => {
+  const { id, ...data } = conversationData;
+  const conversationRef = doc(db, 'conversations', id);
+  
+  try {
+    await setDoc(conversationRef, {
+      ...data,
+      id,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return id;
+  } catch (error) {
+    console.error('Error creating/updating conversation:', error);
+    throw error;
+  }
+};
+
+// Update conversation last message
+export const updateConversationLastMessage = async (conversationId, message, userId) => {
+  const conversationRef = doc(db, 'conversations', conversationId);
+  
+  try {
+    await updateDoc(conversationRef, {
+      lastMessage: message,
+      lastMessageAt: serverTimestamp(),
+      updatedBy: userId,
+    });
+  } catch (error) {
+    console.error('Error updating conversation last message:', error);
+    throw error;
+  }
 };
 
 // tao keywords cho displayName, su dung cho search
