@@ -1,12 +1,11 @@
 import React from 'react';
 import { Row, Col, Button, Typography } from 'antd';
-import { FacebookAuthProvider, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../../firebase/config';
 import { addDocument, generateKeywords } from '../../firebase/services';
 
 const { Title } = Typography;
 
-const fbProvider = new FacebookAuthProvider();
 const googleProvider = new GoogleAuthProvider();
 
 export default function Login() {
@@ -37,12 +36,6 @@ export default function Login() {
             onClick={() => handleLogin(googleProvider)}
           >
             Đăng nhập bằng Google
-          </Button>
-          <Button
-            style={{ width: '100%' }}
-            onClick={() => handleLogin(fbProvider)}
-          >
-            Đăng nhập bằng Facebook
           </Button>
         </Col>
       </Row>
