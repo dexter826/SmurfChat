@@ -1,7 +1,7 @@
 import { UserAddOutlined, DeleteOutlined, MoreOutlined, CalendarOutlined, BarChartOutlined } from '@ant-design/icons';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Button, Avatar, Form, Input, Alert, Dropdown, Menu, Popconfirm, Tooltip, message } from 'antd';
+import { Button, Avatar, Form, Input, Dropdown, Menu, Popconfirm, Tooltip, message } from 'antd';
 import Message from './Message';
 import EventMessage from './EventMessage';
 import VoteMessage from './VoteMessage';
@@ -74,8 +74,67 @@ const MessageListStyled = styled.div`
   overflow-y: auto;
 `;
 
+const WelcomeScreenStyled = styled.div`
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  
+  .welcome-content {
+    text-align: center;
+    max-width: 500px;
+    padding: 40px;
+  }
+  
+  .welcome-title {
+    font-size: 32px;
+    font-weight: bold;
+    color: #1890ff;
+    margin-bottom: 16px;
+  }
+  
+  .welcome-subtitle {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 32px;
+  }
+  
+  .welcome-image {
+    margin-bottom: 32px;
+  }
+  
+  .welcome-features {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    
+    .feature-icon {
+      font-size: 24px;
+    }
+  }
+`;
+
 export default function ChatWindow() {
-  const { selectedRoom, members, setIsAddRoomVisible, setIsCalendarVisible, setIsVoteModalVisible } = useContext(AppContext);
+  const { 
+    selectedRoom, 
+    selectedConversation, 
+    chatType, 
+    members, 
+    setIsAddRoomVisible, 
+    setIsCalendarVisible, 
+    setIsVoteModalVisible 
+  } = useContext(AppContext);
   const {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
@@ -89,41 +148,63 @@ export default function ChatWindow() {
   };
 
   const handleOnSubmit = async () => {
-    // Check if message contains time information for event creation
-    const detectedTime = parseTimeFromMessage(inputValue);
-    
-    addDocument('messages', {
-      text: inputValue,
-      uid,
-      photoURL,
-      roomId: selectedRoom.id,
-      displayName,
-      hasTimeInfo: !!detectedTime,
-    });
+    if (!inputValue.trim()) return;
 
-    // Show event creation suggestion if time is detected
-    if (detectedTime) {
-      const eventTitle = extractEventTitle(inputValue);
-      message.info({
-        content: (
-          <div>
-            <p>Phát hiện thời gian trong tin nhắn! Bạn có muốn tạo sự kiện?</p>
-            <Button 
-              size="small" 
-              type="primary" 
-              icon={<CalendarOutlined />}
-              onClick={() => handleCreateEventFromMessage(eventTitle, detectedTime)}
-            >
-              Tạo sự kiện
-            </Button>
-          </div>
-        ),
-        duration: 8,
-        key: 'event-suggestion',
+    if (chatType === 'room' && selectedRoom.id) {
+      // Handle room message
+      const detectedTime = parseTimeFromMessage(inputValue);
+      
+      addDocument('messages', {
+        text: inputValue,
+        uid,
+        photoURL,
+        roomId: selectedRoom.id,
+        displayName,
+        hasTimeInfo: !!detectedTime,
       });
+
+      // Show event creation suggestion if time is detected
+      if (detectedTime) {
+        const eventTitle = extractEventTitle(inputValue);
+        message.info({
+          content: (
+            <div>
+              <p>Phát hiện thời gian trong tin nhắn! Bạn có muốn tạo sự kiện?</p>
+              <Button 
+                size="small" 
+                type="primary" 
+                icon={<CalendarOutlined />}
+                onClick={() => handleCreateEventFromMessage(eventTitle, detectedTime)}
+              >
+                Tạo sự kiện
+              </Button>
+            </div>
+          ),
+          duration: 8,
+          key: 'event-suggestion',
+        });
+      }
+    } else if (chatType === 'direct' && selectedConversation.id) {
+      // Handle direct message
+      addDocument('directMessages', {
+        text: inputValue,
+        uid,
+        photoURL,
+        conversationId: selectedConversation.id,
+        displayName,
+      });
+
+      // Update conversation's last message
+      try {
+        const { updateConversationLastMessage } = await import('../../firebase/services');
+        await updateConversationLastMessage(selectedConversation.id, inputValue, uid);
+      } catch (error) {
+        console.error('Error updating conversation:', error);
+      }
     }
 
     form.resetFields(['message']);
+    setInputValue('');
 
     // focus to input again after submit
     if (inputRef?.current) {
@@ -171,7 +252,8 @@ export default function ChatWindow() {
     }
   };
 
-  const condition = React.useMemo(
+  // Conditions for fetching messages based on chat type
+  const roomCondition = React.useMemo(
     () => ({
       fieldName: 'roomId',
       operator: '==',
@@ -180,7 +262,19 @@ export default function ChatWindow() {
     [selectedRoom.id]
   );
 
-  const messages = useFirestore('messages', condition);
+  const conversationCondition = React.useMemo(
+    () => ({
+      fieldName: 'conversationId',
+      operator: '==',
+      compareValue: selectedConversation.id,
+    }),
+    [selectedConversation.id]
+  );
+
+  const roomMessages = useFirestore('messages', chatType === 'room' ? roomCondition : null);
+  const directMessages = useFirestore('directMessages', chatType === 'direct' ? conversationCondition : null);
+
+  const messages = chatType === 'room' ? roomMessages : directMessages;
 
   // Fetch events for this room
   const eventsCondition = React.useMemo(() => ({
@@ -203,7 +297,7 @@ export default function ChatWindow() {
     return (allVotes || []).filter(vote => !vote.deleted);
   }, [allVotes]);
 
-  // Combine messages and events, then sort by timestamp
+  // Combine messages and events, then sort by timestamp (only for room chats)
   const combinedMessages = React.useMemo(() => {
     const messageItems = (messages || []).map(msg => ({
       ...msg,
@@ -211,21 +305,26 @@ export default function ChatWindow() {
       timestamp: msg.createdAt?.toDate?.() || new Date()
     }));
 
-    const eventItems = (events || []).map(event => ({
-      ...event,
-      type: 'event',
-      timestamp: event.createdAt?.toDate?.() || new Date()
-    }));
+    if (chatType === 'room') {
+      const eventItems = (events || []).map(event => ({
+        ...event,
+        type: 'event',
+        timestamp: event.createdAt?.toDate?.() || new Date()
+      }));
 
-    const voteItems = (votes || []).map(vote => ({
-      ...vote,
-      type: 'vote',
-      timestamp: vote.createdAt?.toDate?.() || new Date()
-    }));
+      const voteItems = (votes || []).map(vote => ({
+        ...vote,
+        type: 'vote',
+        timestamp: vote.createdAt?.toDate?.() || new Date()
+      }));
 
-    return [...messageItems, ...eventItems, ...voteItems]
-      .sort((a, b) => a.timestamp - b.timestamp);
-  }, [messages, events, votes]);
+      return [...messageItems, ...eventItems, ...voteItems]
+        .sort((a, b) => a.timestamp - b.timestamp);
+    }
+
+    // For direct messages, only return message items
+    return messageItems.sort((a, b) => a.timestamp - b.timestamp);
+  }, [messages, events, votes, chatType]);
 
   useEffect(() => {
     // scroll to bottom after chat items changed
@@ -284,59 +383,78 @@ export default function ChatWindow() {
     </Menu>
   );
 
+  // Determine if there's an active chat
+  const hasActiveChat = (chatType === 'room' && selectedRoom.id) || (chatType === 'direct' && selectedConversation.id);
+
   return (
     <WrapperStyled>
-      {selectedRoom.id ? (
+      {hasActiveChat ? (
         <>
           <HeaderStyled>
             <div className='header__info'>
-              <p className='header__title'>{selectedRoom.name}</p>
-              <span className='header__description'>
-                {selectedRoom.description}
-              </span>
-            </div>
-            <ButtonGroupStyled>
-              <Tooltip title="Mở lịch">
-                <Button 
-                  type="text" 
-                  icon={<CalendarOutlined />}
-                  onClick={() => setIsCalendarVisible(true)}
-                />
-              </Tooltip>
-              <Tooltip title="Tạo vote">
-                <Button 
-                  type="text" 
-                  icon={<BarChartOutlined />}
-                  onClick={() => setIsVoteModalVisible(true)}
-                />
-              </Tooltip>
-              <Button
-                icon={<UserAddOutlined />}
-                type='text'
-                onClick={() => setIsAddRoomVisible(true)}
-              >
-                Mời
-              </Button>
-              <Dropdown overlay={membersMenu} trigger={['click']}>
-                <Button icon={<MoreOutlined />} type='text'>
-                  Thành viên ({members.length})
-                </Button>
-              </Dropdown>
-              {isAdmin && (
-                <Popconfirm
-                  title="Bạn có chắc chắn muốn giải tán nhóm này?"
-                  description="Hành động này không thể hoàn tác!"
-                  onConfirm={handleDissolveRoom}
-                  okText="Giải tán"
-                  cancelText="Hủy"
-                  okType="danger"
-                >
-                  <Button type='text' danger>
-                    Giải tán nhóm
-                  </Button>
-                </Popconfirm>
+              {chatType === 'room' ? (
+                <>
+                  <p className='header__title'>{selectedRoom.name}</p>
+                  <span className='header__description'>
+                    {selectedRoom.description}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Avatar size="default" src={selectedConversation.otherUser?.photoURL}>
+                    {selectedConversation.otherUser?.photoURL ? '' : selectedConversation.otherUser?.displayName?.charAt(0)?.toUpperCase()}
+                  </Avatar>
+                  <div style={{ marginLeft: '12px' }}>
+                    <p className='header__title'>{selectedConversation.otherUser?.displayName}</p>
+                    <span className='header__description'>Đang hoạt động</span>
+                  </div>
+                </>
               )}
-            </ButtonGroupStyled>
+            </div>
+            {chatType === 'room' && (
+              <ButtonGroupStyled>
+                <Tooltip title="Mở lịch">
+                  <Button 
+                    type="text" 
+                    icon={<CalendarOutlined />}
+                    onClick={() => setIsCalendarVisible(true)}
+                  />
+                </Tooltip>
+                <Tooltip title="Tạo vote">
+                  <Button 
+                    type="text" 
+                    icon={<BarChartOutlined />}
+                    onClick={() => setIsVoteModalVisible(true)}
+                  />
+                </Tooltip>
+                <Button
+                  icon={<UserAddOutlined />}
+                  type='text'
+                  onClick={() => setIsAddRoomVisible(true)}
+                >
+                  Mời
+                </Button>
+                <Dropdown overlay={membersMenu} trigger={['click']}>
+                  <Button icon={<MoreOutlined />} type='text'>
+                    Thành viên ({members.length})
+                  </Button>
+                </Dropdown>
+                {isAdmin && (
+                  <Popconfirm
+                    title="Bạn có chắc chắn muốn giải tán nhóm này?"
+                    description="Hành động này không thể hoàn tác!"
+                    onConfirm={handleDissolveRoom}
+                    okText="Giải tán"
+                    cancelText="Hủy"
+                    okType="danger"
+                  >
+                    <Button type='text' danger>
+                      Giải tán nhóm
+                    </Button>
+                  </Popconfirm>
+                )}
+              </ButtonGroupStyled>
+            )}
           </HeaderStyled>
           <ContentStyled>
             <MessageListStyled ref={messageListRef}>
@@ -381,13 +499,33 @@ export default function ChatWindow() {
           </ContentStyled>
         </>
       ) : (
-        <Alert
-          message='Hãy chọn phòng'
-          type='info'
-          showIcon
-          style={{ margin: 5 }}
-          closable
-        />
+        <WelcomeScreenStyled>
+          <div className="welcome-content">
+            <h1 className="welcome-title">Chào mừng đến với SmurfChat! 👋</h1>
+            <p className="welcome-subtitle">Chọn một cuộc trò chuyện hoặc phòng để bắt đầu nhắn tin</p>
+            <div className="welcome-image">
+              <img 
+                src="https://via.placeholder.com/300x200/1890ff/ffffff?text=SmurfChat" 
+                alt="SmurfChat Welcome"
+                style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              />
+            </div>
+            <div className="welcome-features">
+              <div className="feature-item">
+                <span className="feature-icon">💬</span>
+                <span>Trò chuyện nhóm và cá nhân</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">📅</span>
+                <span>Tạo sự kiện và lịch hẹn</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">🗳️</span>
+                <span>Tạo vote và thăm dò ý kiến</span>
+              </div>
+            </div>
+          </div>
+        </WelcomeScreenStyled>
       )}
     </WrapperStyled>
   );

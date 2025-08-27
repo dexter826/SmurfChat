@@ -51,6 +51,7 @@ export default function UserInfo() {
     setSelectedRoomId('');
   };
 
+
   return (
     <WrapperStyled>
       <div>
@@ -69,7 +70,7 @@ export default function UserInfo() {
               onClick={handleNewRoom}
             />
           </Tooltip>
-          <Tooltip title="Tin nhắn mới">
+          <Tooltip title="Tạo tin nhắn mới">
             <Button 
               ghost
               size="small"

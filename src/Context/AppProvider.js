@@ -157,6 +157,19 @@ export default function AppProvider({ children }) {
     setChatType('room');
   };
 
+  // Helper functions to properly switch between chat types
+  const selectRoom = (roomId) => {
+    setSelectedConversationId(''); // Clear conversation selection
+    setSelectedRoomId(roomId);
+    setChatType('room');
+  };
+
+  const selectConversation = (conversationId) => {
+    setSelectedRoomId(''); // Clear room selection
+    setSelectedConversationId(conversationId);
+    setChatType('direct');
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -181,6 +194,8 @@ export default function AppProvider({ children }) {
         setIsVoteModalVisible,
         userEvents,
         clearState,
+        selectRoom,
+        selectConversation,
       }}
     >
       {children}

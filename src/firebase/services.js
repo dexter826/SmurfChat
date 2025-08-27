@@ -323,3 +323,17 @@ export const generateKeywords = (displayName) => {
 
   return keywords;
 };
+
+// Cập nhật avatar phòng chat
+export const updateRoomAvatar = async (roomId, avatarUrl) => {
+  try {
+    const roomRef = doc(db, 'rooms', roomId);
+    await updateDoc(roomRef, {
+      avatar: avatarUrl,
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Lỗi khi cập nhật avatar phòng:', error);
+    throw error;
+  }
+};

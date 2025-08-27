@@ -9,9 +9,11 @@ import useFirestore from '../../hooks/useFirestore';
 const { Title, Text } = Typography;
 
 const VoteCardStyled = styled(Card)`
-  margin: 8px 0;
+  margin: 8px auto;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  max-width: 60%;
+  display: block;
   
   .vote-header {
     display: flex;
@@ -60,6 +62,7 @@ const VoteCardStyled = styled(Card)`
 const VoteMessage = ({ vote }) => {
   const { user: { uid } } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState([]);
   
   // Real-time vote data
   const voteCondition = React.useMemo(() => ({
@@ -72,15 +75,36 @@ const VoteMessage = ({ vote }) => {
   
   const userVote = voteData.votes?.[uid];
   const hasVoted = userVote !== undefined;
+  
+  // Initialize selected options from existing vote
+  React.useEffect(() => {
+    if (userVote && Array.isArray(userVote)) {
+      setSelectedOptions(userVote);
+    } else if (userVote !== undefined) {
+      setSelectedOptions([userVote]);
+    }
+  }, [userVote]);
   const isCreator = voteData.createdBy === uid;
   const totalVotes = Object.keys(voteData.votes || {}).length;
 
-  const handleVote = async (optionIndex) => {
+  const handleOptionToggle = (optionIndex) => {
     if (hasVoted || loading) return;
+    
+    setSelectedOptions(prev => {
+      if (prev.includes(optionIndex)) {
+        return prev.filter(idx => idx !== optionIndex);
+      } else {
+        return [...prev, optionIndex];
+      }
+    });
+  };
+  
+  const handleSubmitVote = async () => {
+    if (hasVoted || loading || selectedOptions.length === 0) return;
     
     try {
       setLoading(true);
-      await castVote(voteData.id, uid, optionIndex);
+      await castVote(voteData.id, uid, selectedOptions);
       message.success('Đã vote thành công!');
     } catch (error) {
       console.error('Error voting:', error);
@@ -100,9 +124,20 @@ const VoteMessage = ({ vote }) => {
     }
   };
 
+  const getOptionVoteCount = (optionIndex) => {
+    if (!voteData.votes) return 0;
+    return Object.values(voteData.votes).filter(vote => {
+      if (Array.isArray(vote)) {
+        return vote.includes(optionIndex);
+      }
+      return vote === optionIndex;
+    }).length;
+  };
+  
   const getOptionPercentage = (optionIndex) => {
     if (totalVotes === 0) return 0;
-    return Math.round((voteData.voteCounts?.[optionIndex] || 0) / totalVotes * 100);
+    const count = getOptionVoteCount(optionIndex);
+    return Math.round((count / totalVotes) * 100);
   };
 
   return (
@@ -144,17 +179,18 @@ const VoteMessage = ({ vote }) => {
         {voteData.options?.map((option, index) => (
           <div
             key={index}
-            className={`vote-option ${hasVoted ? 'voted' : ''} ${userVote === index ? 'selected' : ''}`}
-            onClick={() => handleVote(index)}
+            className={`vote-option ${hasVoted ? 'voted' : ''} ${selectedOptions.includes(index) ? 'selected' : ''}`}
+            onClick={() => handleOptionToggle(index)}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Space>
-                {userVote === index && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                {(hasVoted && Array.isArray(userVote) ? userVote.includes(index) : userVote === index) && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                {!hasVoted && selectedOptions.includes(index) && <CheckCircleOutlined style={{ color: '#1890ff' }} />}
                 <Text>{option}</Text>
               </Space>
               {hasVoted && (
                 <Text type="secondary">
-                  {voteData.voteCounts?.[index] || 0} vote{(voteData.voteCounts?.[index] || 0) !== 1 ? 's' : ''}
+                  {getOptionVoteCount(index)} vote{getOptionVoteCount(index) !== 1 ? 's' : ''}
                 </Text>
               )}
             </div>
@@ -164,7 +200,7 @@ const VoteMessage = ({ vote }) => {
                 percent={getOptionPercentage(index)}
                 size="small"
                 showInfo={false}
-                strokeColor={userVote === index ? '#52c41a' : '#1890ff'}
+                strokeColor={(hasVoted && Array.isArray(userVote) ? userVote.includes(index) : userVote === index) ? '#52c41a' : '#1890ff'}
                 style={{ marginTop: 4 }}
               />
             )}
@@ -182,9 +218,21 @@ const VoteMessage = ({ vote }) => {
       
       {!hasVoted && (
         <div className="vote-stats">
-          <Text type="secondary">
-            Nhấn vào lựa chọn để vote • Tạo bởi {voteData.creatorName}
-          </Text>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text type="secondary">
+              Chọn một hoặc nhiều lựa chọn • Tạo bởi {voteData.creatorName}
+            </Text>
+            {selectedOptions.length > 0 && (
+              <Button 
+                type="primary" 
+                size="small"
+                loading={loading}
+                onClick={handleSubmitVote}
+              >
+                Vote ({selectedOptions.length})
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </VoteCardStyled>

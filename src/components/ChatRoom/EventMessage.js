@@ -7,11 +7,13 @@ import moment from 'moment';
 const { Text } = Typography;
 
 const EventMessageCard = styled(Card)`
-  margin: 8px 0;
+  margin: 8px auto;
   border-radius: 12px;
   border: 1px solid #e6f7ff;
   background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
   box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+  max-width: 60%;
+  display: block;
   
   .ant-card-body {
     padding: 12px 16px;
@@ -51,7 +53,7 @@ const EventIcon = styled(Avatar)`
 `;
 
 export default function EventMessage({ event, showActions = true }) {
-  const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
+  const eventTime = moment(event.datetime);
   const now = moment();
   
   const getTimeDisplay = () => {
@@ -66,33 +68,22 @@ export default function EventMessage({ event, showActions = true }) {
     }
   };
 
-  const getEventStatus = () => {
-    const eventEnd = eventTime.clone().add(1, 'hour');
-    
-    if (now.isBefore(eventTime)) {
-      return { status: 'upcoming', color: '#52c41a', text: 'Sắp diễn ra' };
-    } else if (now.isBetween(eventTime, eventEnd)) {
-      return { status: 'ongoing', color: '#faad14', text: 'Đang diễn ra' };
-    } else {
-      return { status: 'past', color: '#8c8c8c', text: 'Đã kết thúc' };
-    }
-  };
-
-  const eventStatus = getEventStatus();
 
   return (
     <EventMessageCard size="small">
       <div className="event-header">
         <EventIcon icon={<CalendarOutlined />} size="small" />
         <div style={{ flex: 1 }}>
+          <div className="event-status">
+            <Text type="primary">
+              <CalendarOutlined /> Sự kiện
+            </Text>
+          </div>
           <h4 className="event-title">{event.title}</h4>
           <Space size="small">
             <Text className="event-time">
               <ClockCircleOutlined style={{ marginRight: 4 }} />
               {getTimeDisplay()}
-            </Text>
-            <Text style={{ color: eventStatus.color }}>
-              • {eventStatus.text}
             </Text>
           </Space>
         </div>
@@ -109,7 +100,7 @@ export default function EventMessage({ event, showActions = true }) {
         Được tạo bởi {event.createdByName}
       </div>
       
-      {showActions && eventStatus.status === 'upcoming' && (
+      {showActions && (
         <div className="event-actions">
           <Button 
             type="link" 

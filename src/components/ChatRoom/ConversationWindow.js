@@ -159,6 +159,7 @@ export default function ConversationWindow() {
                   photoURL={mes.photoURL}
                   displayName={mes.displayName}
                   createdAt={mes.createdAt}
+                  uid={mes.uid}
                 />
               ))}
             </MessageListStyled>
