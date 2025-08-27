@@ -1,13 +1,12 @@
-import { UserAddOutlined, DeleteOutlined, MoreOutlined, CalendarOutlined, BarChartOutlined } from '@ant-design/icons';
+import { UserAddOutlined, MoreOutlined, CalendarOutlined, BarChartOutlined } from '@ant-design/icons';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Button, Avatar, Form, Input, Dropdown, Menu, Popconfirm, Tooltip, message } from 'antd';
+import { Button, Avatar, Form, Input, Popconfirm, Tooltip, message } from 'antd';
 import Message from './Message';
 import EventMessage from './EventMessage';
 import VoteMessage from './VoteMessage';
+import RoomInfoModal from './RoomInfoModal';
 import { AppContext } from '../../Context/AppProvider';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
 import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, dissolveRoom } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
 import useFirestore from '../../hooks/useFirestore';
@@ -130,7 +129,6 @@ export default function ChatWindow() {
     selectedRoom, 
     selectedConversation, 
     chatType, 
-    members, 
     setIsAddRoomVisible, 
     setIsCalendarVisible, 
     setIsVoteModalVisible 
@@ -142,6 +140,7 @@ export default function ChatWindow() {
   const [form] = Form.useForm();
   const inputRef = useRef(null);
   const messageListRef = useRef(null);
+  const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
 
   const handleInputChange = (e) => {
     setInputValue(e.target.value);
@@ -334,54 +333,8 @@ export default function ChatWindow() {
     }
   }, [combinedMessages]);
 
-  const handleRemoveMember = async (memberIdToRemove) => {
-    if (selectedRoom.id) {
-      const roomRef = doc(db, 'rooms', selectedRoom.id);
-
-      // Get the current members array and filter out the member to be removed
-      const updatedMembers = selectedRoom.members.filter(
-        (memberUid) => memberUid !== memberIdToRemove
-      );
-
-      // Update the document in Firestore
-      await updateDoc(roomRef, {
-        members: updatedMembers,
-      });
-    }
-  };
 
   const isAdmin = selectedRoom.admin === uid;
-
-  const membersMenu = (
-    <Menu>
-      {members.map((member) => (
-        <Menu.Item key={member.uid}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <Avatar size='small' src={member.photoURL}>
-                {member.photoURL ? '' : member.displayName?.charAt(0)?.toUpperCase()}
-              </Avatar>
-              {` ${member.displayName}`}
-            </div>
-            {isAdmin && member.uid !== uid && (
-              <Popconfirm
-                title="Bạn chắc chắn muốn xóa thành viên này?"
-                onConfirm={() => handleRemoveMember(member.uid)}
-                okText="Xóa"
-                cancelText="Hủy"
-              >
-                <Button
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                />
-              </Popconfirm>
-            )}
-          </div>
-        </Menu.Item>
-      ))}
-    </Menu>
-  );
 
   // Determine if there's an active chat
   const hasActiveChat = (chatType === 'room' && selectedRoom.id) || (chatType === 'direct' && selectedConversation.id);
@@ -434,11 +387,13 @@ export default function ChatWindow() {
                 >
                   Mời
                 </Button>
-                <Dropdown overlay={membersMenu} trigger={['click']}>
-                  <Button icon={<MoreOutlined />} type='text'>
-                    Thành viên ({members.length})
-                  </Button>
-                </Dropdown>
+                <Button 
+                  icon={<MoreOutlined />} 
+                  type='text'
+                  onClick={() => setIsRoomInfoVisible(true)}
+                >
+                  Thông tin nhóm
+                </Button>
                 {isAdmin && (
                   <Popconfirm
                     title="Bạn có chắc chắn muốn giải tán nhóm này?"
@@ -527,6 +482,13 @@ export default function ChatWindow() {
           </div>
         </WelcomeScreenStyled>
       )}
+      
+      {/* Room Info Modal */}
+      <RoomInfoModal
+        visible={isRoomInfoVisible}
+        onClose={() => setIsRoomInfoVisible(false)}
+        room={selectedRoom}
+      />
     </WrapperStyled>
   );
 }

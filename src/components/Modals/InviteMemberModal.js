@@ -85,6 +85,17 @@ export default function InviteMemberModal() {
   const [form] = Form.useForm();
 
   const handleOk = () => {
+    // Kiểm tra số lượng thành viên tối thiểu (3 người bao gồm admin)
+    const totalMembers = selectedRoom.members.length + value.length;
+    
+    if (totalMembers < 3) {
+      Modal.error({
+        title: 'Không thể tạo nhóm',
+        content: 'Nhóm chat phải có tối thiểu 3 thành viên (bao gồm người tạo nhóm).',
+      });
+      return;
+    }
+
     // reset form value
     form.resetFields();
     setValue([]);

@@ -44,6 +44,38 @@ export const updateConversationLastMessage = async (conversationId, message, use
   }
 };
 
+// Room management services
+export const leaveRoom = async (roomId, userId) => {
+  try {
+    const roomRef = doc(db, 'rooms', roomId);
+    const roomDoc = await getDoc(roomRef);
+    
+    if (roomDoc.exists()) {
+      const roomData = roomDoc.data();
+      const updatedMembers = roomData.members.filter(memberId => memberId !== userId);
+      
+      await updateDoc(roomRef, {
+        members: updatedMembers,
+      });
+    }
+  } catch (error) {
+    console.error('Error leaving room:', error);
+    throw error;
+  }
+};
+
+export const transferRoomAdmin = async (roomId, newAdminId) => {
+  try {
+    const roomRef = doc(db, 'rooms', roomId);
+    await updateDoc(roomRef, {
+      admin: newAdminId,
+    });
+  } catch (error) {
+    console.error('Error transferring room admin:', error);
+    throw error;
+  }
+};
+
 // Event management services
 export const createEvent = async (eventData) => {
   try {

@@ -1,10 +1,8 @@
 import React, { useContext } from 'react';
-import { Avatar, Upload, message } from 'antd';
-import { CameraOutlined } from '@ant-design/icons';
+import { Avatar } from 'antd';
 import styled from 'styled-components';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
-import { updateRoomAvatar } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
 
 const ChatItemStyled = styled.div`
@@ -93,21 +91,6 @@ export default function UnifiedChatList() {
 
   const allUsers = useFirestore('users', allUsersCondition);
 
-  const handleAvatarUpload = async (file, roomId) => {
-    try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const avatarUrl = e.target.result;
-        await updateRoomAvatar(roomId, avatarUrl);
-        message.success('Đã cập nhật avatar phòng!');
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Lỗi khi upload avatar:', error);
-      message.error('Không thể cập nhật avatar phòng');
-    }
-    return false;
-  };
 
   const handleRoomClick = (roomId) => {
     selectRoom(roomId);
@@ -180,25 +163,15 @@ export default function UnifiedChatList() {
               >
                 {chat.avatar ? '' : chat.displayName?.charAt(0)?.toUpperCase()}
               </Avatar>
-              {chat.type === 'room' && (
-                <Upload
-                  accept="image/*"
-                  showUploadList={false}
-                  beforeUpload={(file) => handleAvatarUpload(file, chat.id)}
-                  className="avatar-upload"
-                >
-                  <div className="avatar-upload">
-                    <CameraOutlined />
-                  </div>
-                </Upload>
-              )}
             </div>
             <div className="chat-info">
               <p className="chat-name">
                 {chat.displayName}
-                <span className="chat-type-badge">
-                  {chat.type === 'room' ? 'Nhóm' : '1:1'}
-                </span>
+                {chat.type === 'room' && (
+                  <span className="chat-type-badge">
+                    Nhóm
+                  </span>
+                )}
               </p>
               <p className="chat-description">{chat.description}</p>
             </div>
