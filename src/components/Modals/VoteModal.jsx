@@ -96,7 +96,7 @@ const VoteModal = () => {
           <div>
             <label className="mb-1 block text-sm font-medium">Tiêu đề vote</label>
             <input
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
               placeholder="Ví dụ: Chọn địa điểm họp nhóm"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -106,9 +106,9 @@ const VoteModal = () => {
           <div>
             <label className="mb-1 block text-sm font-medium">Mô tả (tùy chọn)</label>
             <textarea
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
-              placeholder="Mô tả chi tiết về vote này..."
+              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
               rows={3}
+              placeholder="Mô tả chi tiết về cuộc vote (tùy chọn)"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
@@ -120,7 +120,7 @@ const VoteModal = () => {
               {options.map((option, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <input
-                    className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+                    className="flex-1 rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
                     placeholder={`Lựa chọn ${index + 1}`}
                     value={option}
                     onChange={(e) => handleOptionChange(index, e.target.value)}

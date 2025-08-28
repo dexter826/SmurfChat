@@ -40,7 +40,7 @@ function DebounceSelect({
     <div className="relative">
       <input
         type="text"
-        className="w-full rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700"
+        className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
         placeholder={props.placeholder}
         onChange={(e) => debounceFetcher(e.target.value)}
       />
@@ -150,7 +150,7 @@ export default function AddRoomModal() {
           <div>
             <label className="mb-1 block text-sm font-medium">Tên nhóm</label>
             <input
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
               placeholder='Nhập tên nhóm'
               value={formState.name}
               onChange={(e) => setFormState({ ...formState, name: e.target.value })}

@@ -14,6 +14,7 @@ export default function AppProvider({ children }) {
   const [chatType, setChatType] = useState('room'); // 'room' or 'direct'
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [isVoteModalVisible, setIsVoteModalVisible] = useState(false);
+  const [isNewMessageVisible, setIsNewMessageVisible] = useState(false);
 
   const {
     user: { uid },
@@ -305,6 +306,8 @@ export default function AppProvider({ children }) {
         setIsCalendarVisible,
         isVoteModalVisible,
         setIsVoteModalVisible,
+        isNewMessageVisible,
+        setIsNewMessageVisible,
         userEvents,
         allUsers,
         clearState,

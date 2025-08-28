@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { AuthContext } from '../../Context/AuthProvider';
+import React from 'react';
 import { AppContext } from '../../Context/AppProvider';
+import { AuthContext } from '../../Context/AuthProvider';
 import { useTheme } from '../../Context/ThemeProvider';
-import NewMessageModal from '../Modals/NewMessageModal';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 // Icon components
 const PlusIcon = () => (
@@ -25,19 +25,19 @@ const MoonIcon = () => (
 
 
 export default function UserInfo() {
-  const [isNewMessageModalVisible, setIsNewMessageModalVisible] = useState(false);
   const {
-    user: { displayName, photoURL },
+    user: { displayName, photoURL, uid },
   } = React.useContext(AuthContext);
-  const { setIsAddRoomVisible } = React.useContext(AppContext);
+  const { setIsAddRoomVisible, setIsNewMessageVisible } = React.useContext(AppContext);
   const { isDarkMode, toggleTheme } = useTheme();
+  const { isOnline } = useOnlineStatus(uid);
 
   const handleNewRoom = () => {
     setIsAddRoomVisible(true);
   };
   
   const handleNewMessage = () => {
-    setIsNewMessageModalVisible(true);
+    setIsNewMessageVisible(true);
   };
 
   const QuickActionButton = ({ onClick, title, children, variant = 'default' }) => {
@@ -79,14 +79,18 @@ export default function UserInfo() {
             {displayName?.charAt(0)?.toUpperCase() || '?'}
           </div>
           {/* Online indicator */}
-          <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></div>
+          <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-900 transition-colors duration-200 ${
+            isOnline ? 'bg-emerald-500' : 'bg-slate-400'
+          }`}></div>
         </div>
         
         <div className="flex-1 min-w-0">
           <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
             {displayName || 'Người dùng'}
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Đang hoạt động</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+          </p>
         </div>
 
         {/* Theme Toggle */}
@@ -118,10 +122,6 @@ export default function UserInfo() {
         </button>
       </div>
 
-      <NewMessageModal
-        visible={isNewMessageModalVisible}
-        onClose={() => setIsNewMessageModalVisible(false)}
-      />
     </div>
   );
 }

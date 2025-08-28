@@ -1,14 +1,14 @@
 import { CalendarOutlined, BarChartOutlined } from '@ant-design/icons';
 import React, { useContext, useEffect, useRef, useState } from 'react';
+import { AppContext } from '../../Context/AppProvider';
+import { AuthContext } from '../../Context/AuthProvider';
+import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, dissolveRoom, updateRoomLastMessage, updateLastSeen, setTypingStatus } from '../../firebase/services';
+import useFirestore from '../../hooks/useFirestore';
 import Message from './Message';
+import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
 import EventMessage from './EventMessage';
 import VoteMessage from './VoteMessage';
 import RoomInfoModal from './RoomInfoModal';
-import { AppContext } from '../../Context/AppProvider';
-import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, dissolveRoom, updateRoomLastMessage, updateLastSeen, setTypingStatus } from '../../firebase/services';
-import { AuthContext } from '../../Context/AuthProvider';
-import useFirestore from '../../hooks/useFirestore';
-import { useTheme } from '../../Context/ThemeProvider';
 
 export default function ChatWindow() {
   const {
@@ -22,17 +22,24 @@ export default function ChatWindow() {
   const {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
-  const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
-  const [form] = [null];
-  const inputRef = useRef(null);
-  const messageListRef = useRef(null);
+  const messageListRef = useRef();
+  const inputRef = useRef();
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
-  const lastNotifiedMessageIdRef = useRef(null);
 
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
+  // Online status component for conversations
+  const ConversationOnlineStatus = ({ userId, typingStatus, currentUserId }) => {
+    const { isOnline } = useUserOnlineStatus(userId);
+    const isTyping = typingStatus && Object.entries(typingStatus)
+      .some(([k, v]) => k !== currentUserId && v);
+    
+    return (
+      <span className='text-xs text-slate-500 dark:text-slate-400'>
+        {isTyping ? 'Đang nhập...' : (isOnline ? 'Đang hoạt động' : 'Không hoạt động')}
+      </span>
+    );
   };
+
 
   const handleOnSubmit = async () => {
     if (!inputValue.trim()) return;
@@ -286,10 +293,11 @@ export default function ChatWindow() {
                   )}
                   <div style={{ marginLeft: '12px' }}>
                     <p className='m-0 text-base font-semibold'>{selectedConversation.otherUser?.displayName}</p>
-                    <span className='text-xs text-slate-500 dark:text-slate-400'>
-                      {selectedConversation.typingStatus && Object.entries(selectedConversation.typingStatus)
-                        .some(([k, v]) => k !== uid && v) ? 'Đang nhập...' : 'Đang hoạt động'}
-                    </span>
+                    <ConversationOnlineStatus 
+                      userId={selectedConversation.otherUser?.uid}
+                      typingStatus={selectedConversation.typingStatus}
+                      currentUserId={uid}
+                    />
                   </div>
                 </>
               )}

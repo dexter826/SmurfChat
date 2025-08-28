@@ -221,8 +221,8 @@ export default function Sidebar() {
 
   const AddFriendModal = () => (
     showAddFriendModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl dark:bg-slate-800">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Kết bạn</h3>
             <button
@@ -315,7 +315,7 @@ export default function Sidebar() {
       {/* Tab Content */}
       <div className="thin-scrollbar flex-1 overflow-y-auto">
         {activeTab === 'conversations' && (
-          <div className="pb-2">
+          <div className="py-2">
             <UnifiedChatList />
           </div>
         )}
@@ -323,22 +323,22 @@ export default function Sidebar() {
         {activeTab === 'friends' && (
           <>
             {/* Friend Search */}
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="p-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Tìm kiếm bạn bè..."
                     value={friendSearchTerm}
                     onChange={(e) => setFriendSearchTerm(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 transition-all duration-200"
                   />
                 </div>
                 <button
                   onClick={() => setShowAddFriendModal(true)}
-                  className="flex items-center justify-center rounded-lg bg-skybrand-500 p-2 text-white transition-colors hover:bg-skybrand-600 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20"
-                  title="Kết bạn"
+                  className="flex items-center justify-center rounded-lg bg-skybrand-500 p-2.5 text-white transition-all duration-200 hover:bg-skybrand-600 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 active:scale-95"
+                  title="Kết bạn mới"
                 >
                   <UserPlusIcon />
                 </button>
@@ -357,7 +357,7 @@ export default function Sidebar() {
                   showBadge={true}
                 />
                 {!sectionsCollapsed.incoming && (
-                  <div className="space-y-1 pb-3">
+                  <div className="space-y-2 px-2 pb-3">
                     {incomingRequests.map((req) => {
                       const fromUser = getUserById(req.from);
                       return (
@@ -365,6 +365,7 @@ export default function Sidebar() {
                           key={req.id}
                           user={fromUser}
                           description="đã gửi lời mời kết bạn"
+                          className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"
                           actions={
                             <>
                               <ActionButton
@@ -444,7 +445,7 @@ export default function Sidebar() {
             )}
 
             {/* Friends List */}
-            <div className="border-b border-slate-100 dark:border-slate-800">
+            <div>
               <SectionHeader 
                 title="Danh sách bạn bè"
                 count={filteredFriends.length}
@@ -454,7 +455,7 @@ export default function Sidebar() {
                 showBadge={false}
               />
               {!sectionsCollapsed.friends && (
-                <div className="space-y-1 pb-3">
+                <div className="space-y-1 px-2 pb-3">
                   {filteredFriends.map((edge) => {
                     const otherId = (edge.participants || []).find(id => id !== user.uid);
                     const other = getUserById(otherId) || {};
@@ -463,11 +464,14 @@ export default function Sidebar() {
                         key={edge.id || otherId}
                         user={other}
                         description="Bạn bè"
+                        className="hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg transition-colors duration-200"
                         actions={
                           <ActionButton
                             variant="secondary"
                             onClick={async () => { 
-                              await removeFriendship(user.uid, otherId); 
+                              if (window.confirm('Bạn có chắc muốn hủy kết bạn?')) {
+                                await removeFriendship(user.uid, otherId);
+                              }
                             }}
                           >
                             Hủy kết bạn

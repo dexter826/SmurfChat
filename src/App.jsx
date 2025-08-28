@@ -9,6 +9,7 @@ import AddRoomModal from "./components/Modals/AddRoomModal.jsx";
 import InviteMemberModal from "./components/Modals/InviteMemberModal.jsx";
 import CalendarModal from "./components/Modals/CalendarModal.jsx";
 import VoteModal from "./components/Modals/VoteModal.jsx";
+import NewMessageModal from "./components/Modals/NewMessageModal.jsx";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
               <InviteMemberModal />
               <CalendarModal />
               <VoteModal />
+              <NewMessageModal />
             </AppProvider>
           </AuthProvider>
         </div>

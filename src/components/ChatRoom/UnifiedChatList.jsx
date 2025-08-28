@@ -2,6 +2,7 @@ import React, { useContext, useState } from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
 import useFirestore from "../../hooks/useFirestore";
+import { useUserOnlineStatus } from "../../hooks/useOnlineStatus";
 import {
   deleteConversation,
   togglePinChat,
@@ -36,6 +37,16 @@ const GroupIcon = () => (
     <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
   </svg>
 );
+
+const OnlineStatusIndicator = ({ userId }) => {
+  const { isOnline } = useUserOnlineStatus(userId);
+  
+  return (
+    <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-900 transition-colors duration-200 ${
+      isOnline ? 'bg-emerald-500' : 'bg-slate-400'
+    }`} title={isOnline ? 'Đang hoạt động' : 'Không hoạt động'}></div>
+  );
+};
 
 export default function UnifiedChatList() {
   const {
@@ -162,9 +173,11 @@ export default function UnifiedChatList() {
       isSelected: selectedRoomId === room.id,
       isMuted: !!(room.mutedBy && room.mutedBy[user.uid]),
       hasUnread: !!(
+        room.lastMessageAt &&
         room.lastSeen &&
         room.lastSeen[user.uid] &&
-        room.lastMessageAt &&
+        room.lastMessage &&
+        room.lastMessage.trim() !== '' &&
         (room.lastMessageAt?.toDate
           ? room.lastMessageAt.toDate()
           : new Date(room.lastMessageAt)) >
@@ -187,9 +200,11 @@ export default function UnifiedChatList() {
         otherUser,
         isMuted: !!(conversation.mutedBy && conversation.mutedBy[user.uid]),
         hasUnread: !!(
+          conversation.lastMessageAt &&
           conversation.lastSeen &&
           conversation.lastSeen[user.uid] &&
-          conversation.lastMessageAt &&
+          conversation.lastMessage &&
+          conversation.lastMessage.trim() !== '' &&
           (conversation.lastMessageAt?.toDate
             ? conversation.lastMessageAt.toDate()
             : new Date(conversation.lastMessageAt)) >
@@ -251,6 +266,8 @@ export default function UnifiedChatList() {
               }`}
               onClick={(e) => {
                 if (e.target.closest && e.target.closest(".chat-menu")) return;
+                // Prevent duplicate clicks
+                if (e.detail > 1) return;
                 if (chat.type === "room") {
                   handleRoomClick(chat.id);
                 } else {
@@ -276,6 +293,11 @@ export default function UnifiedChatList() {
                 >
                   {chat.displayName?.charAt(0)?.toUpperCase() || '?'}
                 </div>
+                
+                {/* Online status indicator for conversations */}
+                {chat.type === "conversation" && (
+                  <OnlineStatusIndicator userId={chat.otherUser?.uid} />
+                )}
                 
                 {/* Unread indicator */}
                 {chat.hasUnread && (

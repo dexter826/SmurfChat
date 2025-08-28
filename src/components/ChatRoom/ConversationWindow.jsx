@@ -1,10 +1,10 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import Message from './Message';
 import { AppContext } from '../../Context/AppProvider';
-import { addDocument, updateConversationLastMessage, updateLastSeen, setTypingStatus, areUsersFriends } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
+import { addDocument, updateConversationLastMessage, updateLastSeen, setTypingStatus, areUsersFriends } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
-
+import Message from './Message';
+import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
 
 export default function ConversationWindow() {
   const { selectedConversation } = useContext(AppContext);
@@ -12,14 +12,20 @@ export default function ConversationWindow() {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
   const [inputValue, setInputValue] = useState('');
-  const [form] = [null];
-  const inputRef = useRef(null);
-  const messageListRef = useRef(null);
+  const messageListRef = useRef();
+  const inputRef = useRef();
   const [canChat, setCanChat] = useState(true);
 
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
+  // Online status component
+  const OnlineStatus = ({ userId }) => {
+    const { isOnline } = useUserOnlineStatus(userId);
+    return (
+      <p className='m-0 text-xs text-slate-500'>
+        {isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+      </p>
+    );
   };
+
 
   const handleOnSubmit = async () => {
     if (!inputValue.trim() || !selectedConversation.id) return;
@@ -144,7 +150,7 @@ export default function ConversationWindow() {
               )}
               <div className="ml-3">
                 <p className='m-0 text-base font-semibold'>{otherParticipant?.displayName}</p>
-                <p className='m-0 text-xs text-slate-500'>Đang hoạt động</p>
+                <OnlineStatus userId={otherParticipant?.uid} />
               </div>
             </div>
           </div>

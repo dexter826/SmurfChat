@@ -10,7 +10,8 @@ const SearchIcon = () => (
   </svg>
 );
 
-export default function NewMessageModal({ visible, onClose }) {
+export default function NewMessageModal() {
+  const { isNewMessageVisible, setIsNewMessageVisible } = useContext(AppContext);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const { setSelectedConversationId, setChatType } = useContext(AppContext);
@@ -85,7 +86,7 @@ export default function NewMessageModal({ visible, onClose }) {
       setSelectedConversationId(conversationId);
 
       // Close modal and reset search
-      onClose();
+      setIsNewMessageVisible(false);
       setSearchTerm('');
     } catch (error) {
       console.error('Error creating conversation:', error);
@@ -99,24 +100,24 @@ export default function NewMessageModal({ visible, onClose }) {
 
 
   const handleCancel = () => {
-    onClose();
+    setIsNewMessageVisible(false);
     setSearchTerm('');
   };
 
-  if (!visible) return null;
+  if (!isNewMessageVisible) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={handleCancel} />
-      <div className="relative z-10 w-full max-w-xl rounded-lg border border-gray-200 bg-white p-5 shadow-xl dark:border-gray-700 dark:bg-slate-900">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleCancel} />
+      <div className="relative z-10 w-full max-w-xl mx-auto rounded-lg border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-slate-900 max-h-[90vh] overflow-hidden">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Tạo tin nhắn mới</h3>
           <button className="rounded-md px-2 py-1 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" onClick={handleCancel}>Đóng</button>
         </div>
         <div className="mb-4">
           <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
-              className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 transition-all duration-200"
               placeholder="Tìm kiếm bạn bè..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -126,9 +127,9 @@ export default function NewMessageModal({ visible, onClose }) {
         </div>
 
         {filteredFriends.length > 0 ? (
-          <ul className="thin-scrollbar max-h-80 space-y-2 overflow-y-auto">
+          <div className="thin-scrollbar max-h-80 space-y-2 overflow-y-auto">
             {filteredFriends.map((friend) => (
-              <li key={friend.uid} className={`flex items-center justify-between rounded-lg p-3 ${loading ? 'opacity-60' : ''} hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`}>
+              <div key={friend.uid} className={`flex items-center justify-between rounded-lg p-3 ${loading ? 'opacity-60' : ''} hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer`}>
                 <div className="flex items-center">
                   {friend.photoURL ? (
                     <img className="h-10 w-10 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-700" src={friend.photoURL} alt="avatar" />
@@ -154,9 +155,9 @@ export default function NewMessageModal({ visible, onClose }) {
                     Nhắn tin
                   </button>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : (
           <div className="py-10 text-center text-slate-500 dark:text-slate-400">
             {friends.length === 0 ? 'Bạn chưa có bạn bè nào. Hãy kết bạn trước khi tạo tin nhắn.' : 'Không tìm thấy bạn bè nào'}

@@ -117,7 +117,7 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
               Tiêu đề sự kiện
             </label>
             <input
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
               placeholder="Ví dụ: Họp nhóm thảo luận đề tài"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -126,7 +126,7 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
           <div>
             <label className="mb-1 block text-sm font-medium">Mô tả</label>
             <textarea
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
               rows={3}
               placeholder="Mô tả chi tiết về sự kiện (tùy chọn)"
               value={form.description}
@@ -140,7 +140,7 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
               <label className="mb-1 block text-sm font-medium">Ngày</label>
               <input
                 type="date"
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+                className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
@@ -149,7 +149,7 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
               <label className="mb-1 block text-sm font-medium">Giờ</label>
               <input
                 type="time"
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+                className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
                 value={form.time}
                 onChange={(e) => setForm({ ...form, time: e.target.value })}
               />
