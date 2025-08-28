@@ -7,7 +7,7 @@ import EventMessage from './EventMessage';
 import VoteMessage from './VoteMessage';
 import RoomInfoModal from './RoomInfoModal';
 import { AppContext } from '../../Context/AppProvider';
-import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, dissolveRoom } from '../../firebase/services';
+import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, dissolveRoom, updateRoomLastMessage, updateLastSeen, setTypingStatus } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
 import { useTheme } from '../../Context/ThemeProvider';
 import useFirestore from '../../hooks/useFirestore';
@@ -74,6 +74,38 @@ const MessageListStyled = styled.div`
   overflow-y: auto;
 `;
 
+const TypingIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  height: 24px;
+  margin: 6px 0 8px;
+  color: #8c8c8c;
+  font-size: 12px;
+
+  .dots {
+    display: inline-block;
+    margin-left: 6px;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin: 0 2px;
+    background: #bfbfbf;
+    border-radius: 50%;
+    animation: typingBlink 1.4s infinite ease-in-out both;
+  }
+
+  .dot:nth-child(1) { animation-delay: -0.32s; }
+  .dot:nth-child(2) { animation-delay: -0.16s; }
+
+  @keyframes typingBlink {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+`;
+
 const WelcomeScreenStyled = styled.div`
   height: 100%;
   display: flex;
@@ -106,13 +138,13 @@ const WelcomeScreenStyled = styled.div`
 `;
 
 export default function ChatWindow() {
-  const { 
-    selectedRoom, 
-    selectedConversation, 
-    chatType, 
-    setIsAddRoomVisible, 
-    setIsCalendarVisible, 
-    setIsVoteModalVisible 
+  const {
+    selectedRoom,
+    selectedConversation,
+    chatType,
+    setIsAddRoomVisible,
+    setIsCalendarVisible,
+    setIsVoteModalVisible
   } = useContext(AppContext);
   const {
     user: { uid, photoURL, displayName },
@@ -134,7 +166,7 @@ export default function ChatWindow() {
     if (chatType === 'room' && selectedRoom.id) {
       // Handle room message
       const detectedTime = parseTimeFromMessage(inputValue);
-      
+
       addDocument('messages', {
         text: inputValue,
         uid,
@@ -144,6 +176,13 @@ export default function ChatWindow() {
         hasTimeInfo: !!detectedTime,
       });
 
+      // Update room's last message for sorting and unread
+      try {
+        await updateRoomLastMessage(selectedRoom.id, inputValue, uid);
+      } catch (error) {
+        console.error('Error updating room last message:', error);
+      }
+
       // Show event creation suggestion if time is detected
       if (detectedTime) {
         const eventTitle = extractEventTitle(inputValue);
@@ -151,9 +190,9 @@ export default function ChatWindow() {
           content: (
             <div>
               <p>Phát hiện thời gian trong tin nhắn! Bạn có muốn tạo sự kiện?</p>
-              <Button 
-                size="small" 
-                type="primary" 
+              <Button
+                size="small"
+                type="primary"
                 icon={<CalendarOutlined />}
                 onClick={() => handleCreateEventFromMessage(eventTitle, detectedTime)}
               >
@@ -315,6 +354,48 @@ export default function ChatWindow() {
     }
   }, [combinedMessages]);
 
+  // Mark messages as read when viewing an active chat
+  useEffect(() => {
+    const markSeen = async () => {
+      try {
+        if (chatType === 'room' && selectedRoom.id) {
+          await updateLastSeen(selectedRoom.id, uid, false);
+        } else if (chatType === 'direct' && selectedConversation.id) {
+          await updateLastSeen(selectedConversation.id, uid, true);
+        }
+      } catch (e) {
+        console.error('Error updating last seen:', e);
+      }
+    };
+    if ((chatType === 'room' && selectedRoom.id) || (chatType === 'direct' && selectedConversation.id)) {
+      markSeen();
+    }
+  }, [chatType, selectedRoom.id, selectedConversation.id, combinedMessages, uid]);
+
+  // Update typing status (self)
+  useEffect(() => {
+    const isTyping = !!inputValue.trim();
+    const chatId = chatType === 'room' ? selectedRoom.id : selectedConversation.id;
+    const isConversation = chatType === 'direct';
+    if (!chatId) return;
+
+    const updateTyping = async () => {
+      try {
+        await setTypingStatus(chatId, uid, isTyping, isConversation);
+      } catch (e) {
+        console.error('Error setting typing status:', e);
+      }
+    };
+
+    updateTyping();
+
+    // Auto clear typing after idle 3s
+    const t = setTimeout(() => {
+      setTypingStatus(chatId, uid, false, isConversation).catch(() => { });
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [inputValue, chatType, selectedRoom.id, selectedConversation.id, uid]);
+
 
   const isAdmin = selectedRoom.admin === uid;
 
@@ -341,7 +422,10 @@ export default function ChatWindow() {
                   </Avatar>
                   <div style={{ marginLeft: '12px' }}>
                     <p className='header__title'>{selectedConversation.otherUser?.displayName}</p>
-                    <span className='header__description'>Đang hoạt động</span>
+                    <span className='header__description'>
+                      {selectedConversation.typingStatus && Object.entries(selectedConversation.typingStatus)
+                        .some(([k, v]) => k !== uid && v) ? 'Đang nhập...' : 'Đang hoạt động'}
+                    </span>
                   </div>
                 </>
               )}
@@ -349,15 +433,15 @@ export default function ChatWindow() {
             {chatType === 'room' && (
               <ButtonGroupStyled>
                 <Tooltip title="Mở lịch">
-                  <Button 
-                    type="text" 
+                  <Button
+                    type="text"
                     icon={<CalendarOutlined />}
                     onClick={() => setIsCalendarVisible(true)}
                   />
                 </Tooltip>
                 <Tooltip title="Tạo vote">
-                  <Button 
-                    type="text" 
+                  <Button
+                    type="text"
                     icon={<BarChartOutlined />}
                     onClick={() => setIsVoteModalVisible(true)}
                   />
@@ -369,8 +453,8 @@ export default function ChatWindow() {
                 >
                   Mời
                 </Button>
-                <Button 
-                  icon={<MoreOutlined />} 
+                <Button
+                  icon={<MoreOutlined />}
                   type='text'
                   onClick={() => setIsRoomInfoVisible(true)}
                 >
@@ -418,6 +502,16 @@ export default function ChatWindow() {
                 }
               })}
             </MessageListStyled>
+            {inputValue && (
+              <TypingIndicator>
+                Đang nhập
+                <span className="dots">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </span>
+              </TypingIndicator>
+            )}
             <FormStyled form={form}>
               <Form.Item name='message'>
                 <Input
@@ -441,8 +535,8 @@ export default function ChatWindow() {
             <h1 className="welcome-title">Chào mừng đến với SmurfChat! 👋</h1>
             <p className="welcome-subtitle">Chọn một cuộc trò chuyện hoặc phòng để bắt đầu nhắn tin</p>
             <div className="welcome-image">
-            <img 
-                src="/welcome.png" 
+              <img
+                src="/welcome.png"
                 alt="SmurfChat Welcome"
                 style={{ borderRadius: '12px', maxWidth: '200px', height: 'auto' }}
               />
@@ -450,7 +544,7 @@ export default function ChatWindow() {
           </div>
         </WelcomeScreenStyled>
       )}
-      
+
       {/* Room Info Modal */}
       <RoomInfoModal
         visible={isRoomInfoVisible}

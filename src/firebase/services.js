@@ -16,7 +16,7 @@ export const registerWithEmailAndPassword = async (email, password, displayName)
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    
+
     // Update user profile with display name
     await updateProfile(user, {
       displayName: displayName
@@ -65,7 +65,7 @@ export const logoutUser = async () => {
 export const createOrUpdateConversation = async (conversationData) => {
   const { id, ...data } = conversationData;
   const conversationRef = doc(db, 'conversations', id);
-  
+
   try {
     await setDoc(conversationRef, {
       ...data,
@@ -82,7 +82,7 @@ export const createOrUpdateConversation = async (conversationData) => {
 // Update conversation last message
 export const updateConversationLastMessage = async (conversationId, message, userId) => {
   const conversationRef = doc(db, 'conversations', conversationId);
-  
+
   try {
     await updateDoc(conversationRef, {
       lastMessage: message,
@@ -95,16 +95,32 @@ export const updateConversationLastMessage = async (conversationId, message, use
   }
 };
 
+// Update room last message
+export const updateRoomLastMessage = async (roomId, message, userId) => {
+  const roomRef = doc(db, 'rooms', roomId);
+
+  try {
+    await updateDoc(roomRef, {
+      lastMessage: message,
+      lastMessageAt: serverTimestamp(),
+      updatedBy: userId,
+    });
+  } catch (error) {
+    console.error('Error updating room last message:', error);
+    throw error;
+  }
+};
+
 // Room management services
 export const leaveRoom = async (roomId, userId) => {
   try {
     const roomRef = doc(db, 'rooms', roomId);
     const roomDoc = await getDoc(roomRef);
-    
+
     if (roomDoc.exists()) {
       const roomData = roomDoc.data();
       const updatedMembers = roomData.members.filter(memberId => memberId !== userId);
-      
+
       await updateDoc(roomRef, {
         members: updatedMembers,
       });
@@ -144,7 +160,7 @@ export const createEvent = async (eventData) => {
 
 export const updateEvent = async (eventId, eventData) => {
   const eventRef = doc(db, 'events', eventId);
-  
+
   try {
     await updateDoc(eventRef, {
       ...eventData,
@@ -158,7 +174,7 @@ export const updateEvent = async (eventId, eventData) => {
 
 export const deleteEvent = async (eventId) => {
   const eventRef = doc(db, 'events', eventId);
-  
+
   try {
     await updateDoc(eventRef, {
       deleted: true,
@@ -173,14 +189,14 @@ export const deleteEvent = async (eventId) => {
 // Dissolve room (admin only)
 export const dissolveRoom = async (roomId) => {
   const roomRef = doc(db, 'rooms', roomId);
-  
+
   try {
     await updateDoc(roomRef, {
       dissolved: true,
       dissolvedAt: serverTimestamp(),
       members: [],
     });
-    
+
     // Also mark all messages in the room as archived
     // Note: In a real app, you might want to use Cloud Functions for this
     return true;
@@ -209,34 +225,34 @@ export const createVote = async (voteData) => {
 
 export const castVote = async (voteId, userId, optionIndex) => {
   const voteRef = doc(db, 'votes', voteId);
-  
+
   try {
     // Get current vote data
     const voteDoc = await getDoc(voteRef);
     if (!voteDoc.exists()) {
       throw new Error('Vote not found');
     }
-    
+
     const voteData = voteDoc.data();
     const currentVotes = voteData.votes || {};
     const currentCounts = [...(voteData.voteCounts || [])];
-    
+
     // Remove previous vote if exists
     if (currentVotes[userId] !== undefined) {
       const previousOption = currentVotes[userId];
       currentCounts[previousOption] = Math.max(0, currentCounts[previousOption] - 1);
     }
-    
+
     // Add new vote
     currentVotes[userId] = optionIndex;
     currentCounts[optionIndex] = (currentCounts[optionIndex] || 0) + 1;
-    
+
     await updateDoc(voteRef, {
       votes: currentVotes,
       voteCounts: currentCounts,
       updatedAt: serverTimestamp(),
     });
-    
+
     return true;
   } catch (error) {
     console.error('Error casting vote:', error);
@@ -246,7 +262,7 @@ export const castVote = async (voteId, userId, optionIndex) => {
 
 export const deleteVote = async (voteId) => {
   const voteRef = doc(db, 'votes', voteId);
-  
+
   try {
     await updateDoc(voteRef, {
       deleted: true,
@@ -284,52 +300,52 @@ export const parseTimeFromMessage = (message) => {
         const hour = parseInt(match[2]);
         const minute = match[3] ? parseInt(match[3]) : 0;
         const period = match[5];
-        
+
         let finalHour = hour;
         if (period === 'chiều' && hour < 12) finalHour += 12;
         if (period === 'tối' && hour < 12) finalHour += 12;
-        
+
         targetDate.setHours(finalHour, minute, 0, 0);
         return targetDate;
       }
-      
+
       if (match[0].includes('thứ')) {
         const dayName = match[7];
         const targetDay = dayMap[dayName] || 0;
         const currentDay = now.getDay();
         const daysToAdd = (targetDay - currentDay + 7) % 7 || 7;
-        
+
         targetDate.setDate(now.getDate() + daysToAdd);
         const hour = parseInt(match[2]);
         const minute = match[3] ? parseInt(match[3]) : 0;
         const period = match[5];
-        
+
         let finalHour = hour;
         if (period === 'chiều' && hour < 12) finalHour += 12;
         if (period === 'tối' && hour < 12) finalHour += 12;
-        
+
         targetDate.setHours(finalHour, minute, 0, 0);
         return targetDate;
       }
-      
+
       if (match[5] && match[6]) {
         const hour = parseInt(match[2]);
         const minute = parseInt(match[3]);
         const day = parseInt(match[5]);
         const month = parseInt(match[6]) - 1;
-        
+
         targetDate.setMonth(month, day);
         targetDate.setHours(hour, minute, 0, 0);
-        
+
         if (targetDate < now) {
           targetDate.setFullYear(now.getFullYear() + 1);
         }
-        
+
         return targetDate;
       }
     }
   }
-  
+
   return null;
 };
 
@@ -339,14 +355,14 @@ export const extractEventTitle = (message) => {
     /^(.+?)\s+(lúc|vào|tại)\s+/i,
     /^(.+?)\s+(\d{1,2}h)/i,
   ];
-  
+
   for (const pattern of eventPatterns) {
     const match = pattern.exec(message);
     if (match) {
       return match[1].trim();
     }
   }
-  
+
   return message.length > 50 ? message.substring(0, 50) + '...' : message;
 };
 
@@ -440,11 +456,11 @@ export const markMessageAsRead = async (messageId, userId, collectionName = 'mes
   try {
     const messageRef = doc(db, collectionName, messageId);
     const messageDoc = await getDoc(messageRef);
-    
+
     if (messageDoc.exists()) {
       const messageData = messageDoc.data();
       const readBy = messageData.readBy || [];
-      
+
       if (!readBy.includes(userId)) {
         await updateDoc(messageRef, {
           readBy: [...readBy, userId],
@@ -493,11 +509,11 @@ export const updateLastSeen = async (roomId, userId, isConversation = false) => 
     const collectionName = isConversation ? 'conversations' : 'rooms';
     const docRef = doc(db, collectionName, roomId);
     const docSnapshot = await getDoc(docRef);
-    
+
     if (docSnapshot.exists()) {
       const data = docSnapshot.data();
       const lastSeen = data.lastSeen || {};
-      
+
       await updateDoc(docRef, {
         lastSeen: {
           ...lastSeen,
@@ -507,6 +523,29 @@ export const updateLastSeen = async (roomId, userId, isConversation = false) => 
     }
   } catch (error) {
     console.error('Error updating last seen:', error);
+    throw error;
+  }
+};
+
+// Typing status helpers
+export const setTypingStatus = async (chatId, userId, isTyping, isConversation = false) => {
+  try {
+    const collectionName = isConversation ? 'conversations' : 'rooms';
+    const docRef = doc(db, collectionName, chatId);
+    const docSnapshot = await getDoc(docRef);
+    if (docSnapshot.exists()) {
+      const data = docSnapshot.data();
+      const typingStatus = data.typingStatus || {};
+      await updateDoc(docRef, {
+        typingStatus: {
+          ...typingStatus,
+          [userId]: isTyping
+        },
+        typingUpdatedAt: serverTimestamp(),
+      });
+    }
+  } catch (error) {
+    console.error('Error updating typing status:', error);
     throw error;
   }
 };

@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { Button, Avatar, Form, Input, Alert } from 'antd';
 import Message from './Message';
 import { AppContext } from '../../Context/AppProvider';
-import { addDocument, updateConversationLastMessage } from '../../firebase/services';
+import { addDocument, updateConversationLastMessage, updateLastSeen, setTypingStatus } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
 import useFirestore from '../../hooks/useFirestore';
 
@@ -63,6 +63,38 @@ const FormStyled = styled(Form)`
 const MessageListStyled = styled.div`
   max-height: 100%;
   overflow-y: auto;
+`;
+
+const TypingIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  height: 24px;
+  margin: 6px 0 8px;
+  color: #8c8c8c;
+  font-size: 12px;
+
+  .dots {
+    display: inline-block;
+    margin-left: 6px;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin: 0 2px;
+    background: #bfbfbf;
+    border-radius: 50%;
+    animation: typingBlink 1.4s infinite ease-in-out both;
+  }
+
+  .dot:nth-child(1) { animation-delay: -0.32s; }
+  .dot:nth-child(2) { animation-delay: -0.16s; }
+
+  @keyframes typingBlink {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
 `;
 
 export default function ConversationWindow() {
@@ -129,6 +161,43 @@ export default function ConversationWindow() {
     }
   }, [messages]);
 
+  // Mark conversation as read when messages change and this conversation is open
+  useEffect(() => {
+    const markSeen = async () => {
+      try {
+        if (selectedConversation.id) {
+          await updateLastSeen(selectedConversation.id, uid, true);
+        }
+      } catch (e) {
+        console.error('Error updating last seen:', e);
+      }
+    };
+    if (selectedConversation.id) {
+      markSeen();
+    }
+  }, [selectedConversation.id, uid, messages]);
+
+  // Update typing status (self)
+  useEffect(() => {
+    const isTyping = !!inputValue.trim();
+    const chatId = selectedConversation.id;
+    if (!chatId) return;
+
+    const updateTyping = async () => {
+      try {
+        await setTypingStatus(chatId, uid, isTyping, true);
+      } catch (e) {
+        console.error('Error setting typing status:', e);
+      }
+    };
+
+    updateTyping();
+    const t = setTimeout(() => {
+      setTypingStatus(chatId, uid, false, true).catch(() => { });
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [inputValue, selectedConversation.id, uid]);
+
   // Get other participant info
   const otherParticipant = React.useMemo(() => {
     if (!selectedConversation.participants) return null;
@@ -163,6 +232,16 @@ export default function ConversationWindow() {
                 />
               ))}
             </MessageListStyled>
+            {inputValue && (
+              <TypingIndicator>
+                Đang nhập
+                <span className="dots">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </span>
+              </TypingIndicator>
+            )}
             <FormStyled form={form}>
               <Form.Item name='message'>
                 <Input

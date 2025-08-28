@@ -6,7 +6,7 @@ import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
 import { useTheme } from '../../Context/ThemeProvider';
 import useFirestore from '../../hooks/useFirestore';
-import { deleteConversation, togglePinChat, dissolveRoom } from '../../firebase/services';
+import { deleteConversation, togglePinChat, dissolveRoom, updateLastSeen } from '../../firebase/services';
 
 const ChatItemStyled = styled.div`
   display: flex;
@@ -111,10 +111,10 @@ const ChatItemStyled = styled.div`
 `;
 
 export default function UnifiedChatList() {
-  const { 
-    rooms, 
-    conversations, 
-    selectedRoomId, 
+  const {
+    rooms,
+    conversations,
+    selectedRoomId,
     selectedConversationId,
     selectRoom,
     selectConversation
@@ -132,12 +132,22 @@ export default function UnifiedChatList() {
   const allUsers = useFirestore('users', allUsersCondition);
 
 
-  const handleRoomClick = (roomId) => {
+  const handleRoomClick = async (roomId) => {
     selectRoom(roomId);
+    try {
+      await updateLastSeen(roomId, user.uid, false);
+    } catch (e) {
+      console.error('Error updating room last seen:', e);
+    }
   };
 
-  const handleConversationClick = (conversationId) => {
+  const handleConversationClick = async (conversationId) => {
     selectConversation(conversationId);
+    try {
+      await updateLastSeen(conversationId, user.uid, true);
+    } catch (e) {
+      console.error('Error updating conversation last seen:', e);
+    }
   };
 
   const handlePinChat = async (chatId, isPinned, isConversation) => {
@@ -179,8 +189,9 @@ export default function UnifiedChatList() {
       description: room.description,
       avatar: room.avatar,
       isSelected: selectedRoomId === room.id,
-      hasUnread: room.lastSeen && room.lastSeen[user.uid] && room.lastMessageAt && 
-                 new Date(room.lastMessageAt.toDate()) > new Date(room.lastSeen[user.uid].toDate()),
+      hasUnread: !!(room.lastSeen && room.lastSeen[user.uid] && room.lastMessageAt &&
+        (room.lastMessageAt?.toDate ? room.lastMessageAt.toDate() : new Date(room.lastMessageAt)) >
+        (room.lastSeen[user.uid]?.toDate ? room.lastSeen[user.uid].toDate() : new Date(room.lastSeen[user.uid]))),
       isPinned: room.pinned || false
     }));
 
@@ -194,8 +205,9 @@ export default function UnifiedChatList() {
         avatar: otherUser.photoURL,
         isSelected: selectedConversationId === conversation.id,
         otherUser,
-        hasUnread: conversation.lastSeen && conversation.lastSeen[user.uid] && conversation.lastMessageAt && 
-                   new Date(conversation.lastMessageAt.toDate()) > new Date(conversation.lastSeen[user.uid].toDate()),
+        hasUnread: !!(conversation.lastSeen && conversation.lastSeen[user.uid] && conversation.lastMessageAt &&
+          (conversation.lastMessageAt?.toDate ? conversation.lastMessageAt.toDate() : new Date(conversation.lastMessageAt)) >
+          (conversation.lastSeen[user.uid]?.toDate ? conversation.lastSeen[user.uid].toDate() : new Date(conversation.lastSeen[user.uid]))),
         isPinned: conversation.pinned || false
       };
     });
@@ -205,11 +217,12 @@ export default function UnifiedChatList() {
       // Pinned items first
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
-      
+
       // Then by last activity or creation date
-      const aTime = a.lastMessageAt || a.createdAt || new Date(0);
-      const bTime = b.lastMessageAt || b.createdAt || new Date(0);
-      return new Date(bTime) - new Date(aTime);
+      const normalize = (t) => (t?.toDate ? t.toDate() : (t ? new Date(t) : new Date(0)));
+      const aTime = normalize(a.lastMessageAt) || normalize(a.createdAt);
+      const bTime = normalize(b.lastMessageAt) || normalize(b.createdAt);
+      return bTime - aTime;
     });
   }, [rooms, conversations, selectedRoomId, selectedConversationId, allUsers, user.uid]);
 
@@ -245,7 +258,7 @@ export default function UnifiedChatList() {
               onClick={(e) => {
                 // Prevent click when clicking on menu
                 if (e.target.closest('.chat-menu')) return;
-                
+
                 if (chat.type === 'room') {
                   handleRoomClick(chat.id);
                 } else {
@@ -256,9 +269,9 @@ export default function UnifiedChatList() {
               {chat.isPinned && (
                 <PushpinOutlined className="pin-indicator" />
               )}
-              
+
               <div className="chat-avatar">
-                <Avatar 
+                <Avatar
                   size={40}
                   src={chat.avatar}
                   style={{ backgroundColor: '#1890ff' }}
@@ -266,7 +279,7 @@ export default function UnifiedChatList() {
                   {chat.avatar ? '' : chat.displayName?.charAt(0)?.toUpperCase()}
                 </Avatar>
               </div>
-              
+
               <div className="chat-info">
                 <p className="chat-name">
                   {chat.displayName}
@@ -278,7 +291,7 @@ export default function UnifiedChatList() {
                 </p>
                 <p className="chat-description">{chat.description}</p>
               </div>
-              
+
               <div className="chat-menu">
                 <Dropdown
                   menu={{ items: menuItems }}
