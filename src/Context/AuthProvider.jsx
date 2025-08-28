@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebase/config';
-import { logoutUser } from '../firebase/services';
-import { Spin } from 'antd';
+import React, { useState } from "react";
+import { useHistory } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase/config";
+import { logoutUser } from "../firebase/services";
 
 export const AuthContext = React.createContext();
 
@@ -23,14 +22,14 @@ export default function AuthProvider({ children }) {
           photoURL,
         });
         setIsLoading(false);
-        history.push('/');
+        history.push("/");
         return;
       }
 
       // reset user info
       setUser({});
       setIsLoading(false);
-      history.push('/login');
+      history.push("/login");
     });
 
     // clean function
@@ -45,7 +44,16 @@ export default function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{ user, logout: handleLogout }}>
-      {isLoading ? <Spin style={{ position: 'fixed', inset: 0 }} /> : children}
+      {isLoading ? (
+        <div
+          style={{ position: "fixed", inset: 0 }}
+          className="flex items-center justify-center"
+        >
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-skybrand-500 border-t-transparent" />
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }

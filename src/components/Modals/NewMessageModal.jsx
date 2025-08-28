@@ -1,58 +1,9 @@
 import React, { useState, useContext } from 'react';
-import { Modal, Input, List, Avatar, Empty, message, Tag, Button, Space } from 'antd';
-import { SearchOutlined, UserOutlined } from '@ant-design/icons';
-import styled from 'styled-components';
+import { SearchOutlined } from '@ant-design/icons';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
 import { createOrUpdateConversation, areUsersFriends, getPendingFriendRequest, sendFriendRequest, acceptFriendRequest, declineFriendRequest, cancelFriendRequest } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
-
-const ModalContentStyled = styled.div`
-  .search-input {
-    margin-bottom: 16px;
-  }
-  
-  .user-list {
-    max-height: 300px;
-    overflow-y: auto;
-    
-    .ant-list-item {
-      cursor: pointer;
-      padding: 12px;
-      border-radius: 8px;
-      transition: background-color 0.2s;
-      
-      &:hover {
-        background-color: #f5f5f5;
-      }
-    }
-    
-    .user-info {
-      display: flex;
-      align-items: center;
-      
-      .user-details {
-        margin-left: 12px;
-        
-        .display-name {
-          font-weight: 500;
-          color: #262626;
-        }
-        
-        .email {
-          color: #8c8c8c;
-          font-size: 12px;
-        }
-      }
-    }
-  }
-  
-  .empty-state {
-    padding: 40px 0;
-    text-align: center;
-    color: #8c8c8c;
-  }
-`;
 
 export default function NewMessageModal({ visible, onClose }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -146,13 +97,13 @@ export default function NewMessageModal({ visible, onClose }) {
         onClose();
         setSearchTerm('');
 
-        message.success(`Đã tạo cuộc trò chuyện với ${selectedUser.displayName}`);
+        try { window.alert(`Đã tạo cuộc trò chuyện với ${selectedUser.displayName}`); } catch { }
         return;
       }
-      message.info('Hai bạn chưa là bạn bè. Hãy gửi lời mời kết bạn trước.');
+      try { window.alert('Hai bạn chưa là bạn bè. Hãy gửi lời mời kết bạn trước.'); } catch { }
     } catch (error) {
       console.error('Error creating conversation:', error);
-      message.error('Không thể thực hiện thao tác. Vui lòng thử lại.');
+      try { window.alert('Không thể thực hiện thao tác. Vui lòng thử lại.'); } catch { }
     } finally {
       setLoading(false);
     }
@@ -163,14 +114,14 @@ export default function NewMessageModal({ visible, onClose }) {
       setLoading(true);
       const pending = await getPendingFriendRequest(user.uid, toUser.uid);
       if (pending && pending.status === 'pending') {
-        message.info('Bạn đã gửi lời mời trước đó.');
+        try { window.alert('Bạn đã gửi lời mời trước đó.'); } catch { }
         return;
       }
       await sendFriendRequest(user.uid, toUser.uid);
-      message.success('Đã gửi lời mời kết bạn.');
+      try { window.alert('Đã gửi lời mời kết bạn.'); } catch { }
     } catch (e) {
       console.error(e);
-      message.error('Gửi lời mời thất bại.');
+      try { window.alert('Gửi lời mời thất bại.'); } catch { }
     } finally {
       setLoading(false);
     }
@@ -180,10 +131,10 @@ export default function NewMessageModal({ visible, onClose }) {
     try {
       setLoading(true);
       await cancelFriendRequest(reqId, user.uid);
-      message.success('Đã hủy lời mời.');
+      try { window.alert('Đã hủy lời mời.'); } catch { }
     } catch (e) {
       console.error(e);
-      message.error('Hủy lời mời thất bại.');
+      try { window.alert('Hủy lời mời thất bại.'); } catch { }
     } finally {
       setLoading(false);
     }
@@ -193,10 +144,10 @@ export default function NewMessageModal({ visible, onClose }) {
     try {
       setLoading(true);
       await acceptFriendRequest(reqId, user.uid);
-      message.success('Đã chấp nhận lời mời.');
+      try { window.alert('Đã chấp nhận lời mời.'); } catch { }
     } catch (e) {
       console.error(e);
-      message.error('Không thể chấp nhận lời mời.');
+      try { window.alert('Không thể chấp nhận lời mời.'); } catch { }
     } finally {
       setLoading(false);
     }
@@ -206,10 +157,10 @@ export default function NewMessageModal({ visible, onClose }) {
     try {
       setLoading(true);
       await declineFriendRequest(reqId, user.uid);
-      message.success('Đã từ chối lời mời.');
+      try { window.alert('Đã từ chối lời mời.'); } catch { }
     } catch (e) {
       console.error(e);
-      message.error('Không thể từ chối lời mời.');
+      try { window.alert('Không thể từ chối lời mời.'); } catch { }
     } finally {
       setLoading(false);
     }
@@ -222,90 +173,78 @@ export default function NewMessageModal({ visible, onClose }) {
     setSearchTerm('');
   };
 
+  if (!visible) return null;
   return (
-    <Modal
-      title="Tạo tin nhắn mới"
-      open={visible}
-      onCancel={handleCancel}
-      footer={null}
-      width={500}
-    >
-      <ModalContentStyled>
-        <Input
-          className="search-input"
-          placeholder="Tìm kiếm người dùng..."
-          prefix={<SearchOutlined />}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          autoFocus
-        />
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={handleCancel} />
+      <div className="relative z-10 w-full max-w-xl rounded-lg border border-gray-200 bg-white p-5 shadow-xl dark:border-gray-700 dark:bg-slate-900">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Tạo tin nhắn mới</h3>
+          <button className="rounded-md px-2 py-1 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" onClick={handleCancel}>Đóng</button>
+        </div>
+        <div className="mb-4">
+          <div className="relative">
+            <span className="pointer-events-none absolute left-2 top-1.5 text-slate-400"><SearchOutlined /></span>
+            <input
+              className="w-full rounded border border-gray-300 bg-transparent py-1 pl-8 pr-2 text-sm outline-none dark:border-gray-700"
+              placeholder="Tìm kiếm người dùng..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              autoFocus
+            />
+          </div>
+        </div>
 
         {searchTerm ? (
           filteredUsers.length > 0 ? (
-            <List
-              className="user-list"
-              dataSource={filteredUsers}
-              renderItem={(u) => {
+            <ul className="thin-scrollbar max-h-80 space-y-2 overflow-y-auto">
+              {filteredUsers.map((u) => {
                 const rel = getRelation(u.uid);
                 return (
-                  <List.Item
-                    actions={[
-                      rel.type === 'friend' ? (
-                        <Button key="chat" type="link" onClick={() => openChatWith(u)}>Chat</Button>
-                      ) : rel.type === 'outgoing' ? (
-                        <Button key="cancel" type="link" danger onClick={() => cancelRequest(rel.requestId)}>Hủy lời mời</Button>
-                      ) : rel.type === 'incoming' ? (
-                        <Space key="act">
-                          <Button type="link" onClick={() => acceptIncoming(rel.requestId)}>Chấp nhận</Button>
-                          <Button type="link" danger onClick={() => declineIncoming(rel.requestId)}>Từ chối</Button>
-                        </Space>
+                  <li key={u.uid} className={`flex items-center justify-between rounded-lg p-3 ${loading ? 'opacity-60' : ''} hover:bg-slate-100 dark:hover:bg-slate-800`}>
+                    <div className="flex items-center">
+                      {u.photoURL ? (
+                        <img className="h-10 w-10 rounded-full" src={u.photoURL} alt="avatar" />
                       ) : (
-                        <Button key="send" type="link" onClick={() => sendRequest(u)}>Kết bạn</Button>
-                      )
-                    ]}
-                    style={{ opacity: loading ? 0.6 : 1 }}
-                  >
-                    <div className="user-info">
-                      <Avatar
-                        size={40}
-                        src={u.photoURL}
-                        icon={!u.photoURL && <UserOutlined />}
-                      >
-                        {!u.photoURL && u.displayName?.charAt(0)?.toUpperCase()}
-                      </Avatar>
-                      <div className="user-details">
-                        <div className="display-name">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-skybrand-600 text-white">
+                          {u.displayName?.charAt(0)?.toUpperCase()}
+                        </div>
+                      )}
+                      <div className="ml-3">
+                        <div className="text-sm font-medium text-slate-800 dark:text-slate-100">
                           {u.displayName}
-                          {rel.type === 'friend' && <Tag color="green" style={{ marginLeft: 8 }}>Bạn bè</Tag>}
-                          {rel.type === 'outgoing' && <Tag color="blue" style={{ marginLeft: 8 }}>Đã gửi</Tag>}
-                          {rel.type === 'incoming' && <Tag color="orange" style={{ marginLeft: 8 }}>Chờ bạn</Tag>}
+                          {rel.type === 'friend' && <span className="ml-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] text-white">Bạn bè</span>}
+                          {rel.type === 'outgoing' && <span className="ml-2 rounded-full bg-skybrand-600 px-2 py-0.5 text-[10px] text-white">Đã gửi</span>}
+                          {rel.type === 'incoming' && <span className="ml-2 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] text-white">Chờ bạn</span>}
                         </div>
-                        <div className="email">
-                          {u.email}
-                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">{u.email}</div>
                       </div>
                     </div>
-                  </List.Item>
+                    <div className="flex items-center gap-2">
+                      {rel.type === 'friend' ? (
+                        <button className="rounded-md border border-gray-300 px-2 py-1 text-xs dark:border-gray-700" onClick={() => openChatWith(u)}>Chat</button>
+                      ) : rel.type === 'outgoing' ? (
+                        <button className="rounded-md border border-rose-300 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20" onClick={() => cancelRequest(rel.requestId)}>Hủy lời mời</button>
+                      ) : rel.type === 'incoming' ? (
+                        <>
+                          <button className="rounded-md border border-gray-300 px-2 py-1 text-xs dark:border-gray-700" onClick={() => acceptIncoming(rel.requestId)}>Chấp nhận</button>
+                          <button className="rounded-md border border-rose-300 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20" onClick={() => declineIncoming(rel.requestId)}>Từ chối</button>
+                        </>
+                      ) : (
+                        <button className="rounded-md border border-gray-300 px-2 py-1 text-xs dark:border-gray-700" onClick={() => sendRequest(u)}>Kết bạn</button>
+                      )}
+                    </div>
+                  </li>
                 );
-              }}
-            />
+              })}
+            </ul>
           ) : (
-            <div className="empty-state">
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Không tìm thấy người dùng nào"
-              />
-            </div>
+            <div className="py-10 text-center text-slate-500">Không tìm thấy người dùng nào</div>
           )
         ) : (
-          <div className="empty-state">
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Nhập tên hoặc email để tìm kiếm người dùng"
-            />
-          </div>
+          <div className="py-10 text-center text-slate-500">Nhập tên hoặc email để tìm kiếm người dùng</div>
         )}
-      </ModalContentStyled>
-    </Modal>
+      </div>
+    </div>
   );
 }

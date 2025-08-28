@@ -1,101 +1,10 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import styled from 'styled-components';
-import { Button, Avatar, Form, Input, Alert } from 'antd';
 import Message from './Message';
 import { AppContext } from '../../Context/AppProvider';
 import { addDocument, updateConversationLastMessage, updateLastSeen, setTypingStatus, areUsersFriends } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
 import useFirestore from '../../hooks/useFirestore';
 
-const HeaderStyled = styled.div`
-  display: flex;
-  justify-content: space-between;
-  height: 56px;
-  padding: 0 16px;
-  align-items: center;
-  border-bottom: 1px solid rgb(230, 230, 230);
-
-  .header {
-    &__info {
-      display: flex;
-      align-items: center;
-    }
-
-    &__title {
-      margin: 0 0 0 12px;
-      font-weight: bold;
-    }
-
-    &__status {
-      font-size: 12px;
-      color: #666;
-      margin: 0 0 0 12px;
-    }
-  }
-`;
-
-const WrapperStyled = styled.div`
-  height: 100vh;
-`;
-
-const ContentStyled = styled.div`
-  height: calc(100% - 56px);
-  display: flex;
-  flex-direction: column;
-  padding: 11px;
-  justify-content: flex-end;
-`;
-
-const FormStyled = styled(Form)`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2px 2px 2px 0;
-  border: 1px solid rgb(230, 230, 230);
-  border-radius: 2px;
-
-  .ant-form-item {
-    flex: 1;
-    margin-bottom: 0;
-  }
-`;
-
-const MessageListStyled = styled.div`
-  max-height: 100%;
-  overflow-y: auto;
-`;
-
-const TypingIndicator = styled.div`
-  display: flex;
-  align-items: center;
-  height: 24px;
-  margin: 6px 0 8px;
-  color: #8c8c8c;
-  font-size: 12px;
-
-  .dots {
-    display: inline-block;
-    margin-left: 6px;
-  }
-
-  .dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    margin: 0 2px;
-    background: #bfbfbf;
-    border-radius: 50%;
-    animation: typingBlink 1.4s infinite ease-in-out both;
-  }
-
-  .dot:nth-child(1) { animation-delay: -0.32s; }
-  .dot:nth-child(2) { animation-delay: -0.16s; }
-
-  @keyframes typingBlink {
-    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
-    40% { transform: scale(1); opacity: 1; }
-  }
-`;
 
 export default function ConversationWindow() {
   const { selectedConversation } = useContext(AppContext);
@@ -103,7 +12,7 @@ export default function ConversationWindow() {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
   const [inputValue, setInputValue] = useState('');
-  const [form] = Form.useForm();
+  const [form] = [null];
   const inputRef = useRef(null);
   const messageListRef = useRef(null);
   const [canChat, setCanChat] = useState(true);
@@ -132,7 +41,7 @@ export default function ConversationWindow() {
       }
     }
 
-    form.resetFields(['message']);
+    // reset
     setInputValue('');
 
     // focus to input again after submit
@@ -221,22 +130,26 @@ export default function ConversationWindow() {
   }, [selectedConversation]);
 
   return (
-    <WrapperStyled>
+    <div className="flex h-screen flex-col">
       {selectedConversation.id ? (
         <>
-          <HeaderStyled>
-            <div className='header__info'>
-              <Avatar size="default" src={otherParticipant?.photoURL}>
-                {otherParticipant?.photoURL ? '' : otherParticipant?.displayName?.charAt(0)?.toUpperCase()}
-              </Avatar>
-              <div>
-                <p className='header__title'>{otherParticipant?.displayName}</p>
-                <p className='header__status'>Đang hoạt động</p>
+          <div className="flex h-14 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
+            <div className='flex items-center'>
+              {otherParticipant?.photoURL ? (
+                <img className="h-8 w-8 rounded-full" src={otherParticipant?.photoURL} alt="avatar" />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-skybrand-600 text-white">
+                  {otherParticipant?.displayName?.charAt(0)?.toUpperCase()}
+                </div>
+              )}
+              <div className="ml-3">
+                <p className='m-0 text-base font-semibold'>{otherParticipant?.displayName}</p>
+                <p className='m-0 text-xs text-slate-500'>Đang hoạt động</p>
               </div>
             </div>
-          </HeaderStyled>
-          <ContentStyled>
-            <MessageListStyled ref={messageListRef}>
+          </div>
+          <div className="flex h-[calc(100%_-_56px)] flex-col justify-end p-3">
+            <div ref={messageListRef} className="thin-scrollbar max-h-full overflow-y-auto">
               {messages.map((mes) => (
                 <Message
                   key={mes.id}
@@ -247,52 +160,52 @@ export default function ConversationWindow() {
                   uid={mes.uid}
                 />
               ))}
-            </MessageListStyled>
+            </div>
             {(() => {
               const typingMap = selectedConversation?.typingStatus;
               const isOtherTyping = typingMap && Object.entries(typingMap).some(([k, v]) => k !== uid && v);
               return isOtherTyping ? (
-                <TypingIndicator>
+                <div className="mt-1 mb-2 flex h-6 items-center text-xs text-slate-500 dark:text-slate-400">
                   Đang nhập
-                  <span className="dots">
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                    <span className="dot"></span>
+                  <span className="ml-2 inline-flex gap-1">
+                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400"></span>
+                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:150ms]"></span>
+                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:300ms]"></span>
                   </span>
-                </TypingIndicator>
+                </div>
               ) : null;
             })()}
             {!canChat && (
-              <Alert type="info" message="Hai bạn chưa là bạn bè. Hãy kết bạn để có thể nhắn tin." showIcon style={{ margin: '8px 0' }} />
+              <div className="my-2 rounded border border-skybrand-300 bg-skybrand-50 p-2 text-xs text-skybrand-700 dark:border-skybrand-700 dark:bg-skybrand-900/20 dark:text-skybrand-300">
+                Hai bạn chưa là bạn bè. Hãy kết bạn để có thể nhắn tin.
+              </div>
             )}
-            <FormStyled form={form}>
-              <Form.Item name='message'>
-                <Input
-                  ref={inputRef}
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  onPressEnter={handleOnSubmit}
-                  placeholder='Nhập tin nhắn...'
-                  bordered={false}
-                  autoComplete='off'
-                  disabled={!canChat}
-                />
-              </Form.Item>
-              <Button type='primary' onClick={handleOnSubmit} disabled={!canChat}>
+            <div className="flex items-center justify-between rounded border border-gray-200 p-1 dark:border-gray-700">
+              <input
+                ref={inputRef}
+                className="w-full bg-transparent px-2 py-1 outline-none placeholder:text-slate-400"
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleOnSubmit(); } }}
+                placeholder='Nhập tin nhắn...'
+                autoComplete='off'
+                value={inputValue}
+                disabled={!canChat}
+              />
+              <button
+                className={`ml-2 rounded px-3 py-1 text-sm font-medium text-white ${canChat ? 'bg-skybrand-600 hover:bg-skybrand-700' : 'bg-slate-400'}`}
+                onClick={handleOnSubmit}
+                disabled={!canChat}
+              >
                 Gửi
-              </Button>
-            </FormStyled>
-          </ContentStyled>
+              </button>
+            </div>
+          </div>
         </>
       ) : (
-        <Alert
-          message='Hãy chọn cuộc trò chuyện'
-          type='info'
-          showIcon
-          style={{ margin: 5 }}
-          closable
-        />
+        <div className="m-2 rounded border border-skybrand-300 bg-skybrand-50 p-2 text-sm text-skybrand-700 dark:border-skybrand-700 dark:bg-skybrand-900/20 dark:text-skybrand-300">
+          Hãy chọn cuộc trò chuyện
+        </div>
       )}
-    </WrapperStyled>
+    </div>
   );
 }

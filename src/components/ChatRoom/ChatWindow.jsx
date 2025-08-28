@@ -1,7 +1,5 @@
-import { UserAddOutlined, MoreOutlined, CalendarOutlined, BarChartOutlined } from '@ant-design/icons';
+import { CalendarOutlined, BarChartOutlined } from '@ant-design/icons';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import styled from 'styled-components';
-import { Button, Avatar, Form, Input, Popconfirm, Tooltip, message } from 'antd';
 import Message from './Message';
 import EventMessage from './EventMessage';
 import VoteMessage from './VoteMessage';
@@ -9,133 +7,8 @@ import RoomInfoModal from './RoomInfoModal';
 import { AppContext } from '../../Context/AppProvider';
 import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, dissolveRoom, updateRoomLastMessage, updateLastSeen, setTypingStatus } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
-import { useTheme } from '../../Context/ThemeProvider';
 import useFirestore from '../../hooks/useFirestore';
-
-const HeaderStyled = styled.div`
-  display: flex;
-  justify-content: space-between;
-  height: 56px;
-  padding: 0 16px;
-  align-items: center;
-  border-bottom: 1px solid rgb(230, 230, 230);
-
-  .header {
-    &__info {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    &__title {
-      margin: 0;
-      font-weight: bold;
-    }
-
-    &__description {
-      font-size: 12px;
-    }
-  }
-`;
-
-const ButtonGroupStyled = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const WrapperStyled = styled.div`
-  height: 100vh;
-`;
-
-const ContentStyled = styled.div`
-  height: calc(100% - 56px);
-  display: flex;
-  flex-direction: column;
-  padding: 11px;
-  justify-content: flex-end;
-`;
-
-const FormStyled = styled(Form)`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2px 2px 2px 0;
-  border: 1px solid rgb(230, 230, 230);
-  border-radius: 2px;
-
-  .ant-form-item {
-    flex: 1;
-    margin-bottom: 0;
-  }
-`;
-
-const MessageListStyled = styled.div`
-  max-height: 100%;
-  overflow-y: auto;
-`;
-
-const TypingIndicator = styled.div`
-  display: flex;
-  align-items: center;
-  height: 24px;
-  margin: 6px 0 8px;
-  color: #8c8c8c;
-  font-size: 12px;
-
-  .dots {
-    display: inline-block;
-    margin-left: 6px;
-  }
-
-  .dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    margin: 0 2px;
-    background: #bfbfbf;
-    border-radius: 50%;
-    animation: typingBlink 1.4s infinite ease-in-out both;
-  }
-
-  .dot:nth-child(1) { animation-delay: -0.32s; }
-  .dot:nth-child(2) { animation-delay: -0.16s; }
-
-  @keyframes typingBlink {
-    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
-    40% { transform: scale(1); opacity: 1; }
-  }
-`;
-
-const WelcomeScreenStyled = styled.div`
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${props => props.theme.colors.backgroundGradient};
-  
-  .welcome-content {
-    text-align: center;
-    max-width: 500px;
-    padding: 40px;
-  }
-  
-  .welcome-title {
-    font-size: 32px;
-    font-weight: bold;
-    color: ${props => props.theme.colors.primary};
-    margin-bottom: 16px;
-  }
-  
-  .welcome-subtitle {
-    font-size: 16px;
-    color: ${props => props.theme.colors.textSecondary};
-    margin-bottom: 32px;
-  }
-  
-  .welcome-image {
-    margin-bottom: 32px;
-  }
-`;
+import { useTheme } from '../../Context/ThemeProvider';
 
 export default function ChatWindow() {
   const {
@@ -151,7 +24,7 @@ export default function ChatWindow() {
   } = useContext(AuthContext);
   const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
-  const [form] = Form.useForm();
+  const [form] = [null];
   const inputRef = useRef(null);
   const messageListRef = useRef(null);
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
@@ -184,26 +57,13 @@ export default function ChatWindow() {
         console.error('Error updating room last message:', error);
       }
 
-      // Show event creation suggestion if time is detected
+      // Suggest creating an event if time detected
       if (detectedTime) {
         const eventTitle = extractEventTitle(inputValue);
-        message.info({
-          content: (
-            <div>
-              <p>Phát hiện thời gian trong tin nhắn! Bạn có muốn tạo sự kiện?</p>
-              <Button
-                size="small"
-                type="primary"
-                icon={<CalendarOutlined />}
-                onClick={() => handleCreateEventFromMessage(eventTitle, detectedTime)}
-              >
-                Tạo sự kiện
-              </Button>
-            </div>
-          ),
-          duration: 8,
-          key: 'event-suggestion',
-        });
+        const ok = window.confirm('Phát hiện thời gian trong tin nhắn. Tạo sự kiện?');
+        if (ok) {
+          await handleCreateEventFromMessage(eventTitle, detectedTime);
+        }
       }
     } else if (chatType === 'direct' && selectedConversation.id) {
       // Handle direct message
@@ -224,7 +84,7 @@ export default function ChatWindow() {
       }
     }
 
-    form.resetFields(['message']);
+    // reset input
     setInputValue('');
 
     // focus to input again after submit
@@ -252,24 +112,21 @@ export default function ChatWindow() {
       };
 
       await createEvent(eventData);
-      message.success('Sự kiện đã được tạo thành công!');
+      try { window.alert('Sự kiện đã được tạo thành công!'); } catch { }
     } catch (error) {
       console.error('Error creating event from message:', error);
-      message.error('Có lỗi xảy ra khi tạo sự kiện!');
+      try { window.alert('Có lỗi xảy ra khi tạo sự kiện!'); } catch { }
     }
   };
 
   const handleDissolveRoom = async () => {
     try {
       await dissolveRoom(selectedRoom.id);
-      message.success('Nhóm đã được giải tán thành công!');
-      // Clear selected room after dissolving
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      try { window.alert('Nhóm đã được giải tán thành công!'); } catch { }
+      setTimeout(() => { window.location.reload(); }, 1000);
     } catch (error) {
       console.error('Error dissolving room:', error);
-      message.error('Có lỗi xảy ra khi giải tán nhóm!');
+      try { window.alert('Có lỗi xảy ra khi giải tán nhóm!'); } catch { }
     }
   };
 
@@ -406,26 +263,30 @@ export default function ChatWindow() {
   const hasActiveChat = (chatType === 'room' && selectedRoom.id) || (chatType === 'direct' && selectedConversation.id);
 
   return (
-    <WrapperStyled>
+    <div className="flex h-screen flex-col">
       {hasActiveChat ? (
         <>
-          <HeaderStyled>
-            <div className='header__info'>
+          <div className="flex h-14 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
+            <div className='flex flex-col justify-center'>
               {chatType === 'room' ? (
                 <>
-                  <p className='header__title'>{selectedRoom.name}</p>
-                  <span className='header__description'>
+                  <p className='m-0 text-base font-semibold'>{selectedRoom.name}</p>
+                  <span className='text-xs text-slate-500 dark:text-slate-400'>
                     {selectedRoom.description}
                   </span>
                 </>
               ) : (
                 <>
-                  <Avatar size="default" src={selectedConversation.otherUser?.photoURL}>
-                    {selectedConversation.otherUser?.photoURL ? '' : selectedConversation.otherUser?.displayName?.charAt(0)?.toUpperCase()}
-                  </Avatar>
+                  {selectedConversation.otherUser?.photoURL ? (
+                    <img className="h-8 w-8 rounded-full" src={selectedConversation.otherUser?.photoURL} alt="avatar" />
+                  ) : (
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-skybrand-600 text-white">
+                      {selectedConversation.otherUser?.displayName?.charAt(0)?.toUpperCase()}
+                    </div>
+                  )}
                   <div style={{ marginLeft: '12px' }}>
-                    <p className='header__title'>{selectedConversation.otherUser?.displayName}</p>
-                    <span className='header__description'>
+                    <p className='m-0 text-base font-semibold'>{selectedConversation.otherUser?.displayName}</p>
+                    <span className='text-xs text-slate-500 dark:text-slate-400'>
                       {selectedConversation.typingStatus && Object.entries(selectedConversation.typingStatus)
                         .some(([k, v]) => k !== uid && v) ? 'Đang nhập...' : 'Đang hoạt động'}
                     </span>
@@ -434,54 +295,46 @@ export default function ChatWindow() {
               )}
             </div>
             {chatType === 'room' && (
-              <ButtonGroupStyled>
-                <Tooltip title="Mở lịch">
-                  <Button
-                    type="text"
-                    icon={<CalendarOutlined />}
-                    onClick={() => setIsCalendarVisible(true)}
-                  />
-                </Tooltip>
-                <Tooltip title="Tạo vote">
-                  <Button
-                    type="text"
-                    icon={<BarChartOutlined />}
-                    onClick={() => setIsVoteModalVisible(true)}
-                  />
-                </Tooltip>
-                <Button
-                  icon={<UserAddOutlined />}
-                  type='text'
+              <div className="flex items-center gap-2">
+                <button
+                  title="Mở lịch"
+                  className="rounded-md border border-gray-300 p-1 text-slate-700 hover:bg-slate-100 dark:border-gray-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  onClick={() => setIsCalendarVisible(true)}
+                >
+                  <CalendarOutlined />
+                </button>
+                <button
+                  title="Tạo vote"
+                  className="rounded-md border border-gray-300 p-1 text-slate-700 hover:bg-slate-100 dark:border-gray-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  onClick={() => setIsVoteModalVisible(true)}
+                >
+                  <BarChartOutlined />
+                </button>
+                <button
+                  className="rounded-md border border-gray-300 px-2 py-1 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
                   onClick={() => setIsAddRoomVisible(true)}
                 >
                   Mời
-                </Button>
-                <Button
-                  icon={<MoreOutlined />}
-                  type='text'
+                </button>
+                <button
+                  className="rounded-md border border-gray-300 px-2 py-1 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
                   onClick={() => setIsRoomInfoVisible(true)}
                 >
                   Thông tin nhóm
-                </Button>
+                </button>
                 {isAdmin && (
-                  <Popconfirm
-                    title="Bạn có chắc chắn muốn giải tán nhóm này?"
-                    description="Hành động này không thể hoàn tác!"
-                    onConfirm={handleDissolveRoom}
-                    okText="Giải tán"
-                    cancelText="Hủy"
-                    okType="danger"
+                  <button
+                    className="rounded-md border border-rose-300 px-2 py-1 text-sm font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
+                    onClick={() => { if (window.confirm('Giải tán nhóm này? Hành động không thể hoàn tác.')) handleDissolveRoom(); }}
                   >
-                    <Button type='text' danger>
-                      Giải tán nhóm
-                    </Button>
-                  </Popconfirm>
+                    Giải tán nhóm
+                  </button>
                 )}
-              </ButtonGroupStyled>
+              </div>
             )}
-          </HeaderStyled>
-          <ContentStyled>
-            <MessageListStyled ref={messageListRef}>
+          </div>
+          <div className="flex h-[calc(100%_-_56px)] flex-col justify-end p-3">
+            <div ref={messageListRef} className="thin-scrollbar max-h-full overflow-y-auto">
               {combinedMessages.map((item) => {
                 if (item.type === 'event') {
                   return (
@@ -504,52 +357,54 @@ export default function ChatWindow() {
                   );
                 }
               })}
-            </MessageListStyled>
+            </div>
             {(() => {
               const typingMap = chatType === 'direct' ? selectedConversation?.typingStatus : selectedRoom?.typingStatus;
               const isOtherTyping = typingMap && Object.entries(typingMap).some(([k, v]) => k !== uid && v);
               return isOtherTyping ? (
-                <TypingIndicator>
+                <div className="mt-1 mb-2 flex h-6 items-center text-xs text-slate-500 dark:text-slate-400">
                   Đang nhập
-                  <span className="dots">
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                    <span className="dot"></span>
+                  <span className="ml-2 inline-flex gap-1">
+                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400"></span>
+                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:150ms]"></span>
+                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:300ms]"></span>
                   </span>
-                </TypingIndicator>
+                </div>
               ) : null;
             })()}
-            <FormStyled form={form}>
-              <Form.Item name='message'>
-                <Input
-                  ref={inputRef}
-                  onChange={handleInputChange}
-                  onPressEnter={handleOnSubmit}
-                  placeholder='Nhập tin nhắn...'
-                  bordered={false}
-                  autoComplete='off'
-                />
-              </Form.Item>
-              <Button type='primary' onClick={handleOnSubmit}>
+            <div className="flex items-center justify-between rounded border border-gray-200 p-1 dark:border-gray-700">
+              <input
+                ref={inputRef}
+                className="w-full bg-transparent px-2 py-1 outline-none placeholder:text-slate-400"
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleOnSubmit(); } }}
+                placeholder='Nhập tin nhắn...'
+                autoComplete='off'
+                value={inputValue}
+              />
+              <button
+                className="ml-2 rounded bg-skybrand-600 px-3 py-1 text-sm font-medium text-white hover:bg-skybrand-700"
+                onClick={handleOnSubmit}
+              >
                 Gửi
-              </Button>
-            </FormStyled>
-          </ContentStyled>
+              </button>
+            </div>
+          </div>
         </>
       ) : (
-        <WelcomeScreenStyled theme={theme}>
-          <div className="welcome-content">
-            <h1 className="welcome-title">Chào mừng đến với SmurfChat! 👋</h1>
-            <p className="welcome-subtitle">Chọn một cuộc trò chuyện hoặc phòng để bắt đầu nhắn tin</p>
-            <div className="welcome-image">
+        <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-50 to-sky-100 dark:from-slate-900 dark:to-slate-800">
+          <div className="max-w-md p-10 text-center">
+            <h1 className="mb-4 text-3xl font-bold text-skybrand-600">Chào mừng đến với SmurfChat! 👋</h1>
+            <p className="mb-8 text-sm text-slate-600 dark:text-slate-300">Chọn một cuộc trò chuyện hoặc phòng để bắt đầu nhắn tin</p>
+            <div className="mb-8">
               <img
                 src="/welcome.png"
                 alt="SmurfChat Welcome"
-                style={{ borderRadius: '12px', maxWidth: '200px', height: 'auto' }}
+                className="mx-auto h-auto max-w-[200px] rounded-xl"
               />
             </div>
           </div>
-        </WelcomeScreenStyled>
+        </div>
       )}
 
       {/* Room Info Modal */}
@@ -558,6 +413,6 @@ export default function ChatWindow() {
         onClose={() => setIsRoomInfoVisible(false)}
         room={selectedRoom}
       />
-    </WrapperStyled>
+    </div>
   );
 }

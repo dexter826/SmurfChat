@@ -1,5 +1,5 @@
-import { message, notification } from 'antd';
-import { CalendarOutlined, BellOutlined } from '@ant-design/icons';
+// Lightweight notification using native alerts for now
+import { CalendarOutlined } from '@ant-design/icons';
 import moment from 'moment';
 
 class ReminderService {
@@ -67,30 +67,14 @@ class ReminderService {
     const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
     const timeUntilEvent = eventTime.diff(moment(), 'minutes');
 
-    notification.info({
-      message: 'Nhắc nhở sự kiện',
-      description: (
-        <div>
-          <p><strong>{event.title}</strong></p>
-          <p>Phòng: {event.roomName}</p>
-          <p>Thời gian: {eventTime.format('DD/MM/YYYY HH:mm')}</p>
-          <p>Còn {timeUntilEvent} phút nữa</p>
-          {event.description && <p>{event.description}</p>}
-        </div>
-      ),
-      icon: <BellOutlined style={{ color: '#1890ff' }} />,
-      duration: 10,
-      placement: 'topRight',
-    });
+    try {
+      // Replace with a custom toast system later
+      const details = `${event.title}\nPhòng: ${event.roomName}\nThời gian: ${eventTime.format('DD/MM/YYYY HH:mm')}\nCòn ${timeUntilEvent} phút nữa` + (event.description ? `\n${event.description}` : '');
+      window.alert(`Nhắc nhở sự kiện\n\n${details}`);
+    } catch { }
 
     // Also show a message for immediate attention
-    if (!(event.roomId && this.mutedChatIds.has(event.roomId))) {
-      message.info({
-        content: `Nhắc nhở: "${event.title}" sẽ bắt đầu trong ${timeUntilEvent} phút`,
-        duration: 5,
-        icon: <CalendarOutlined />,
-      });
-    }
+    // Optionally show a secondary notice
   }
 
   // Update reminders when events change
@@ -136,29 +120,14 @@ class ReminderService {
     });
 
     if (upcomingEvents.length > 0) {
-      notification.info({
-        message: 'Lịch trình hôm nay',
-        description: (
-          <div>
-            {upcomingEvents.slice(0, 3).map((event, index) => {
-              const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
-              return (
-                <div key={event.id} style={{ marginBottom: 8 }}>
-                  <strong>{event.title}</strong>
-                  <br />
-                  <small>{eventTime.format('HH:mm')} - {event.roomName}</small>
-                </div>
-              );
-            })}
-            {upcomingEvents.length > 3 && (
-              <div><small>...và {upcomingEvents.length - 3} sự kiện khác</small></div>
-            )}
-          </div>
-        ),
-        icon: <CalendarOutlined style={{ color: '#52c41a' }} />,
-        duration: 15,
-        placement: 'topRight',
-      });
+      try {
+        const lines = upcomingEvents.slice(0, 3).map((event) => {
+          const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
+          return `• ${event.title} (${eventTime.format('HH:mm')} - ${event.roomName})`;
+        }).join('\n');
+        const more = upcomingEvents.length > 3 ? `\n...và ${upcomingEvents.length - 3} sự kiện khác` : '';
+        window.alert(`Lịch trình hôm nay\n\n${lines}${more}`);
+      } catch { }
     }
   }
 
