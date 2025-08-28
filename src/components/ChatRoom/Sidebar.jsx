@@ -4,7 +4,7 @@ import UnifiedChatList from './UnifiedChatList';
 import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
 import useFirestore from '../../hooks/useFirestore';
-import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation, sendFriendRequest } from '../../firebase/services';
+import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation } from '../../firebase/services';
 
 // Icon components
 const ChevronDownIcon = () => (
@@ -52,14 +52,12 @@ const LogOutIcon = () => (
 
 export default function Sidebar() {
   const { logout } = useContext(AuthContext);
-  const { clearState, selectConversation, setChatType } = useContext(AppContext);
+  const { clearState, selectConversation, setChatType, setIsAddFriendVisible } = useContext(AppContext);
   const { user } = useContext(AuthContext);
   
   // Tab state
   const [activeTab, setActiveTab] = useState('conversations');
   const [friendSearchTerm, setFriendSearchTerm] = useState('');
-  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
-  const [publicSearchTerm, setPublicSearchTerm] = useState('');
   
   // Collapsible sections state
   const [sectionsCollapsed, setSectionsCollapsed] = useState({
@@ -101,12 +99,6 @@ export default function Sidebar() {
   const allUsers = useFirestore('users', allUsersCondition);
   
   const getUserById = (uid) => allUsers.find(u => u.uid === uid);
-  
-  // Filter users for public search
-  const publicUsers = allUsers.filter(u => 
-    u.displayName?.toLowerCase().includes(publicSearchTerm.toLowerCase()) ||
-    u.email?.toLowerCase().includes(publicSearchTerm.toLowerCase())
-  );
   
   // Filter friends for friend search
   const filteredFriends = friendEdges.filter(edge => {
@@ -188,8 +180,11 @@ export default function Sidebar() {
     );
   };
 
-  const UserCard = ({ user, description, actions, className = '' }) => (
-    <div className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/30 ${className}`}>
+  const UserCard = ({ user, description, actions, className = '', onClick }) => (
+    <div 
+      className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/30 ${className}`}
+      onClick={onClick}
+    >
       <div className="relative">
         <img
           className="h-10 w-10 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-700"
@@ -219,70 +214,6 @@ export default function Sidebar() {
     </div>
   );
 
-  const AddFriendModal = () => (
-    showAddFriendModal && (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl dark:bg-slate-800">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Kết bạn</h3>
-            <button
-              onClick={() => setShowAddFriendModal(false)}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            >
-              ✕
-            </button>
-          </div>
-          
-          <div className="mb-4">
-            <div className="relative">
-              <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Tìm kiếm người dùng..."
-                value={publicSearchTerm}
-                onChange={(e) => setPublicSearchTerm(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
-              />
-            </div>
-          </div>
-          
-          <div className="max-h-60 overflow-y-auto">
-            {publicSearchTerm && publicUsers.slice(0, 10).map((searchUser) => {
-              const hasOutgoingRequest = outgoingRequests.some(req => req.to === searchUser.uid);
-              const hasIncomingRequest = incomingRequests.some(req => req.from === searchUser.uid);
-              const isFriend = friendEdges.some(edge => edge.participants?.includes(searchUser.uid));
-              
-              return (
-                <UserCard
-                  key={searchUser.uid}
-                  user={searchUser}
-                  description={isFriend ? 'Đã là bạn bè' : hasOutgoingRequest ? 'Đã gửi lời mời' : hasIncomingRequest ? 'Đã nhận lời mời' : 'Người dùng'}
-                  actions={
-                    !isFriend && !hasOutgoingRequest && !hasIncomingRequest && (
-                      <ActionButton
-                        variant="primary"
-                        onClick={async () => {
-                          await sendFriendRequest(user.uid, searchUser.uid);
-                          setPublicSearchTerm('');
-                        }}
-                      >
-                        Kết bạn
-                      </ActionButton>
-                    )
-                  }
-                />
-              );
-            })}
-            {publicSearchTerm && publicUsers.length === 0 && (
-              <div className="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                Không tìm thấy người dùng nào
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  );
 
   return (
     <div className="flex h-full flex-col bg-white dark:bg-slate-900">
@@ -326,7 +257,9 @@ export default function Sidebar() {
             <div className="p-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <SearchIcon className="h-4 w-4 text-slate-400" />
+                  </div>
                   <input
                     type="text"
                     placeholder="Tìm kiếm bạn bè..."
@@ -336,7 +269,7 @@ export default function Sidebar() {
                   />
                 </div>
                 <button
-                  onClick={() => setShowAddFriendModal(true)}
+                  onClick={() => setIsAddFriendVisible(true)}
                   className="flex items-center justify-center rounded-lg bg-skybrand-500 p-2.5 text-white transition-all duration-200 hover:bg-skybrand-600 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 active:scale-95"
                   title="Kết bạn mới"
                 >
@@ -464,11 +397,38 @@ export default function Sidebar() {
                         key={edge.id || otherId}
                         user={other}
                         description="Bạn bè"
-                        className="hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg transition-colors duration-200"
+                        className="hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg transition-colors duration-200 cursor-pointer"
+                        onClick={async () => {
+                          // Open chat with friend
+                          const conversationId = [user.uid, otherId].sort().join('_');
+                          await createOrUpdateConversation({
+                            id: conversationId,
+                            participants: [user.uid, otherId],
+                            participantDetails: {
+                              [user.uid]: {
+                                displayName: user.displayName,
+                                email: user.email,
+                                photoURL: user.photoURL
+                              },
+                              [otherId]: {
+                                displayName: other.displayName,
+                                email: other.email,
+                                photoURL: other.photoURL
+                              }
+                            },
+                            type: 'direct',
+                            lastMessage: '',
+                            lastMessageAt: null,
+                            createdBy: user.uid
+                          });
+                          setChatType('direct');
+                          selectConversation(conversationId);
+                        }}
                         actions={
                           <ActionButton
                             variant="secondary"
-                            onClick={async () => { 
+                            onClick={async (e) => { 
+                              e.stopPropagation();
                               if (window.confirm('Bạn có chắc muốn hủy kết bạn?')) {
                                 await removeFriendship(user.uid, otherId);
                               }
@@ -512,8 +472,6 @@ export default function Sidebar() {
           Đăng xuất
         </ActionButton>
       </div>
-      
-      <AddFriendModal />
     </div>
   );
 }

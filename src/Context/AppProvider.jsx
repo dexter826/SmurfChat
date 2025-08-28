@@ -15,6 +15,7 @@ export default function AppProvider({ children }) {
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [isVoteModalVisible, setIsVoteModalVisible] = useState(false);
   const [isNewMessageVisible, setIsNewMessageVisible] = useState(false);
+  const [isAddFriendVisible, setIsAddFriendVisible] = useState(false);
 
   const {
     user: { uid },
@@ -308,6 +309,8 @@ export default function AppProvider({ children }) {
         setIsVoteModalVisible,
         isNewMessageVisible,
         setIsNewMessageVisible,
+        isAddFriendVisible,
+        setIsAddFriendVisible,
         userEvents,
         allUsers,
         clearState,

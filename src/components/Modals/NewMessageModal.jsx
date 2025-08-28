@@ -115,7 +115,9 @@ export default function NewMessageModal() {
         </div>
         <div className="mb-4">
           <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              <SearchIcon className="h-4 w-4 text-slate-400" />
+            </div>
             <input
               className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 transition-all duration-200"
               placeholder="Tìm kiếm bạn bè..."
