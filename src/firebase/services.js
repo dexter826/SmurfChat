@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, setDoc, updateDoc, getDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
 import { db, auth } from './config';
 
@@ -30,6 +30,7 @@ export const registerWithEmailAndPassword = async (email, password, displayName)
       photoURL: user.photoURL || null,
       uid: user.uid,
       providerId: 'password',
+      searchVisibility: 'public',
       keywords: [
         ...generateKeywords(displayName?.toLowerCase()),
         ...generateKeywords(user.email?.toLowerCase()),
@@ -548,4 +549,117 @@ export const setTypingStatus = async (chatId, userId, isTyping, isConversation =
     console.error('Error updating typing status:', error);
     throw error;
   }
+};
+
+// Update user settings (e.g., privacy options)
+export const updateUserSettings = async (userId, data) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error updating user settings:', error);
+    throw error;
+  }
+};
+
+// ==============================
+// Friends system services
+// ==============================
+
+// Send a friend request (if not existing)
+export const sendFriendRequest = async (fromUserId, toUserId) => {
+  if (fromUserId === toUserId) throw new Error('Không thể kết bạn với chính mình');
+  const requestsRef = collection(db, 'friend_requests');
+
+  // Check existing pending or accepted
+  const q = query(
+    requestsRef,
+    where('participants', 'in', [
+      [fromUserId, toUserId].sort().join('_'),
+    ])
+  );
+  const snapshot = await getDocs(q);
+  const exists = snapshot.docs.find(d => !d.data().deleted && d.data().status !== 'declined');
+  if (exists) return exists.id;
+
+  const docRef = await addDoc(requestsRef, {
+    from: fromUserId,
+    to: toUserId,
+    participants: [fromUserId, toUserId].sort().join('_'),
+    status: 'pending',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return docRef.id;
+};
+
+export const cancelFriendRequest = async (requestId, byUserId) => {
+  const reqRef = doc(db, 'friend_requests', requestId);
+  const req = await getDoc(reqRef);
+  if (!req.exists()) throw new Error('Friend request not found');
+  const data = req.data();
+  if (data.from !== byUserId) throw new Error('Chỉ người gửi mới có thể hủy lời mời');
+  await updateDoc(reqRef, {
+    status: 'cancelled',
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const acceptFriendRequest = async (requestId, byUserId) => {
+  const reqRef = doc(db, 'friend_requests', requestId);
+  const req = await getDoc(reqRef);
+  if (!req.exists()) throw new Error('Friend request not found');
+  const data = req.data();
+  if (data.to !== byUserId) throw new Error('Chỉ người nhận mới có thể chấp nhận');
+
+  await updateDoc(reqRef, {
+    status: 'accepted',
+    updatedAt: serverTimestamp(),
+  });
+
+  // Add to friends collection (bidirectional via two docs or single edge)
+  const friendsRef = collection(db, 'friends');
+  const edgeId = [data.from, data.to].sort().join('_');
+  await setDoc(doc(db, 'friends', edgeId), {
+    id: edgeId,
+    participants: [data.from, data.to],
+    createdAt: serverTimestamp(),
+  }, { merge: true });
+};
+
+export const declineFriendRequest = async (requestId, byUserId) => {
+  const reqRef = doc(db, 'friend_requests', requestId);
+  const req = await getDoc(reqRef);
+  if (!req.exists()) throw new Error('Friend request not found');
+  const data = req.data();
+  if (data.to !== byUserId) throw new Error('Chỉ người nhận mới có thể từ chối');
+  await updateDoc(reqRef, {
+    status: 'declined',
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const removeFriendship = async (userA, userB) => {
+  const edgeId = [userA, userB].sort().join('_');
+  await deleteDoc(doc(db, 'friends', edgeId));
+};
+
+export const areUsersFriends = async (userA, userB) => {
+  const edgeId = [userA, userB].sort().join('_');
+  const ref = doc(db, 'friends', edgeId);
+  const snap = await getDoc(ref);
+  return snap.exists();
+};
+
+export const getPendingFriendRequest = async (userA, userB) => {
+  const requestsRef = collection(db, 'friend_requests');
+  const q = query(
+    requestsRef,
+    where('participants', '==', [userA, userB].sort().join('_')),
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs[0] ? { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } : null;
 };

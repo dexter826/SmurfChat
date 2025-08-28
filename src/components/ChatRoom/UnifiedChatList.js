@@ -310,6 +310,11 @@ export default function UnifiedChatList() {
               <div className="chat-info">
                 <p className="chat-name">
                   {chat.displayName}
+                  {chat.isMuted && (
+                    <span style={{ marginLeft: 6, color: theme.colors.textMuted, fontSize: 12 }}>
+                      <BellOutlined style={{ verticalAlign: 'middle' }} />
+                    </span>
+                  )}
                   {chat.type === 'room' && (
                     <span className="chat-type-badge">
                       Nhóm

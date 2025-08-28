@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Button, Avatar, Typography, Tooltip, Switch } from 'antd';
-import { PlusOutlined, CommentOutlined, SunOutlined, MoonOutlined } from '@ant-design/icons';
+import { Button, Avatar, Typography, Tooltip, Switch, Select } from 'antd';
+import { PlusOutlined, CommentOutlined, SunOutlined, MoonOutlined, LockOutlined, GlobalOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 
 import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
 import { useTheme } from '../../Context/ThemeProvider';
 import NewMessageModal from '../Modals/NewMessageModal';
+import { updateUserSettings } from '../../firebase/services';
 
 const WrapperStyled = styled.div`
   display: flex;
@@ -69,12 +70,18 @@ export default function UserInfo() {
   const [isNewMessageModalVisible, setIsNewMessageModalVisible] = useState(false);
 
   const {
-    user: { displayName, photoURL },
+    user: { displayName, photoURL, uid },
   } = React.useContext(AuthContext);
   const {
     setIsAddRoomVisible
   } = React.useContext(AppContext);
   const { isDarkMode, toggleTheme, ...theme } = useTheme();
+  const [visibility, setVisibility] = useState('public');
+
+  React.useEffect(() => {
+    // Ideally this should read from user doc; using default until user object carries it
+    // You can hydrate it via context if needed
+  }, []);
 
   const handleNewRoom = () => {
     setIsAddRoomVisible(true);
@@ -118,6 +125,21 @@ export default function UserInfo() {
             />
           </Tooltip>
         </div>
+        <Tooltip title="Quyền tìm kiếm: công khai / chỉ bạn bè">
+          <Select
+            size="small"
+            value={visibility}
+            onChange={async (v) => {
+              setVisibility(v);
+              try { await updateUserSettings(uid, { searchVisibility: v }); } catch { }
+            }}
+            style={{ width: 130 }}
+            options={[
+              { value: 'public', label: (<span><GlobalOutlined /> Công khai</span>) },
+              { value: 'friends', label: (<span><LockOutlined /> Chỉ bạn bè</span>) },
+            ]}
+          />
+        </Tooltip>
       </div>
 
       <NewMessageModal

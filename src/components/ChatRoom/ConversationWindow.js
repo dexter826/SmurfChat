@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { Button, Avatar, Form, Input, Alert } from 'antd';
 import Message from './Message';
 import { AppContext } from '../../Context/AppProvider';
-import { addDocument, updateConversationLastMessage, updateLastSeen, setTypingStatus } from '../../firebase/services';
+import { addDocument, updateConversationLastMessage, updateLastSeen, setTypingStatus, areUsersFriends } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
 import useFirestore from '../../hooks/useFirestore';
 
@@ -106,6 +106,7 @@ export default function ConversationWindow() {
   const [form] = Form.useForm();
   const inputRef = useRef(null);
   const messageListRef = useRef(null);
+  const [canChat, setCanChat] = useState(true);
 
   const handleInputChange = (e) => {
     setInputValue(e.target.value);
@@ -160,6 +161,21 @@ export default function ConversationWindow() {
         messageListRef.current.scrollHeight + 50;
     }
   }, [messages]);
+
+  // Check friendship to enable/disable chat
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const otherId = (selectedConversation.participants || []).find(id => id !== uid);
+        if (!otherId) { setCanChat(true); return; }
+        const ok = await areUsersFriends(uid, otherId);
+        setCanChat(!!ok);
+      } catch { setCanChat(true); }
+    };
+    if (selectedConversation && selectedConversation.participants) {
+      check();
+    }
+  }, [selectedConversation, uid]);
 
   // Mark conversation as read when messages change and this conversation is open
   useEffect(() => {
@@ -246,6 +262,9 @@ export default function ConversationWindow() {
                 </TypingIndicator>
               ) : null;
             })()}
+            {!canChat && (
+              <Alert type="info" message="Hai bạn chưa là bạn bè. Hãy kết bạn để có thể nhắn tin." showIcon style={{ margin: '8px 0' }} />
+            )}
             <FormStyled form={form}>
               <Form.Item name='message'>
                 <Input
@@ -256,9 +275,10 @@ export default function ConversationWindow() {
                   placeholder='Nhập tin nhắn...'
                   bordered={false}
                   autoComplete='off'
+                  disabled={!canChat}
                 />
               </Form.Item>
-              <Button type='primary' onClick={handleOnSubmit}>
+              <Button type='primary' onClick={handleOnSubmit} disabled={!canChat}>
                 Gửi
               </Button>
             </FormStyled>
