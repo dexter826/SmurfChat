@@ -138,7 +138,7 @@ export default function InviteMemberModal() {
   const [value, setValue] = useState([]);
 
   const handleOk = () => {
-    // Kiểm tra số lượng thành viên tối thiểu (3 người bao gồm admin)
+    // Kiểm tra số lượng thành viên tối thiểu (3 người bao gồm quản trị viên)
     const totalMembers = selectedRoom.members.length + value.length;
 
     if (totalMembers < 3) {

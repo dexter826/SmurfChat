@@ -7,6 +7,7 @@ import {
   dissolveRoom,
   leaveRoom,
   transferRoomAdmin,
+  uploadImage,
 } from "../../firebase/services";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
@@ -15,21 +16,19 @@ export default function RoomInfoModal({ visible, onClose, room }) {
   const { members, clearState } = useContext(AppContext);
   const { user } = useContext(AuthContext);
   const [selectedNewAdmin, setSelectedNewAdmin] = useState(null);
+  const [showAdminSelection, setShowAdminSelection] = useState(false);
 
   const isAdmin = room?.admin === user?.uid;
   const isCurrentUserAdmin = room?.admin === user?.uid;
 
   const handleAvatarUpload = async (file) => {
     try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const avatarUrl = e.target.result;
-        await updateRoomAvatar(room.id, avatarUrl);
-        try {
-          window.alert("Đã cập nhật avatar nhóm!");
-        } catch {}
-      };
-      reader.readAsDataURL(file);
+      // Upload image to Firebase Storage
+      const uploadResult = await uploadImage(file, user.uid);
+      await updateRoomAvatar(room.id, uploadResult.url);
+      try {
+        window.alert("Đã cập nhật avatar nhóm!");
+      } catch {}
     } catch (error) {
       console.error("Lỗi khi upload avatar:", error);
       try {
@@ -74,10 +73,10 @@ export default function RoomInfoModal({ visible, onClose, room }) {
   const handleLeaveRoom = async () => {
     try {
       if (isCurrentUserAdmin && room?.members?.length > 1) {
-        // Admin cần chọn người kế nhiệm
+        // Quản trị viên cần chọn người kế nhiệm
         if (!selectedNewAdmin) {
           try {
-            window.alert("Vui lòng chọn admin mới trước khi rời nhóm!");
+            window.alert("Vui lòng chọn quản trị viên mới trước khi rời nhóm!");
           } catch {}
           return;
         }
@@ -95,6 +94,15 @@ export default function RoomInfoModal({ visible, onClose, room }) {
       try {
         window.alert("Có lỗi xảy ra khi rời nhóm!");
       } catch {}
+    }
+  };
+
+  const handleAdminLeaveClick = () => {
+    if (room?.members?.length > 1) {
+      setShowAdminSelection(true);
+    } else {
+      // Nếu chỉ có 1 thành viên, giải tán nhóm
+      handleDissolveRoom();
     }
   };
 
@@ -177,7 +185,7 @@ export default function RoomInfoModal({ visible, onClose, room }) {
                   </span>
                   {member.uid === room?.admin && (
                     <span className="ml-2 rounded-full bg-skybrand-500 px-2 py-0.5 text-[10px] text-white">
-                      Admin
+                      Quản trị viên
                     </span>
                   )}
                 </div>
@@ -200,10 +208,10 @@ export default function RoomInfoModal({ visible, onClose, room }) {
         </div>
 
         <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-800">
-          {isCurrentUserAdmin && room?.members?.length > 1 && (
+          {showAdminSelection && isCurrentUserAdmin && room?.members?.length > 1 && (
             <div className="mb-4">
               <div className="mb-2 font-medium">
-                Chọn admin mới trước khi rời nhóm:
+                Chọn quản trị viên mới trước khi rời nhóm:
               </div>
               <select
                 className="w-full rounded-md border border-gray-300 bg-transparent px-2 py-1 text-sm dark:border-gray-700"
@@ -211,7 +219,7 @@ export default function RoomInfoModal({ visible, onClose, room }) {
                 onChange={(e) => setSelectedNewAdmin(e.target.value)}
               >
                 <option value="" disabled>
-                  Chọn admin mới
+                  Chọn quản trị viên mới
                 </option>
                 {availableAdmins.map((member) => (
                   <option key={member.uid} value={member.uid}>
@@ -219,34 +227,60 @@ export default function RoomInfoModal({ visible, onClose, room }) {
                   </option>
                 ))}
               </select>
+              <div className="mt-2 flex gap-2">
+                <button
+                  className="rounded-md border border-gray-300 px-3 py-1 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
+                  onClick={() => {
+                    setShowAdminSelection(false);
+                    setSelectedNewAdmin(null);
+                  }}
+                >
+                  Hủy
+                </button>
+                <button
+                  className="rounded-md border border-orange-300 bg-orange-600 px-3 py-1 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+                  onClick={handleLeaveRoom}
+                  disabled={!selectedNewAdmin}
+                >
+                  Xác nhận rời nhóm
+                </button>
+              </div>
             </div>
           )}
 
-          {isAdmin ? (
-            <button
-              className="mr-2 rounded-md border border-rose-300 bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 dark:border-rose-700"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "Bạn có chắc chắn muốn giải tán nhóm này? Hành động không thể hoàn tác!"
-                  )
-                )
-                  handleDissolveRoom();
-              }}
-            >
-              Giải tán nhóm
-            </button>
-          ) : (
-            <button
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 disabled:opacity-50 dark:border-gray-700 dark:text-slate-200"
-              onClick={() => {
-                if (!isCurrentUserAdmin || selectedNewAdmin) handleLeaveRoom();
-              }}
-              disabled={isCurrentUserAdmin && !selectedNewAdmin}
-            >
-              Rời nhóm
-            </button>
-          )}
+          <div className="flex gap-2">
+            {isAdmin && (
+              <>
+                <button
+                  className="rounded-md border border-rose-300 bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 dark:border-rose-700"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "Bạn có chắc chắn muốn giải tán nhóm này? Hành động không thể hoàn tác!"
+                      )
+                    )
+                      handleDissolveRoom();
+                  }}
+                >
+                  Giải tán nhóm
+                </button>
+                <button
+                  className="rounded-md border border-orange-300 bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700"
+                  onClick={handleAdminLeaveClick}
+                >
+                  Rời nhóm
+                </button>
+              </>
+            )}
+            {!isAdmin && (
+              <button
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
+                onClick={handleLeaveRoom}
+              >
+                Rời nhóm
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

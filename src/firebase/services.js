@@ -188,7 +188,7 @@ export const deleteEvent = async (eventId) => {
   }
 };
 
-// Dissolve room (admin only)
+// Dissolve room (quản trị viên only)
 export const dissolveRoom = async (roomId) => {
   const roomRef = doc(db, 'rooms', roomId);
 
