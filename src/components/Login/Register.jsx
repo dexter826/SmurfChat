@@ -64,11 +64,32 @@ export default function Register({ onSwitchToLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-sky-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-5">
-      <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-8 shadow-xl dark:border-gray-700 dark:bg-slate-900">
-        <h1 className="mb-6 text-center text-2xl font-bold text-skybrand-600">
-          Đăng ký tài khoản
-        </h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-sky-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
+      <div className="w-full max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          {/* Left side - Banner and description */}
+          <div className="hidden lg:flex flex-col items-center justify-center text-center space-y-6">
+            <img 
+              src="/banner.png" 
+              alt="SmurfChat Banner" 
+              className="w-full max-w-md h-auto object-contain"
+            />
+            <div className="space-y-4">
+              <h1 className="text-4xl font-bold text-skybrand-600 dark:text-skybrand-400">
+                SmurfChat
+              </h1>
+              <p className="text-lg text-slate-600 dark:text-slate-300 max-w-md">
+                Tham gia cộng đồng SmurfChat để kết nối với bạn bè và chia sẻ những khoảnh khắc đáng nhớ.
+              </p>
+            </div>
+          </div>
+          
+          {/* Right side - Register form */}
+          <div className="w-full max-w-md mx-auto lg:mx-0">
+            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-xl dark:border-gray-700 dark:bg-slate-900">
+              <h2 className="mb-6 text-center text-2xl font-bold text-skybrand-600 dark:text-skybrand-400">
+                Đăng ký tài khoản
+              </h2>
 
         {error && (
           <div className="mb-4 rounded border border-rose-300 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-700 dark:bg-rose-900/20 dark:text-rose-300">
@@ -141,14 +162,17 @@ export default function Register({ onSwitchToLogin }) {
           </button>
         </div>
 
-        <div className="mt-6 text-center text-sm">
-          <span>Đã có tài khoản? </span>
-          <button
-            className="text-skybrand-600 underline"
-            onClick={onSwitchToLogin}
-          >
-            Đăng nhập ngay
-          </button>
+              <div className="mt-6 text-center text-sm">
+                <span className="text-slate-600 dark:text-slate-400">Đã có tài khoản? </span>
+                <button
+                  className="text-skybrand-600 hover:text-skybrand-700 font-medium underline dark:text-skybrand-400 dark:hover:text-skybrand-300"
+                  onClick={onSwitchToLogin}
+                >
+                  Đăng nhập ngay
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

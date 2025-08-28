@@ -165,6 +165,9 @@ export default function AppProvider({ children }) {
   const notifiedConversationsRef = useRef({});
   const notifiedRoomsRef = useRef({});
   const audioRef = useRef(null);
+  const originalTitleRef = useRef(document.title);
+  const titleIntervalRef = useRef(null);
+  const [, setUnreadCount] = useState(0);
 
   useEffect(() => {
     // Preload custom sound
@@ -174,12 +177,8 @@ export default function AppProvider({ children }) {
       audioRef.current = a;
     } catch { }
 
-    // Request Notification permission on mount
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'default') {
-        Notification.requestPermission().catch(() => { });
-      }
-    }
+    // Store original title
+    originalTitleRef.current = document.title;
   }, []);
 
   const playNotificationSound = React.useCallback(async () => {
@@ -193,20 +192,69 @@ export default function AppProvider({ children }) {
     }
   }, []);
 
-  const showBrowserNotification = React.useCallback((title, body, icon) => {
-    if (!('Notification' in window)) return;
-    const notify = () => {
-      try {
-        const n = new Notification(title, { body, icon });
-        setTimeout(() => n.close(), 4000);
-      } catch { }
-    };
-    if (Notification.permission === 'granted') notify();
-    else if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then((perm) => {
-        if (perm === 'granted') notify();
-      });
+  const updateTabTitle = React.useCallback((count) => {
+    if (count > 0) {
+      document.title = `(${count}) ${originalTitleRef.current}`;
+      
+      // Start blinking effect
+      if (!titleIntervalRef.current) {
+        let isOriginal = true;
+        titleIntervalRef.current = setInterval(() => {
+          if (isOriginal) {
+            document.title = `🔴 (${count}) ${originalTitleRef.current}`;
+          } else {
+            document.title = `(${count}) ${originalTitleRef.current}`;
+          }
+          isOriginal = !isOriginal;
+        }, 1000);
+      }
+    } else {
+      document.title = originalTitleRef.current;
+      if (titleIntervalRef.current) {
+        clearInterval(titleIntervalRef.current);
+        titleIntervalRef.current = null;
+      }
     }
+  }, []);
+
+  // Calculate total unread count
+  useEffect(() => {
+    let totalUnread = 0;
+    
+    // Count unread conversations
+    conversations.forEach((conv) => {
+      if (!conv || conv.deleted) return;
+      const lastAt = conv.lastMessageAt;
+      const lastSeen = conv.lastSeen?.[uid];
+      const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
+      const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
+      const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
+      if (isUnread) totalUnread++;
+    });
+    
+    // Count unread rooms
+    rooms.forEach((room) => {
+      if (!room || room.deleted) return;
+      const lastAt = room.lastMessageAt;
+      const lastSeen = room.lastSeen?.[uid];
+      const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
+      const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
+      const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
+      if (isUnread) totalUnread++;
+    });
+    
+    setUnreadCount(totalUnread);
+    updateTabTitle(totalUnread);
+  }, [conversations, rooms, uid, updateTabTitle]);
+
+  // Clean up title interval on unmount
+  useEffect(() => {
+    return () => {
+      if (titleIntervalRef.current) {
+        clearInterval(titleIntervalRef.current);
+      }
+      document.title = originalTitleRef.current;
+    };
   }, []);
 
   // Notify for direct messages (any conversation, not only selected)
@@ -227,16 +275,10 @@ export default function AppProvider({ children }) {
       const isMuted = !!(conv.mutedBy && conv.mutedBy[uid]);
       if (isNew && isFromOther && isUnread && !isMuted) {
         notifiedConversationsRef.current[conv.id] = lastAtDate;
-        const otherUserId = conv.participants?.find((p) => p !== uid);
-        const otherUser = allUsers.find((u) => u.uid === otherUserId);
-        const title = otherUser?.displayName || 'Tin nhắn mới';
-        const body = conv.lastMessage || 'Bạn có tin nhắn mới';
-        const icon = otherUser?.photoURL || '/favicon.ico';
         playNotificationSound();
-        showBrowserNotification(title, body, icon);
       }
     });
-  }, [conversations, uid, allUsers, playNotificationSound, showBrowserNotification]);
+  }, [conversations, uid, allUsers, playNotificationSound]);
 
   // Optional: Notify for rooms as well using lastMessageAt/lastSeen
   useEffect(() => {
@@ -255,14 +297,10 @@ export default function AppProvider({ children }) {
       const isMuted = !!(room.mutedBy && room.mutedBy[uid]);
       if (isNew && isFromOther && isUnread && !isMuted) {
         notifiedRoomsRef.current[room.id] = lastAtDate;
-        const title = room.name || 'Tin nhắn mới';
-        const body = room.lastMessage || 'Bạn có tin nhắn mới';
-        const icon = room.avatar || '/favicon.ico';
         playNotificationSound();
-        showBrowserNotification(title, body, icon);
       }
     });
-  }, [rooms, uid, playNotificationSound, showBrowserNotification]);
+  }, [rooms, uid, playNotificationSound]);
 
   const clearState = () => {
     setSelectedRoomId('');

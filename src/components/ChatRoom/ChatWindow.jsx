@@ -15,7 +15,7 @@ export default function ChatWindow() {
     selectedRoom,
     selectedConversation,
     chatType,
-    setIsAddRoomVisible,
+    setIsInviteMemberVisible,
     setIsCalendarVisible,
     setIsVoteModalVisible
   } = useContext(AppContext);
@@ -320,7 +320,7 @@ export default function ChatWindow() {
                 </button>
                 <button
                   className="rounded-md border border-gray-300 px-2 py-1 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
-                  onClick={() => setIsAddRoomVisible(true)}
+                  onClick={() => setIsInviteMemberVisible(true)}
                 >
                   Mời
                 </button>
