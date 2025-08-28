@@ -133,6 +133,12 @@ export default function AddRoomModal() {
   const [selectedMembers, setSelectedMembers] = useState([]);
 
   const handleOk = () => {
+    // Validate room name
+    if (!formState.name || formState.name.trim().length < 3) {
+      window.alert('Tên nhóm phải có ít nhất 3 ký tự!');
+      return;
+    }
+
     // Kiểm tra số lượng thành viên tối thiểu (tối thiểu 3 người bao gồm người tạo)
     const totalMembers = selectedMembers.length + 1; // +1 cho người tạo nhóm
 

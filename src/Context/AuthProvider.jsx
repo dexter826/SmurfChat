@@ -39,7 +39,10 @@ export default function AuthProvider({ children }) {
   }, [history]);
 
   const handleLogout = async () => {
-    await logoutUser();
+    const confirmed = window.confirm('Bạn có chắc chắn muốn đăng xuất không?');
+    if (confirmed) {
+      await logoutUser();
+    }
   };
 
   return (

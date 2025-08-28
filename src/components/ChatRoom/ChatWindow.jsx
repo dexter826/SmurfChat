@@ -9,6 +9,8 @@ import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
 import EventMessage from './EventMessage';
 import VoteMessage from './VoteMessage';
 import RoomInfoModal from './RoomInfoModal';
+import FileUpload from '../FileUpload/FileUpload';
+import VoiceRecording from '../FileUpload/VoiceRecording';
 
 export default function ChatWindow() {
   const {
@@ -55,6 +57,7 @@ export default function ChatWindow() {
         roomId: selectedRoom.id,
         displayName,
         hasTimeInfo: !!detectedTime,
+        messageType: 'text',
       });
 
       // Update room's last message for sorting and unread
@@ -80,6 +83,7 @@ export default function ChatWindow() {
         photoURL,
         conversationId: selectedConversation.id,
         displayName,
+        messageType: 'text',
       });
 
       // Update conversation's last message
@@ -99,6 +103,90 @@ export default function ChatWindow() {
       setTimeout(() => {
         inputRef.current.focus();
       });
+    }
+  };
+
+  // Handle file upload
+  const handleFileUploaded = async (fileData) => {
+    const messageData = {
+      uid,
+      photoURL,
+      displayName,
+      messageType: fileData.messageType,
+      fileData: fileData,
+      text: '', // Empty text for file messages
+    };
+
+    if (chatType === 'room' && selectedRoom.id) {
+      addDocument('messages', {
+        ...messageData,
+        roomId: selectedRoom.id,
+      });
+
+      // Update room's last message
+      try {
+        const lastMessageText = fileData.messageType === 'voice' ? '🎤 Tin nhắn thoại' : 
+                               fileData.category === 'image' ? '🖼️ Hình ảnh' : 
+                               `📎 ${fileData.name}`;
+        await updateRoomLastMessage(selectedRoom.id, lastMessageText, uid);
+      } catch (error) {
+        console.error('Error updating room last message:', error);
+      }
+    } else if (chatType === 'direct' && selectedConversation.id) {
+      addDocument('directMessages', {
+        ...messageData,
+        conversationId: selectedConversation.id,
+      });
+
+      // Update conversation's last message
+      try {
+        const { updateConversationLastMessage } = await import('../../firebase/services');
+        const lastMessageText = fileData.messageType === 'voice' ? '🎤 Tin nhắn thoại' : 
+                               fileData.category === 'image' ? '🖼️ Hình ảnh' : 
+                               `📎 ${fileData.name}`;
+        await updateConversationLastMessage(selectedConversation.id, lastMessageText, uid);
+      } catch (error) {
+        console.error('Error updating conversation:', error);
+      }
+    }
+  };
+
+  // Handle location sharing
+  const handleLocationShared = async (locationData) => {
+    const messageData = {
+      uid,
+      photoURL,
+      displayName,
+      messageType: 'location',
+      locationData: locationData,
+      text: '', // Empty text for location messages
+    };
+
+    if (chatType === 'room' && selectedRoom.id) {
+      addDocument('messages', {
+        ...messageData,
+        roomId: selectedRoom.id,
+      });
+
+      // Update room's last message
+      try {
+        await updateRoomLastMessage(selectedRoom.id, '📍 Vị trí được chia sẻ', uid);
+      } catch (error) {
+        console.error('Error updating room last message:', error);
+      }
+    } else if (chatType === 'direct' && selectedConversation.id) {
+      addDocument('directMessages', {
+        ...messageData,
+        conversationId: selectedConversation.id,
+      });
+
+      // Update conversation's last message
+      try {
+        const { updateConversationLastMessage } = await import('../../firebase/services');
+        await updateConversationLastMessage(selectedConversation.id, '📍 Vị trí được chia sẻ', uid);
+      } catch (error) {
+        console.error('Error updating conversation:', error);
+      }
     }
   };
 
@@ -361,6 +449,9 @@ export default function ChatWindow() {
                       displayName={item.displayName}
                       createdAt={item.createdAt}
                       uid={item.uid}
+                      messageType={item.messageType}
+                      fileData={item.fileData}
+                      locationData={item.locationData}
                     />
                   );
                 }
@@ -380,18 +471,33 @@ export default function ChatWindow() {
                 </div>
               ) : null;
             })()}
-            <div className="flex items-center justify-between rounded border border-gray-200 p-1 dark:border-gray-700">
+            <div className="flex items-center space-x-2 rounded border border-gray-200 p-1 dark:border-gray-700">
+              {/* File Upload Component */}
+              <FileUpload
+                onFileUploaded={handleFileUploaded}
+                onLocationShared={handleLocationShared}
+                disabled={false}
+              />
+              
+              {/* Text Input */}
               <input
                 ref={inputRef}
-                className="w-full bg-transparent px-2 py-1 outline-none placeholder:text-slate-400"
+                className="flex-1 bg-transparent px-2 py-1 outline-none placeholder:text-slate-400"
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleOnSubmit(); } }}
                 placeholder='Nhập tin nhắn...'
                 autoComplete='off'
                 value={inputValue}
               />
+              
+              {/* Voice Recording Button */}
+              <VoiceRecording
+                onVoiceUploaded={handleFileUploaded}
+                disabled={false}
+              />
+              
               <button
-                className="ml-2 rounded bg-skybrand-600 px-3 py-1 text-sm font-medium text-white hover:bg-skybrand-700"
+                className="rounded bg-skybrand-600 px-3 py-1 text-sm font-medium text-white hover:bg-skybrand-700"
                 onClick={handleOnSubmit}
               >
                 Gửi

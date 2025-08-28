@@ -1,6 +1,8 @@
 import React from "react";
 import { formatRelative } from "date-fns/esm";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
+import FilePreview from "../FileUpload/FilePreview";
+import LocationPreview from "../FileUpload/LocationPreview";
 
 function formatDate(seconds) {
   let formattedDate = "";
@@ -21,9 +23,38 @@ export default function Message({
   createdAt,
   photoURL,
   uid,
+  messageType = 'text',
+  fileData,
+  locationData,
 }) {
   const { user } = React.useContext(AuthContext);
   const isOwn = uid === user?.uid;
+
+  const renderMessageContent = () => {
+    switch (messageType) {
+      case 'file':
+      case 'voice':
+        return <FilePreview file={fileData} />;
+      
+      case 'location':
+        return <LocationPreview location={locationData} />;
+      
+      case 'text':
+      default:
+        return (
+          <div
+            className={`${
+              isOwn
+                ? "bg-skybrand-600 text-white border-skybrand-600 rounded-2xl rounded-tr-sm"
+                : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-sm"
+            } border px-3 py-2`}
+          >
+            <span className="break-words">{text}</span>
+          </div>
+        );
+    }
+  };
+
   return (
     <div className={`mb-2 flex items-start ${isOwn ? "flex-row-reverse" : ""}`}>
       <div className="h-8 w-8 flex-shrink-0">
@@ -54,15 +85,7 @@ export default function Message({
             {formatDate(createdAt?.seconds)}
           </span>
         </div>
-        <div
-          className={`${
-            isOwn
-              ? "bg-skybrand-600 text-white border-skybrand-600 rounded-2xl rounded-tr-sm"
-              : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-sm"
-          } border px-3 py-2`}
-        >
-          <span className="break-words">{text}</span>
-        </div>
+        {renderMessageContent()}
       </div>
     </div>
   );

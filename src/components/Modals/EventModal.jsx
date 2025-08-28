@@ -42,15 +42,24 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
   ];
 
   const handleSubmit = async () => {
-    if (!form.title) {
+    if (!form.title || form.title.trim().length < 3) {
       try {
-        window.alert("Vui lòng nhập tiêu đề sự kiện!");
+        window.alert("Tiêu đề sự kiện phải có ít nhất 3 ký tự!");
       } catch {}
       return;
     }
     if (!form.date || !form.time) {
       try {
         window.alert("Vui lòng chọn ngày/giờ!");
+      } catch {}
+      return;
+    }
+    
+    // Validate date is not in the past
+    const eventDateTime = moment(`${form.date} ${form.time}`);
+    if (eventDateTime.isBefore(moment())) {
+      try {
+        window.alert("Không thể tạo sự kiện trong quá khứ!");
       } catch {}
       return;
     }

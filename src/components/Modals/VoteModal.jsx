@@ -41,11 +41,19 @@ const VoteModal = () => {
     try {
       setLoading(true);
 
+      // Validate form
+      if (!form.title || form.title.trim().length < 3) {
+        try { window.alert('Tiêu đề vote phải có ít nhất 3 ký tự'); } catch { }
+        setLoading(false);
+        return;
+      }
+
       // Filter out empty options
       const validOptions = options.filter(option => option.trim() !== '');
 
       if (validOptions.length < 2) {
         try { window.alert('Cần ít nhất 2 lựa chọn hợp lệ'); } catch { }
+        setLoading(false);
         return;
       }
 

@@ -60,6 +60,20 @@ export default function Login() {
     setError("");
 
     const { email, password } = form;
+    
+    // Validate inputs
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Email không hợp lệ!");
+      setLoading(false);
+      return;
+    }
+    
+    if (!password || password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự!");
+      setLoading(false);
+      return;
+    }
+
     const { error: authError } = await loginWithEmailAndPassword(
       email,
       password
