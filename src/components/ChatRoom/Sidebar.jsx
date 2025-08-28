@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import UserInfo from './UserInfo';
 import UnifiedChatList from './UnifiedChatList';
 import { AuthContext } from '../../Context/AuthProvider';
@@ -6,10 +6,48 @@ import { AppContext } from '../../Context/AppProvider';
 import useFirestore from '../../hooks/useFirestore';
 import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation } from '../../firebase/services';
 
+// Icon components
+const ChevronDownIcon = () => (
+  <svg className="h-4 w-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
+const UserFriendsIcon = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const MailIcon = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+  </svg>
+);
+
+const MessageCircleIcon = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
+  </svg>
+);
+
+const LogOutIcon = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+  </svg>
+);
+
 export default function Sidebar() {
   const { logout } = useContext(AuthContext);
   const { clearState, selectConversation, setChatType } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  
+  // Collapsible sections state
+  const [sectionsCollapsed, setSectionsCollapsed] = useState({
+    incoming: false,
+    outgoing: false,
+    friends: false
+  });
 
   // Incoming friend requests for current user
   const incomingReqsCondition = React.useMemo(() => ({
@@ -50,145 +88,272 @@ export default function Sidebar() {
     clearState();
   };
 
+  const toggleSection = (section) => {
+    setSectionsCollapsed(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const SectionHeader = ({ title, count = 0, icon: Icon, isCollapsed, onToggle, showBadge = false }) => (
+    <button
+      onClick={onToggle}
+      className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+    >
+      <div className="flex items-center gap-3">
+        <Icon />
+        <span className="font-semibold text-slate-800 dark:text-slate-100">{title}</span>
+        {showBadge && count > 0 && (
+          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-skybrand-500 px-1.5 text-xs font-medium text-white">
+            {count}
+          </span>
+        )}
+      </div>
+      <div className={`transform transition-transform duration-200 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}>
+        <ChevronDownIcon />
+      </div>
+    </button>
+  );
+
+  const ActionButton = ({ onClick, variant = 'primary', children, size = 'sm', className = '' }) => {
+    const baseClasses = "inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1";
+    const variants = {
+      primary: "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500",
+      secondary: "bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500",
+      ghost: "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+    };
+    const sizes = {
+      sm: "px-3 py-1.5 text-xs",
+      md: "px-4 py-2 text-sm"
+    };
+    
+    return (
+      <button
+        onClick={onClick}
+        className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
+      >
+        {children}
+      </button>
+    );
+  };
+
+  const UserCard = ({ user, description, actions, className = '' }) => (
+    <div className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/30 ${className}`}>
+      <div className="relative">
+        <img
+          className="h-10 w-10 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-700"
+          src={user?.photoURL || ''}
+          alt="avatar"
+          onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.nextSibling.style.display = 'flex';
+          }}
+        />
+        <div 
+          className="hidden h-10 w-10 items-center justify-center rounded-full bg-skybrand-500 text-white ring-2 ring-slate-200 dark:ring-slate-700"
+          style={{ display: 'none' }}
+        >
+          {user?.displayName?.charAt(0)?.toUpperCase() || '?'}
+        </div>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+          {user?.displayName || 'Người dùng không xác định'}
+        </div>
+        <div className="truncate text-xs text-slate-500 dark:text-slate-400">{description}</div>
+      </div>
+      <div className="flex items-center gap-2">
+        {actions}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-gray-200 p-3 dark:border-gray-800">
+    <div className="flex h-full flex-col bg-white dark:bg-slate-900">
+      {/* Header Section */}
+      <div className="border-b border-slate-200 bg-white/95 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/95">
         <UserInfo />
       </div>
 
-      <div className="thin-scrollbar flex-1 overflow-y-auto pb-24">
-        <div className="flex items-center px-4 py-2">
-          <span className="flex-1 font-semibold">Cuộc trò chuyện</span>
-          <span className="mr-1 text-xs text-slate-500 dark:text-slate-400">Lời mời</span>
-          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-skybrand-500 px-1 text-xs font-medium text-white">
-            {incomingRequests.length}
-          </span>
+      {/* Main Content Area */}
+      <div className="thin-scrollbar flex-1 overflow-y-auto">
+        
+        {/* Conversations Section */}
+        <div className="border-b border-slate-100 dark:border-slate-800">
+          <SectionHeader 
+            title="Cuộc trò chuyện"
+            icon={MessageCircleIcon}
+            isCollapsed={false}
+            onToggle={() => {}}
+            showBadge={false}
+          />
+          <div className="pb-2">
+            <UnifiedChatList />
+          </div>
         </div>
 
-        <UnifiedChatList />
-
+        {/* Incoming Friend Requests */}
         {incomingRequests.length > 0 && (
-          <div className="border-t border-gray-200 pt-2 dark:border-gray-800">
-            <div className="px-4 pb-2 font-semibold">Lời mời kết bạn</div>
-            <ul className="space-y-1">
-              {incomingRequests.map((req) => (
-                <li key={req.id} className="px-4 py-2">
-                  <div className="flex items-center gap-3">
-                    <img
-                      className="h-8 w-8 rounded-full object-cover"
-                      src={getUserById(req.from)?.photoURL || ''}
-                      alt="avatar"
+          <div className="border-b border-slate-100 dark:border-slate-800">
+            <SectionHeader 
+              title="Lời mời kết bạn"
+              count={incomingRequests.length}
+              icon={MailIcon}
+              isCollapsed={sectionsCollapsed.incoming}
+              onToggle={() => toggleSection('incoming')}
+              showBadge={true}
+            />
+            {!sectionsCollapsed.incoming && (
+              <div className="space-y-1 pb-3">
+                {incomingRequests.map((req) => {
+                  const fromUser = getUserById(req.from);
+                  return (
+                    <UserCard
+                      key={req.id}
+                      user={fromUser}
+                      description="đã gửi lời mời kết bạn"
+                      actions={
+                        <>
+                          <ActionButton
+                            variant="primary"
+                            onClick={async () => {
+                              await acceptFriendRequest(req.id, user.uid);
+                              const otherId = req.from;
+                              const conversationId = [user.uid, otherId].sort().join('_');
+                              await createOrUpdateConversation({
+                                id: conversationId,
+                                participants: [user.uid, otherId],
+                                type: 'direct',
+                                lastMessage: '',
+                                lastMessageAt: null,
+                                createdBy: user.uid
+                              });
+                              setChatType && setChatType('direct');
+                              selectConversation(conversationId);
+                            }}
+                          >
+                            Chấp nhận
+                          </ActionButton>
+                          <ActionButton
+                            variant="secondary"
+                            onClick={async () => { 
+                              await declineFriendRequest(req.id, user.uid); 
+                            }}
+                          >
+                            Từ chối
+                          </ActionButton>
+                        </>
+                      }
                     />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium">{getUserById(req.from)?.displayName || 'Một người dùng'}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">đã gửi lời mời kết bạn</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="inline-flex items-center rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
-                        onClick={async () => {
-                          await acceptFriendRequest(req.id, user.uid);
-                          const otherId = req.from;
-                          const conversationId = [user.uid, otherId].sort().join('_');
-                          await createOrUpdateConversation({
-                            id: conversationId,
-                            participants: [user.uid, otherId],
-                            type: 'direct',
-                            lastMessage: '',
-                            lastMessageAt: null,
-                            createdBy: user.uid
-                          });
-                          setChatType && setChatType('direct');
-                          selectConversation(conversationId);
-                        }}
-                      >
-                        Chấp nhận
-                      </button>
-                      <button
-                        className="inline-flex items-center rounded-md bg-rose-600 px-2 py-1 text-xs font-medium text-white hover:bg-rose-700"
-                        onClick={async () => { await declineFriendRequest(req.id, user.uid); }}
-                      >
-                        Từ chối
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
+        {/* Outgoing Friend Requests */}
         {outgoingRequests.length > 0 && (
-          <div className="border-t border-gray-200 pt-2 dark:border-gray-800">
-            <div className="px-4 pb-2 font-semibold">Lời mời đã gửi</div>
-            <ul className="space-y-1">
-              {outgoingRequests.map((req) => (
-                <li key={req.id} className="px-4 py-2">
-                  <div className="flex items-center gap-3">
-                    <img
-                      className="h-8 w-8 rounded-full object-cover"
-                      src={getUserById(req.to)?.photoURL || ''}
-                      alt="avatar"
+          <div className="border-b border-slate-100 dark:border-slate-800">
+            <SectionHeader 
+              title="Lời mời đã gửi"
+              count={outgoingRequests.length}
+              icon={MailIcon}
+              isCollapsed={sectionsCollapsed.outgoing}
+              onToggle={() => toggleSection('outgoing')}
+              showBadge={true}
+            />
+            {!sectionsCollapsed.outgoing && (
+              <div className="space-y-1 pb-3">
+                {outgoingRequests.map((req) => {
+                  const toUser = getUserById(req.to);
+                  return (
+                    <UserCard
+                      key={req.id}
+                      user={toUser}
+                      description="đang chờ chấp nhận"
+                      actions={
+                        <ActionButton
+                          variant="secondary"
+                          onClick={async () => { 
+                            await cancelFriendRequest(req.id, user.uid); 
+                          }}
+                        >
+                          Hủy lời mời
+                        </ActionButton>
+                      }
                     />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium">{getUserById(req.to)?.displayName || 'Một người dùng'}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">đang chờ chấp nhận</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="inline-flex items-center rounded-md bg-rose-600 px-2 py-1 text-xs font-medium text-white hover:bg-rose-700"
-                        onClick={async () => { await cancelFriendRequest(req.id, user.uid); }}
-                      >
-                        Hủy lời mời
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
+        {/* Friends List */}
         {friendEdges.length > 0 && (
-          <div className="border-t border-gray-200 pt-2 dark:border-gray-800">
-            <div className="px-4 pb-2 font-semibold">Bạn bè</div>
-            <ul className="space-y-1">
-              {friendEdges.map((edge) => {
-                const otherId = (edge.participants || []).find(id => id !== user.uid);
-                const other = getUserById(otherId) || {};
-                return (
-                  <li key={edge.id || otherId} className="px-4 py-2">
-                    <div className="flex items-center gap-3">
-                      <img
-                        className="h-8 w-8 rounded-full object-cover"
-                        src={other.photoURL || ''}
-                        alt="avatar"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium">{other.displayName || otherId}</div>
-                      </div>
-                      <button
-                        className="inline-flex items-center rounded-md bg-rose-600 px-2 py-1 text-xs font-medium text-white hover:bg-rose-700"
-                        onClick={async () => { await removeFriendship(user.uid, otherId); }}
-                      >
-                        Hủy kết bạn
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+          <div className="border-b border-slate-100 dark:border-slate-800">
+            <SectionHeader 
+              title="Bạn bè"
+              count={friendEdges.length}
+              icon={UserFriendsIcon}
+              isCollapsed={sectionsCollapsed.friends}
+              onToggle={() => toggleSection('friends')}
+              showBadge={false}
+            />
+            {!sectionsCollapsed.friends && (
+              <div className="space-y-1 pb-3">
+                {friendEdges.map((edge) => {
+                  const otherId = (edge.participants || []).find(id => id !== user.uid);
+                  const other = getUserById(otherId) || {};
+                  return (
+                    <UserCard
+                      key={edge.id || otherId}
+                      user={other}
+                      description="Bạn bè"
+                      actions={
+                        <ActionButton
+                          variant="secondary"
+                          onClick={async () => { 
+                            await removeFriendship(user.uid, otherId); 
+                          }}
+                        >
+                          Hủy kết bạn
+                        </ActionButton>
+                      }
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {incomingRequests.length === 0 && outgoingRequests.length === 0 && friendEdges.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="rounded-full bg-slate-100 p-4 dark:bg-slate-800">
+              <UserFriendsIcon />
+            </div>
+            <h3 className="mt-4 text-sm font-semibold text-slate-800 dark:text-slate-100">Chưa có bạn bè</h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Hãy bắt đầu kết nối bằng cách gửi lời mời kết bạn
+            </p>
           </div>
         )}
       </div>
 
-      <div className="sticky bottom-0 border-t border-gray-200 bg-white/80 p-4 backdrop-blur dark:border-gray-800 dark:bg-black/40">
-        <button
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-slate-800 hover:bg-rose-600 hover:text-white dark:border-gray-700 dark:text-slate-100"
+      {/* Footer with Logout */}
+      <div className="border-t border-slate-200 bg-white/95 p-4 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/95">
+        <ActionButton
+          variant="ghost"
+          size="md"
           onClick={handleLogout}
+          className="w-full justify-center gap-2 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 dark:hover:bg-rose-900/20 dark:hover:border-rose-700 dark:hover:text-rose-400"
         >
+          <LogOutIcon />
           Đăng xuất
-        </button>
+        </ActionButton>
       </div>
     </div>
   );
