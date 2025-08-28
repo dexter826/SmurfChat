@@ -85,6 +85,14 @@ export default function AppProvider({ children }) {
     }
   }, [userEvents]);
 
+  // Keep reminder service per-chat mutes in sync for rooms
+  useEffect(() => {
+    const mutedRoomIds = rooms
+      .filter(r => r.mutedBy && r.mutedBy[uid])
+      .map(r => r.id);
+    reminderService.setMutedChats(mutedRoomIds);
+  }, [rooms, uid]);
+
   // Get all users for conversation lookup
   const allUsersCondition = React.useMemo(() => ({
     fieldName: 'uid',
@@ -214,7 +222,8 @@ export default function AppProvider({ children }) {
       const isNew = !!lastAtDate && (!notifiedConversationsRef.current[conv.id] || lastAtDate > notifiedConversationsRef.current[conv.id]);
       const isFromOther = updatedBy && updatedBy !== uid;
       const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
-      if (isNew && isFromOther && isUnread) {
+      const isMuted = !!(conv.mutedBy && conv.mutedBy[uid]);
+      if (isNew && isFromOther && isUnread && !isMuted) {
         notifiedConversationsRef.current[conv.id] = lastAtDate;
         const otherUserId = conv.participants?.find((p) => p !== uid);
         const otherUser = allUsers.find((u) => u.uid === otherUserId);
@@ -241,7 +250,8 @@ export default function AppProvider({ children }) {
       const isNew = !!lastAtDate && (!notifiedRoomsRef.current[room.id] || lastAtDate > notifiedRoomsRef.current[room.id]);
       const isFromOther = updatedBy && updatedBy !== uid;
       const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
-      if (isNew && isFromOther && isUnread) {
+      const isMuted = !!(room.mutedBy && room.mutedBy[uid]);
+      if (isNew && isFromOther && isUnread && !isMuted) {
         notifiedRoomsRef.current[room.id] = lastAtDate;
         const title = room.name || 'Tin nhắn mới';
         const body = room.lastMessage || 'Bạn có tin nhắn mới';

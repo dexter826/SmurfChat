@@ -6,6 +6,7 @@ class ReminderService {
   constructor() {
     this.reminders = new Map();
     this.checkInterval = null;
+    this.mutedChatIds = new Set();
     this.startReminderCheck();
   }
 
@@ -14,7 +15,7 @@ class ReminderService {
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
     }
-    
+
     this.checkInterval = setInterval(() => {
       this.checkReminders();
     }, 60000); // Check every minute
@@ -26,7 +27,7 @@ class ReminderService {
 
     const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
     const reminderTime = eventTime.clone().subtract(event.reminderMinutes, 'minutes');
-    
+
     // Only add reminder if it's in the future
     if (reminderTime.isAfter(moment())) {
       this.reminders.set(event.id, {
@@ -45,7 +46,7 @@ class ReminderService {
   // Check all reminders and show notifications
   checkReminders() {
     const now = moment();
-    
+
     this.reminders.forEach((reminder, eventId) => {
       if (!reminder.notified && moment(reminder.reminderTime).isSameOrBefore(now)) {
         this.showReminderNotification(reminder);
@@ -54,11 +55,18 @@ class ReminderService {
     });
   }
 
+  // Update per-chat mute set from outside
+  setMutedChats(ids = []) {
+    this.mutedChatIds = new Set(ids);
+  }
+
   // Show reminder notification
   showReminderNotification(event) {
+    // Do not show reminders if the event's room is muted
+    if (event.roomId && this.mutedChatIds.has(event.roomId)) return;
     const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
     const timeUntilEvent = eventTime.diff(moment(), 'minutes');
-    
+
     notification.info({
       message: 'Nhắc nhở sự kiện',
       description: (
@@ -76,18 +84,20 @@ class ReminderService {
     });
 
     // Also show a message for immediate attention
-    message.info({
-      content: `Nhắc nhở: "${event.title}" sẽ bắt đầu trong ${timeUntilEvent} phút`,
-      duration: 5,
-      icon: <CalendarOutlined />,
-    });
+    if (!(event.roomId && this.mutedChatIds.has(event.roomId))) {
+      message.info({
+        content: `Nhắc nhở: "${event.title}" sẽ bắt đầu trong ${timeUntilEvent} phút`,
+        duration: 5,
+        icon: <CalendarOutlined />,
+      });
+    }
   }
 
   // Update reminders when events change
   updateReminders(events) {
     // Clear existing reminders
     this.reminders.clear();
-    
+
     // Add new reminders
     events.forEach(event => {
       if (!event.deleted && event.status === 'active') {
@@ -100,7 +110,7 @@ class ReminderService {
   getUpcomingEvents() {
     const now = moment();
     const tomorrow = now.clone().add(24, 'hours');
-    
+
     return Array.from(this.reminders.values())
       .filter(event => {
         const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
@@ -117,11 +127,11 @@ class ReminderService {
   showDailyAgenda(events) {
     const upcomingEvents = events.filter(event => {
       if (event.deleted || event.status !== 'active') return false;
-      
+
       const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
       const now = moment();
       const endOfDay = now.clone().endOf('day');
-      
+
       return eventTime.isBetween(now, endOfDay);
     });
 

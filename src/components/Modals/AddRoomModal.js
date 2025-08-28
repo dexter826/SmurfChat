@@ -86,7 +86,7 @@ export default function AddRoomModal() {
   const handleOk = () => {
     // Kiểm tra số lượng thành viên tối thiểu (tối thiểu 3 người bao gồm người tạo)
     const totalMembers = selectedMembers.length + 1; // +1 cho người tạo nhóm
-    
+
     if (totalMembers < 3) {
       Modal.error({
         title: 'Không thể tạo nhóm',
@@ -97,12 +97,12 @@ export default function AddRoomModal() {
 
     // Tạo danh sách thành viên bao gồm người tạo và các thành viên được chọn
     const members = [uid, ...selectedMembers.map(member => member.value)];
-    
-    // Thêm nhóm mới vào firestore
-    addDocument('rooms', { 
-      ...form.getFieldsValue(), 
-      members: members, 
-      admin: uid 
+
+    // Thêm nhóm mới vào firestore (không lưu mô tả)
+    addDocument('rooms', {
+      name: form.getFieldValue('name'),
+      members: members,
+      admin: uid
     });
 
     // Reset form và state
@@ -131,9 +131,11 @@ export default function AddRoomModal() {
           <Form.Item label='Tên nhóm' name='name' rules={[{ required: true, message: 'Vui lòng nhập tên nhóm!' }]}>
             <Input placeholder='Nhập tên nhóm' />
           </Form.Item>
-          <Form.Item label='Mô tả' name='description'>
-            <Input.TextArea placeholder='Nhập mô tả nhóm' />
-          </Form.Item>
+          {false && (
+            <Form.Item label='Mô tả' name='description'>
+              <Input.TextArea placeholder='Nhập mô tả nhóm' />
+            </Form.Item>
+          )}
           <Form.Item label='Thêm thành viên (tối thiểu 2 người)' required>
             <DebounceSelect
               mode='multiple'

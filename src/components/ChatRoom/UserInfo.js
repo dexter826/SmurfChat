@@ -67,11 +67,11 @@ const WrapperStyled = styled.div`
 
 export default function UserInfo() {
   const [isNewMessageModalVisible, setIsNewMessageModalVisible] = useState(false);
-  
+
   const {
     user: { displayName, photoURL },
   } = React.useContext(AuthContext);
-  const { 
+  const {
     setIsAddRoomVisible
   } = React.useContext(AppContext);
   const { isDarkMode, toggleTheme, ...theme } = useTheme();
@@ -94,14 +94,14 @@ export default function UserInfo() {
       </div>
       <div className="action-icons">
         <Tooltip title="Tạo phòng mới">
-          <Button 
+          <Button
             size="small"
             icon={<PlusOutlined />}
             onClick={handleNewRoom}
           />
         </Tooltip>
         <Tooltip title="Tạo tin nhắn mới">
-          <Button 
+          <Button
             size="small"
             icon={<CommentOutlined />}
             onClick={handleNewMessage}
@@ -119,8 +119,8 @@ export default function UserInfo() {
           </Tooltip>
         </div>
       </div>
-      
-      <NewMessageModal 
+
+      <NewMessageModal
         visible={isNewMessageModalVisible}
         onClose={() => setIsNewMessageModalVisible(false)}
       />

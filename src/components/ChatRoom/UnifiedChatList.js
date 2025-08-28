@@ -1,12 +1,14 @@
 import React, { useContext } from 'react';
 import { Avatar, Dropdown, Button, message } from 'antd';
-import { MoreOutlined, PushpinOutlined, DeleteOutlined } from '@ant-design/icons';
+import { MoreOutlined, PushpinOutlined, DeleteOutlined, BellOutlined, BellFilled } from '@ant-design/icons';
 import styled from 'styled-components';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
 import { useTheme } from '../../Context/ThemeProvider';
 import useFirestore from '../../hooks/useFirestore';
 import { deleteConversation, togglePinChat, dissolveRoom, updateLastSeen } from '../../firebase/services';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 const ChatItemStyled = styled.div`
   display: flex;
@@ -175,6 +177,23 @@ export default function UnifiedChatList() {
     }
   };
 
+  const handleToggleMute = async (chat, isConversation) => {
+    try {
+      const collectionName = isConversation ? 'conversations' : 'rooms';
+      const ref = doc(db, collectionName, chat.id);
+      const current = !!(chat.mutedBy && chat.mutedBy[user.uid]);
+      await updateDoc(ref, {
+        [
+          `mutedBy.${user.uid}`
+        ]: !current
+      });
+      message.success(!current ? 'Đã tắt thông báo cuộc trò chuyện' : 'Đã bật thông báo cuộc trò chuyện');
+    } catch (error) {
+      console.error('Error toggling mute:', error);
+      message.error('Có lỗi xảy ra khi tắt/bật thông báo');
+    }
+  };
+
   // Combine rooms and conversations into a single list
   const allChats = React.useMemo(() => {
     const getOtherParticipant = (conversation) => {
@@ -189,6 +208,7 @@ export default function UnifiedChatList() {
       description: room.description,
       avatar: room.avatar,
       isSelected: selectedRoomId === room.id,
+      isMuted: !!(room.mutedBy && room.mutedBy[user.uid]),
       hasUnread: !!(room.lastSeen && room.lastSeen[user.uid] && room.lastMessageAt &&
         (room.lastMessageAt?.toDate ? room.lastMessageAt.toDate() : new Date(room.lastMessageAt)) >
         (room.lastSeen[user.uid]?.toDate ? room.lastSeen[user.uid].toDate() : new Date(room.lastSeen[user.uid]))),
@@ -205,6 +225,7 @@ export default function UnifiedChatList() {
         avatar: otherUser.photoURL,
         isSelected: selectedConversationId === conversation.id,
         otherUser,
+        isMuted: !!(conversation.mutedBy && conversation.mutedBy[user.uid]),
         hasUnread: !!(conversation.lastSeen && conversation.lastSeen[user.uid] && conversation.lastMessageAt &&
           (conversation.lastMessageAt?.toDate ? conversation.lastMessageAt.toDate() : new Date(conversation.lastMessageAt)) >
           (conversation.lastSeen[user.uid]?.toDate ? conversation.lastSeen[user.uid].toDate() : new Date(conversation.lastSeen[user.uid]))),
@@ -239,6 +260,12 @@ export default function UnifiedChatList() {
               label: chat.isPinned ? 'Bỏ ghim' : 'Ghim cuộc trò chuyện',
               icon: <PushpinOutlined />,
               onClick: () => handlePinChat(chat.id, chat.isPinned, chat.type === 'conversation')
+            },
+            {
+              key: 'mute',
+              label: chat.isMuted ? 'Bật thông báo' : 'Tắt thông báo',
+              icon: chat.isMuted ? <BellOutlined /> : <BellFilled />,
+              onClick: () => handleToggleMute(chat, chat.type === 'conversation')
             },
             {
               key: 'delete',

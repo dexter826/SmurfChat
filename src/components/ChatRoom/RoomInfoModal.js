@@ -146,7 +146,7 @@ export default function RoomInfoModal({ visible, onClose, room }) {
       await updateDoc(roomRef, {
         members: updatedMembers,
       });
-      
+
       message.success('Đã xóa thành viên khỏi nhóm!');
     }
   };
@@ -173,7 +173,7 @@ export default function RoomInfoModal({ visible, onClose, room }) {
         }
         await transferRoomAdmin(room.id, selectedNewAdmin);
       }
-      
+
       await leaveRoom(room.id, user.uid);
       message.success('Đã rời nhóm thành công!');
       onClose();
@@ -197,7 +197,7 @@ export default function RoomInfoModal({ visible, onClose, room }) {
       <ModalContentStyled>
         <div className="room-header">
           <div className="avatar-container">
-            <Avatar 
+            <Avatar
               size={64}
               src={room?.avatar}
               style={{ backgroundColor: '#1890ff' }}
@@ -217,7 +217,6 @@ export default function RoomInfoModal({ visible, onClose, room }) {
           </div>
           <div className="room-info">
             <h3>{room?.name}</h3>
-            <p>{room?.description}</p>
             <p>{members?.length} thành viên</p>
           </div>
         </div>
@@ -290,9 +289,9 @@ export default function RoomInfoModal({ visible, onClose, room }) {
               cancelText="Hủy"
               okType="danger"
             >
-              <Button 
-                type="primary" 
-                danger 
+              <Button
+                type="primary"
+                danger
                 icon={<DeleteOutlined />}
                 className="action-button"
               >
@@ -301,8 +300,8 @@ export default function RoomInfoModal({ visible, onClose, room }) {
             </Popconfirm>
           ) : (
             <Popconfirm
-              title={isCurrentUserAdmin ? 
-                "Bạn có chắc chắn muốn rời nhóm? Vui lòng chọn admin mới trước." : 
+              title={isCurrentUserAdmin ?
+                "Bạn có chắc chắn muốn rời nhóm? Vui lòng chọn admin mới trước." :
                 "Bạn có chắc chắn muốn rời nhóm?"
               }
               onConfirm={handleLeaveRoom}
@@ -311,9 +310,9 @@ export default function RoomInfoModal({ visible, onClose, room }) {
               okType="danger"
               disabled={isCurrentUserAdmin && !selectedNewAdmin}
             >
-              <Button 
-                type="default" 
-                danger 
+              <Button
+                type="default"
+                danger
                 icon={<LogoutOutlined />}
                 className="action-button"
               >
