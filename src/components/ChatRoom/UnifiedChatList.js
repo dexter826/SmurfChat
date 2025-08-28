@@ -289,7 +289,14 @@ export default function UnifiedChatList() {
                     </span>
                   )}
                 </p>
-                <p className="chat-description">{chat.description}</p>
+                <p className="chat-description">
+                  {(() => {
+                    const typingMap = chat.type === 'conversation' ? chat.typingStatus : chat.typingStatus;
+                    const someoneElseTyping = typingMap && Object.entries(typingMap).some(([k, v]) => k !== user.uid && v);
+                    if (someoneElseTyping) return 'Đang nhập...';
+                    return chat.description;
+                  })()}
+                </p>
               </div>
 
               <div className="chat-menu">

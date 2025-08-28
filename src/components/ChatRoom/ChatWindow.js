@@ -155,6 +155,7 @@ export default function ChatWindow() {
   const inputRef = useRef(null);
   const messageListRef = useRef(null);
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
+  const lastNotifiedMessageIdRef = useRef(null);
 
   const handleInputChange = (e) => {
     setInputValue(e.target.value);
@@ -354,6 +355,8 @@ export default function ChatWindow() {
     }
   }, [combinedMessages]);
 
+  // (moved) Notification handled globally in AppProvider
+
   // Mark messages as read when viewing an active chat
   useEffect(() => {
     const markSeen = async () => {
@@ -502,16 +505,20 @@ export default function ChatWindow() {
                 }
               })}
             </MessageListStyled>
-            {inputValue && (
-              <TypingIndicator>
-                Đang nhập
-                <span className="dots">
-                  <span className="dot"></span>
-                  <span className="dot"></span>
-                  <span className="dot"></span>
-                </span>
-              </TypingIndicator>
-            )}
+            {(() => {
+              const typingMap = chatType === 'direct' ? selectedConversation?.typingStatus : selectedRoom?.typingStatus;
+              const isOtherTyping = typingMap && Object.entries(typingMap).some(([k, v]) => k !== uid && v);
+              return isOtherTyping ? (
+                <TypingIndicator>
+                  Đang nhập
+                  <span className="dots">
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                  </span>
+                </TypingIndicator>
+              ) : null;
+            })()}
             <FormStyled form={form}>
               <Form.Item name='message'>
                 <Input

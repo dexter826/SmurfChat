@@ -232,16 +232,20 @@ export default function ConversationWindow() {
                 />
               ))}
             </MessageListStyled>
-            {inputValue && (
-              <TypingIndicator>
-                Đang nhập
-                <span className="dots">
-                  <span className="dot"></span>
-                  <span className="dot"></span>
-                  <span className="dot"></span>
-                </span>
-              </TypingIndicator>
-            )}
+            {(() => {
+              const typingMap = selectedConversation?.typingStatus;
+              const isOtherTyping = typingMap && Object.entries(typingMap).some(([k, v]) => k !== uid && v);
+              return isOtherTyping ? (
+                <TypingIndicator>
+                  Đang nhập
+                  <span className="dots">
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                  </span>
+                </TypingIndicator>
+              ) : null;
+            })()}
             <FormStyled form={form}>
               <Form.Item name='message'>
                 <Input
