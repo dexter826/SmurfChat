@@ -68,7 +68,7 @@ export default function Calendar() {
           </div>
           <input
             type="date"
-            className="w-fit rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700"
+            className="w-fit rounded border border-gray-300 bg-white px-2 py-1 text-sm text-slate-700 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
             value={selectedDate.format("YYYY-MM-DD")}
             onChange={(e) => setSelectedDate(moment(e.target.value))}
           />

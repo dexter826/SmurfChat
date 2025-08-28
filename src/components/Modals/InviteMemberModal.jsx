@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../../Context/AppProvider';
+import { AuthContext } from '../../Context/AuthProvider';
 import { debounce } from 'lodash';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -79,21 +80,51 @@ function DebounceSelect({
   );
 }
 
-async function fetchUserList(search, curMembers) {
-  const usersRef = collection(db, 'users');
-  const q = query(
-    usersRef,
-    where('keywords', 'array-contains', search?.toLowerCase())
+async function fetchFriendsList(search, curMembers, currentUserId) {
+  
+  // Get friends list first
+  const friendsRef = collection(db, 'friends');
+  const friendsQuery = query(
+    friendsRef,
+    where('participants', 'array-contains', currentUserId)
   );
-
-  const snapshot = await getDocs(q);
-  return snapshot.docs
-    .map((doc) => ({
-      label: doc.data().displayName,
-      value: doc.data().uid,
-      photoURL: doc.data().photoURL,
-    }))
-    .filter((opt) => !curMembers.includes(opt.value));
+  
+  const friendsSnapshot = await getDocs(friendsQuery);
+  const friendIds = [];
+  
+  friendsSnapshot.docs.forEach(doc => {
+    const participants = doc.data().participants || [];
+    const friendId = participants.find(id => id !== currentUserId);
+    if (friendId && !curMembers.includes(friendId)) {
+      friendIds.push(friendId);
+    }
+  });
+  
+  if (friendIds.length === 0) return [];
+  
+  // Get user details for friends
+  const usersRef = collection(db, 'users');
+  const usersQuery = query(
+    usersRef,
+    where('uid', 'in', friendIds)
+  );
+  
+  const usersSnapshot = await getDocs(usersQuery);
+  const friends = usersSnapshot.docs.map(doc => ({
+    label: doc.data().displayName,
+    value: doc.data().uid,
+    photoURL: doc.data().photoURL,
+    keywords: doc.data().keywords || []
+  }));
+  
+  // Filter by search term
+  if (!search) return friends;
+  
+  const searchLower = search.toLowerCase();
+  return friends.filter(friend => 
+    friend.keywords.some(keyword => keyword.includes(searchLower)) ||
+    friend.label?.toLowerCase().includes(searchLower)
+  );
 }
 
 export default function InviteMemberModal() {
@@ -103,8 +134,8 @@ export default function InviteMemberModal() {
     selectedRoomId,
     selectedRoom,
   } = useContext(AppContext);
+  const { user } = useContext(AuthContext);
   const [value, setValue] = useState([]);
-  const [form] = [null];
 
   const handleOk = () => {
     // Kiểm tra số lượng thành viên tối thiểu (3 người bao gồm admin)
@@ -147,11 +178,11 @@ export default function InviteMemberModal() {
           <button className="rounded-md px-2 py-1 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" onClick={handleCancel}>Đóng</button>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">Tên các thành viên</label>
+          <label className="mb-1 block text-sm font-medium">Mời thêm bạn bè</label>
           <DebounceSelect
             value={value}
-            placeholder='Nhập tên thành viên'
-            fetchOptions={fetchUserList}
+            placeholder='Tìm kiếm bạn bè để mời'
+            fetchOptions={(search, curMembers) => fetchFriendsList(search, curMembers, user?.uid)}
             onChange={(newValue) => setValue(newValue)}
             curMembers={selectedRoom.members}
           />

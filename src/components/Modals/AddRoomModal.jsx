@@ -79,22 +79,49 @@ function DebounceSelect({
   );
 }
 
-// Hàm tìm kiếm người dùng
-async function fetchUserList(search, currentUserId) {
-  const usersRef = collection(db, 'users');
-  const q = query(
-    usersRef,
-    where('keywords', 'array-contains', search?.toLowerCase())
+// Hàm tìm kiếm bạn bè của người dùng
+async function fetchFriendsList(search, currentUserId) {
+  // Get friends list first
+  const friendsRef = collection(db, 'friends');
+  const friendsQuery = query(
+    friendsRef,
+    where('participants', 'array-contains', currentUserId)
   );
-
-  const snapshot = await getDocs(q);
-  return snapshot.docs
-    .map((doc) => ({
-      label: doc.data().displayName,
-      value: doc.data().uid,
-      photoURL: doc.data().photoURL,
-    }))
-    .filter((opt) => opt.value !== currentUserId);
+  
+  const friendsSnapshot = await getDocs(friendsQuery);
+  const friendIds = [];
+  
+  friendsSnapshot.docs.forEach(doc => {
+    const participants = doc.data().participants || [];
+    const friendId = participants.find(id => id !== currentUserId);
+    if (friendId) friendIds.push(friendId);
+  });
+  
+  if (friendIds.length === 0) return [];
+  
+  // Get user details for friends
+  const usersRef = collection(db, 'users');
+  const usersQuery = query(
+    usersRef,
+    where('uid', 'in', friendIds)
+  );
+  
+  const usersSnapshot = await getDocs(usersQuery);
+  const friends = usersSnapshot.docs.map(doc => ({
+    label: doc.data().displayName,
+    value: doc.data().uid,
+    photoURL: doc.data().photoURL,
+    keywords: doc.data().keywords || []
+  }));
+  
+  // Filter by search term
+  if (!search) return friends;
+  
+  const searchLower = search.toLowerCase();
+  return friends.filter(friend => 
+    friend.keywords.some(keyword => keyword.includes(searchLower)) ||
+    friend.label?.toLowerCase().includes(searchLower)
+  );
 }
 
 export default function AddRoomModal() {
@@ -157,16 +184,19 @@ export default function AddRoomModal() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Thêm thành viên (tối thiểu 2 người)</label>
+            <label className="mb-1 block text-sm font-medium">Thêm bạn bè (tối thiểu 2 người)</label>
             <DebounceSelect
-              placeholder='Tìm và chọn thành viên'
-              fetchOptions={fetchUserList}
+              placeholder='Tìm và chọn bạn bè'
+              fetchOptions={fetchFriendsList}
               onChange={(newValue) => setSelectedMembers(newValue)}
               value={selectedMembers}
               currentUserId={uid}
             />
             <div className="mt-1 text-xs text-slate-500">
-              Đã chọn: {selectedMembers.length} thành viên. Cần thêm ít nhất {Math.max(0, 2 - selectedMembers.length)} thành viên nữa.
+              Đã chọn: {selectedMembers.length} bạn bè. Cần thêm ít nhất {Math.max(0, 2 - selectedMembers.length)} bạn bè nữa.
+            </div>
+            <div className="mt-1 text-xs text-amber-600">
+              ⚠️ Chỉ có thể mời bạn bè vào nhóm chat
             </div>
           </div>
         </div>
