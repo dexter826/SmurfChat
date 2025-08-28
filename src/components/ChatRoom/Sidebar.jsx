@@ -4,12 +4,25 @@ import UnifiedChatList from './UnifiedChatList';
 import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
 import useFirestore from '../../hooks/useFirestore';
-import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation } from '../../firebase/services';
+import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation, sendFriendRequest } from '../../firebase/services';
 
 // Icon components
 const ChevronDownIcon = () => (
   <svg className="h-4 w-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
+
+const UserPlusIcon = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 8v6M23 11h-6" />
   </svg>
 );
 
@@ -41,6 +54,12 @@ export default function Sidebar() {
   const { logout } = useContext(AuthContext);
   const { clearState, selectConversation, setChatType } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState('conversations');
+  const [friendSearchTerm, setFriendSearchTerm] = useState('');
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [publicSearchTerm, setPublicSearchTerm] = useState('');
   
   // Collapsible sections state
   const [sectionsCollapsed, setSectionsCollapsed] = useState({
@@ -80,8 +99,22 @@ export default function Sidebar() {
     compareValue: user?.uid,
   }), [user?.uid]);
   const allUsers = useFirestore('users', allUsersCondition);
-
+  
   const getUserById = (uid) => allUsers.find(u => u.uid === uid);
+  
+  // Filter users for public search
+  const publicUsers = allUsers.filter(u => 
+    u.displayName?.toLowerCase().includes(publicSearchTerm.toLowerCase()) ||
+    u.email?.toLowerCase().includes(publicSearchTerm.toLowerCase())
+  );
+  
+  // Filter friends for friend search
+  const filteredFriends = friendEdges.filter(edge => {
+    const otherId = (edge.participants || []).find(id => id !== user.uid);
+    const other = getUserById(otherId) || {};
+    return other.displayName?.toLowerCase().includes(friendSearchTerm.toLowerCase()) ||
+           other.email?.toLowerCase().includes(friendSearchTerm.toLowerCase());
+  });
 
   const handleLogout = async () => {
     await logout();
@@ -95,6 +128,24 @@ export default function Sidebar() {
     }));
   };
 
+  const TabButton = ({ active, onClick, children, count = 0 }) => (
+    <button
+      onClick={onClick}
+      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-all duration-200 border-b-2 ${
+        active 
+          ? 'border-skybrand-500 text-skybrand-600 bg-skybrand-50 dark:bg-skybrand-900/20 dark:text-skybrand-400 dark:border-skybrand-400'
+          : 'border-transparent text-slate-600 hover:text-slate-800 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-200'
+      }`}
+    >
+      {children}
+      {count > 0 && (
+        <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-skybrand-500 px-1.5 text-xs font-medium text-white">
+          {count}
+        </span>
+      )}
+    </button>
+  );
+  
   const SectionHeader = ({ title, count = 0, icon: Icon, isCollapsed, onToggle, showBadge = false }) => (
     <button
       onClick={onToggle}
@@ -168,6 +219,71 @@ export default function Sidebar() {
     </div>
   );
 
+  const AddFriendModal = () => (
+    showAddFriendModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Kết bạn</h3>
+            <button
+              onClick={() => setShowAddFriendModal(false)}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div className="mb-4">
+            <div className="relative">
+              <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm người dùng..."
+                value={publicSearchTerm}
+                onChange={(e) => setPublicSearchTerm(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              />
+            </div>
+          </div>
+          
+          <div className="max-h-60 overflow-y-auto">
+            {publicSearchTerm && publicUsers.slice(0, 10).map((searchUser) => {
+              const hasOutgoingRequest = outgoingRequests.some(req => req.to === searchUser.uid);
+              const hasIncomingRequest = incomingRequests.some(req => req.from === searchUser.uid);
+              const isFriend = friendEdges.some(edge => edge.participants?.includes(searchUser.uid));
+              
+              return (
+                <UserCard
+                  key={searchUser.uid}
+                  user={searchUser}
+                  description={isFriend ? 'Đã là bạn bè' : hasOutgoingRequest ? 'Đã gửi lời mời' : hasIncomingRequest ? 'Đã nhận lời mời' : 'Người dùng'}
+                  actions={
+                    !isFriend && !hasOutgoingRequest && !hasIncomingRequest && (
+                      <ActionButton
+                        variant="primary"
+                        onClick={async () => {
+                          await sendFriendRequest(user.uid, searchUser.uid);
+                          setPublicSearchTerm('');
+                        }}
+                      >
+                        Kết bạn
+                      </ActionButton>
+                    )
+                  }
+                />
+              );
+            })}
+            {publicSearchTerm && publicUsers.length === 0 && (
+              <div className="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                Không tìm thấy người dùng nào
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  );
+
   return (
     <div className="flex h-full flex-col bg-white dark:bg-slate-900">
       {/* Header Section */}
@@ -175,171 +291,208 @@ export default function Sidebar() {
         <UserInfo />
       </div>
 
-      {/* Main Content Area */}
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex">
+          <TabButton
+            active={activeTab === 'conversations'}
+            onClick={() => setActiveTab('conversations')}
+          >
+            <MessageCircleIcon />
+            Cuộc trò chuyện
+          </TabButton>
+          <TabButton
+            active={activeTab === 'friends'}
+            onClick={() => setActiveTab('friends')}
+            count={incomingRequests.length + outgoingRequests.length}
+          >
+            <UserFriendsIcon />
+            Bạn bè
+          </TabButton>
+        </div>
+      </div>
+
+      {/* Tab Content */}
       <div className="thin-scrollbar flex-1 overflow-y-auto">
-        
-        {/* Conversations Section */}
-        <div className="border-b border-slate-100 dark:border-slate-800">
-          <SectionHeader 
-            title="Cuộc trò chuyện"
-            icon={MessageCircleIcon}
-            isCollapsed={false}
-            onToggle={() => {}}
-            showBadge={false}
-          />
+        {activeTab === 'conversations' && (
           <div className="pb-2">
             <UnifiedChatList />
           </div>
-        </div>
+        )}
+        
+        {activeTab === 'friends' && (
+          <>
+            {/* Friend Search */}
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm bạn bè..."
+                    value={friendSearchTerm}
+                    onChange={(e) => setFriendSearchTerm(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowAddFriendModal(true)}
+                  className="flex items-center justify-center rounded-lg bg-skybrand-500 p-2 text-white transition-colors hover:bg-skybrand-600 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20"
+                  title="Kết bạn"
+                >
+                  <UserPlusIcon />
+                </button>
+              </div>
+            </div>
 
-        {/* Incoming Friend Requests */}
-        {incomingRequests.length > 0 && (
-          <div className="border-b border-slate-100 dark:border-slate-800">
-            <SectionHeader 
-              title="Lời mời kết bạn"
-              count={incomingRequests.length}
-              icon={MailIcon}
-              isCollapsed={sectionsCollapsed.incoming}
-              onToggle={() => toggleSection('incoming')}
-              showBadge={true}
-            />
-            {!sectionsCollapsed.incoming && (
-              <div className="space-y-1 pb-3">
-                {incomingRequests.map((req) => {
-                  const fromUser = getUserById(req.from);
-                  return (
-                    <UserCard
-                      key={req.id}
-                      user={fromUser}
-                      description="đã gửi lời mời kết bạn"
-                      actions={
-                        <>
-                          <ActionButton
-                            variant="primary"
-                            onClick={async () => {
-                              await acceptFriendRequest(req.id, user.uid);
-                              const otherId = req.from;
-                              const conversationId = [user.uid, otherId].sort().join('_');
-                              await createOrUpdateConversation({
-                                id: conversationId,
-                                participants: [user.uid, otherId],
-                                type: 'direct',
-                                lastMessage: '',
-                                lastMessageAt: null,
-                                createdBy: user.uid
-                              });
-                              setChatType && setChatType('direct');
-                              selectConversation(conversationId);
-                            }}
-                          >
-                            Chấp nhận
-                          </ActionButton>
+            {/* Incoming Friend Requests */}
+            {incomingRequests.length > 0 && (
+              <div className="border-b border-slate-100 dark:border-slate-800">
+                <SectionHeader 
+                  title="Lời mời kết bạn"
+                  count={incomingRequests.length}
+                  icon={MailIcon}
+                  isCollapsed={sectionsCollapsed.incoming}
+                  onToggle={() => toggleSection('incoming')}
+                  showBadge={true}
+                />
+                {!sectionsCollapsed.incoming && (
+                  <div className="space-y-1 pb-3">
+                    {incomingRequests.map((req) => {
+                      const fromUser = getUserById(req.from);
+                      return (
+                        <UserCard
+                          key={req.id}
+                          user={fromUser}
+                          description="đã gửi lời mời kết bạn"
+                          actions={
+                            <>
+                              <ActionButton
+                                variant="primary"
+                                onClick={async () => {
+                                  await acceptFriendRequest(req.id, user.uid);
+                                  const otherId = req.from;
+                                  const conversationId = [user.uid, otherId].sort().join('_');
+                                  await createOrUpdateConversation({
+                                    id: conversationId,
+                                    participants: [user.uid, otherId],
+                                    type: 'direct',
+                                    lastMessage: '',
+                                    lastMessageAt: null,
+                                    createdBy: user.uid
+                                  });
+                                  setChatType && setChatType('direct');
+                                  selectConversation(conversationId);
+                                }}
+                              >
+                                Chấp nhận
+                              </ActionButton>
+                              <ActionButton
+                                variant="secondary"
+                                onClick={async () => { 
+                                  await declineFriendRequest(req.id, user.uid); 
+                                }}
+                              >
+                                Từ chối
+                              </ActionButton>
+                            </>
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Outgoing Friend Requests */}
+            {outgoingRequests.length > 0 && (
+              <div className="border-b border-slate-100 dark:border-slate-800">
+                <SectionHeader 
+                  title="Lời mời đã gửi"
+                  count={outgoingRequests.length}
+                  icon={MailIcon}
+                  isCollapsed={sectionsCollapsed.outgoing}
+                  onToggle={() => toggleSection('outgoing')}
+                  showBadge={true}
+                />
+                {!sectionsCollapsed.outgoing && (
+                  <div className="space-y-1 pb-3">
+                    {outgoingRequests.map((req) => {
+                      const toUser = getUserById(req.to);
+                      return (
+                        <UserCard
+                          key={req.id}
+                          user={toUser}
+                          description="đang chờ chấp nhận"
+                          actions={
+                            <ActionButton
+                              variant="secondary"
+                              onClick={async () => { 
+                                await cancelFriendRequest(req.id, user.uid); 
+                              }}
+                            >
+                              Hủy lời mời
+                            </ActionButton>
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Friends List */}
+            <div className="border-b border-slate-100 dark:border-slate-800">
+              <SectionHeader 
+                title="Danh sách bạn bè"
+                count={filteredFriends.length}
+                icon={UserFriendsIcon}
+                isCollapsed={sectionsCollapsed.friends}
+                onToggle={() => toggleSection('friends')}
+                showBadge={false}
+              />
+              {!sectionsCollapsed.friends && (
+                <div className="space-y-1 pb-3">
+                  {filteredFriends.map((edge) => {
+                    const otherId = (edge.participants || []).find(id => id !== user.uid);
+                    const other = getUserById(otherId) || {};
+                    return (
+                      <UserCard
+                        key={edge.id || otherId}
+                        user={other}
+                        description="Bạn bè"
+                        actions={
                           <ActionButton
                             variant="secondary"
                             onClick={async () => { 
-                              await declineFriendRequest(req.id, user.uid); 
+                              await removeFriendship(user.uid, otherId); 
                             }}
                           >
-                            Từ chối
+                            Hủy kết bạn
                           </ActionButton>
-                        </>
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Outgoing Friend Requests */}
-        {outgoingRequests.length > 0 && (
-          <div className="border-b border-slate-100 dark:border-slate-800">
-            <SectionHeader 
-              title="Lời mời đã gửi"
-              count={outgoingRequests.length}
-              icon={MailIcon}
-              isCollapsed={sectionsCollapsed.outgoing}
-              onToggle={() => toggleSection('outgoing')}
-              showBadge={true}
-            />
-            {!sectionsCollapsed.outgoing && (
-              <div className="space-y-1 pb-3">
-                {outgoingRequests.map((req) => {
-                  const toUser = getUserById(req.to);
-                  return (
-                    <UserCard
-                      key={req.id}
-                      user={toUser}
-                      description="đang chờ chấp nhận"
-                      actions={
-                        <ActionButton
-                          variant="secondary"
-                          onClick={async () => { 
-                            await cancelFriendRequest(req.id, user.uid); 
-                          }}
-                        >
-                          Hủy lời mời
-                        </ActionButton>
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Friends List */}
-        {friendEdges.length > 0 && (
-          <div className="border-b border-slate-100 dark:border-slate-800">
-            <SectionHeader 
-              title="Bạn bè"
-              count={friendEdges.length}
-              icon={UserFriendsIcon}
-              isCollapsed={sectionsCollapsed.friends}
-              onToggle={() => toggleSection('friends')}
-              showBadge={false}
-            />
-            {!sectionsCollapsed.friends && (
-              <div className="space-y-1 pb-3">
-                {friendEdges.map((edge) => {
-                  const otherId = (edge.participants || []).find(id => id !== user.uid);
-                  const other = getUserById(otherId) || {};
-                  return (
-                    <UserCard
-                      key={edge.id || otherId}
-                      user={other}
-                      description="Bạn bè"
-                      actions={
-                        <ActionButton
-                          variant="secondary"
-                          onClick={async () => { 
-                            await removeFriendship(user.uid, otherId); 
-                          }}
-                        >
-                          Hủy kết bạn
-                        </ActionButton>
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {incomingRequests.length === 0 && outgoingRequests.length === 0 && friendEdges.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <div className="rounded-full bg-slate-100 p-4 dark:bg-slate-800">
-              <UserFriendsIcon />
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <h3 className="mt-4 text-sm font-semibold text-slate-800 dark:text-slate-100">Chưa có bạn bè</h3>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Hãy bắt đầu kết nối bằng cách gửi lời mời kết bạn
-            </p>
-          </div>
+
+            {/* Empty State */}
+            {incomingRequests.length === 0 && outgoingRequests.length === 0 && friendEdges.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                <div className="rounded-full bg-slate-100 p-4 dark:bg-slate-800">
+                  <UserFriendsIcon />
+                </div>
+                <h3 className="mt-4 text-sm font-semibold text-slate-800 dark:text-slate-100">Chưa có bạn bè</h3>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  Hãy bắt đầu kết nối bằng cách gửi lời mời kết bạn
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -355,6 +508,8 @@ export default function Sidebar() {
           Đăng xuất
         </ActionButton>
       </div>
+      
+      <AddFriendModal />
     </div>
   );
 }
