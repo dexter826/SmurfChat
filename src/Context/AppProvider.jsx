@@ -268,17 +268,28 @@ export default function AppProvider({ children }) {
       const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
       const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
 
-      // Must be a newer message, sent by someone else, and unread
-      const isNew = !!lastAtDate && (!notifiedConversationsRef.current[conv.id] || lastAtDate > notifiedConversationsRef.current[conv.id]);
+      // Only notify if:
+      // 1. There's a valid lastAtDate
+      // 2. Message is from someone else (not current user)
+      // 3. Message is newer than what we've already notified for
+      // 4. Message is unread (lastAt > lastSeen)
+      // 5. Chat is not muted
+      // 6. We haven't already notified for this exact timestamp
       const isFromOther = updatedBy && updatedBy !== uid;
       const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
       const isMuted = !!(conv.mutedBy && conv.mutedBy[uid]);
-      if (isNew && isFromOther && isUnread && !isMuted) {
+      const hasNotifiedForThisMessage = notifiedConversationsRef.current[conv.id] && 
+        lastAtDate && notifiedConversationsRef.current[conv.id].getTime() === lastAtDate.getTime();
+      
+      const shouldNotify = lastAtDate && isFromOther && isUnread && !isMuted && !hasNotifiedForThisMessage &&
+        (!notifiedConversationsRef.current[conv.id] || lastAtDate > notifiedConversationsRef.current[conv.id]);
+      
+      if (shouldNotify) {
         notifiedConversationsRef.current[conv.id] = lastAtDate;
         playNotificationSound();
       }
     });
-  }, [conversations, uid, allUsers, playNotificationSound]);
+  }, [conversations, uid, playNotificationSound]);
 
   // Optional: Notify for rooms as well using lastMessageAt/lastSeen
   useEffect(() => {
@@ -291,11 +302,17 @@ export default function AppProvider({ children }) {
       const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
       const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
 
-      const isNew = !!lastAtDate && (!notifiedRoomsRef.current[room.id] || lastAtDate > notifiedRoomsRef.current[room.id]);
+      // Same improved logic for rooms
       const isFromOther = updatedBy && updatedBy !== uid;
       const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
       const isMuted = !!(room.mutedBy && room.mutedBy[uid]);
-      if (isNew && isFromOther && isUnread && !isMuted) {
+      const hasNotifiedForThisMessage = notifiedRoomsRef.current[room.id] && 
+        lastAtDate && notifiedRoomsRef.current[room.id].getTime() === lastAtDate.getTime();
+      
+      const shouldNotify = lastAtDate && isFromOther && isUnread && !isMuted && !hasNotifiedForThisMessage &&
+        (!notifiedRoomsRef.current[room.id] || lastAtDate > notifiedRoomsRef.current[room.id]);
+      
+      if (shouldNotify) {
         notifiedRoomsRef.current[room.id] = lastAtDate;
         playNotificationSound();
       }

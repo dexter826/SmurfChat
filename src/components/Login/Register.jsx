@@ -107,11 +107,11 @@ export default function Register({ onSwitchToLogin }) {
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium">
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
               Tên hiển thị
             </label>
             <input
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
               placeholder="Tên hiển thị"
               value={form.displayName}
               onChange={(e) =>
@@ -120,32 +120,32 @@ export default function Register({ onSwitchToLogin }) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Email</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
             <input
               type="email"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
               placeholder="Email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Mật khẩu</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Mật khẩu</label>
             <input
               type="password"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
               placeholder="Mật khẩu"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
               Xác nhận mật khẩu
             </label>
             <input
               type="password"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
               placeholder="Xác nhận mật khẩu"
               value={form.confirmPassword}
               onChange={(e) =>
