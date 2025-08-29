@@ -5,7 +5,7 @@ import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
 import { useAlert } from '../../Context/AlertProvider';
 import useFirestore from '../../hooks/useFirestore';
-import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation } from '../../firebase/services';
+import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation, logoutUser } from '../../firebase/services';
 
 // Icon components
 const ChevronDownIcon = () => (
@@ -53,19 +53,14 @@ const LogOutIcon = () => (
 
 export default function Sidebar() {
   const { user } = useContext(AuthContext);
-  const { selectConversation, setChatType } = useContext(AppContext);
+  const { selectConversation, setChatType, clearState, setIsAddFriendVisible } = useContext(AppContext);
   const { confirm } = useAlert();
   
   // Tab state
-  const [activeTab, setActiveTab] = useState('chats');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('conversations');
+  const [friendSearchTerm, setFriendSearchTerm] = useState('');
   
   // Collapsible sections state
-  const [expandedSections, setExpandedSections] = useState({
-    friends: true,
-    pendingRequests: true,
-    sentRequests: true
-  });
   const [sectionsCollapsed, setSectionsCollapsed] = useState({
     incoming: false,
     outgoing: false,
@@ -115,8 +110,11 @@ export default function Sidebar() {
   });
 
   const handleLogout = async () => {
-    await logout();
-    clearState();
+    const confirmed = await confirm('Bạn có chắc chắn muốn đăng xuất?');
+    if (confirmed) {
+      await logoutUser();
+      clearState && clearState();
+    }
   };
 
   const toggleSection = (section) => {

@@ -9,7 +9,7 @@ export default function CalendarModal() {
   if (!isCalendarVisible) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-5">
-      <div className="absolute inset-0 bg-black/50" onClick={() => setIsCalendarVisible(false)} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsCalendarVisible(false)} />
       <div className="relative z-10 h-[90vh] w-[95vw] max-w-6xl overflow-hidden rounded-lg border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-slate-900">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center text-lg font-semibold"><span className="mr-2"><CalendarOutlined /></span>Lịch phòng</div>

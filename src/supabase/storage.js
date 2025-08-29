@@ -3,6 +3,10 @@ import { supabase } from './config';
 // Upload file to Supabase Storage
 export const uploadFile = async (file, folder = 'files', userId) => {
   try {
+    if (!supabase) {
+      throw new Error('Supabase chưa được cấu hình. Vui lòng kiểm tra file .env và đảm bảo có REACT_APP_SUPABASE_URL và REACT_APP_SUPABASE_ANON_KEY');
+    }
+
     const timestamp = Date.now();
     const fileName = `${timestamp}_${file.name}`;
     const filePath = `${folder}/${userId}/${fileName}`;

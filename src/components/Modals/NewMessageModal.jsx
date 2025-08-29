@@ -109,7 +109,7 @@ export default function NewMessageModal() {
   if (!isNewMessageVisible) return null;
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleCancel} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={handleCancel} />
       <div className="relative z-10 w-full max-w-xl mx-auto rounded-lg border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-slate-900 max-h-[90vh] overflow-hidden">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Tạo tin nhắn mới</h3>

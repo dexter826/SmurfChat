@@ -97,7 +97,7 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
   if (!visible) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onCancel} />
       <div className="relative z-10 w-full max-w-xl rounded-lg border border-gray-200 bg-white p-5 shadow-xl dark:border-gray-700 dark:bg-slate-900">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="inline-flex items-center text-lg font-semibold">
