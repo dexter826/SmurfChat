@@ -36,3 +36,23 @@
     transform: rotate(360deg);
   }
 }
+
+/* Message recall button styles */
+.message-group:hover .recall-button {
+  opacity: 1;
+}
+
+.recall-button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.recall-button:hover {
+  transform: scale(1.1);
+}
+
+/* Recalled message styles */
+.recalled-message {
+  opacity: 0.7;
+  font-style: italic;
+}

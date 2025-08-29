@@ -213,14 +213,17 @@ export default function ConversationWindow() {
               {messages.map((mes) => (
                 <Message
                   key={mes.id}
+                  id={mes.id}
                   text={mes.text}
                   photoURL={mes.photoURL}
                   displayName={mes.displayName}
                   createdAt={mes.createdAt}
                   uid={mes.uid}
-                  messageType={mes.messageType}
+                  messageType={mes.messageType || 'text'}
                   fileData={mes.fileData}
                   locationData={mes.locationData}
+                  recalled={mes.recalled}
+                  chatType="direct"
                 />
               ))}
             </div>

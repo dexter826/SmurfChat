@@ -449,6 +449,7 @@ export default function ChatWindow() {
                   return (
                     <Message
                       key={item.id}
+                      id={item.id}
                       text={item.text}
                       photoURL={item.photoURL}
                       displayName={item.displayName}
@@ -459,6 +460,8 @@ export default function ChatWindow() {
                       locationData={item.locationData}
                       messageStatus={item.messageStatus || 'sent'}
                       readBy={item.readBy || []}
+                      recalled={item.recalled}
+                      chatType={chatType}
                     />
                   );
                 }

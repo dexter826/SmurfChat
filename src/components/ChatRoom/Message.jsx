@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { formatRelative } from "date-fns/esm";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
+import { useAlert } from "../../Context/AlertProvider";
+import { recallMessage, canRecallMessage } from "../../firebase/services";
 import FilePreview from "../FileUpload/FilePreview";
 import LocationPreview from "../FileUpload/LocationPreview";
 
@@ -18,6 +20,7 @@ function formatDate(seconds) {
 }
 
 export default function Message({
+  id,
   text,
   displayName,
   createdAt,
@@ -28,9 +31,38 @@ export default function Message({
   locationData,
   messageStatus = 'sent',
   readBy = [],
+  recalled = false,
+  chatType, // 'room' or 'direct'
 }) {
   const { user } = React.useContext(AuthContext);
+  const { success, error } = useAlert();
+  const [isRecalling, setIsRecalling] = useState(false);
   const isOwn = uid === user?.uid;
+
+  // Handle recall message
+  const handleRecallMessage = async () => {
+    if (isRecalling) return;
+
+    setIsRecalling(true);
+    try {
+      // Determine collection based on chat type
+      const collectionName = chatType === 'direct' ? 'directMessages' : 'messages';
+      await recallMessage(id, collectionName, user?.uid);
+      success('Tin nhắn đã được thu hồi');
+    } catch (err) {
+      console.error('Error recalling message:', err);
+      error(err.message || 'Không thể thu hồi tin nhắn');
+    } finally {
+      setIsRecalling(false);
+    }
+  };
+
+  // Check if message can be recalled
+  const canRecall = isOwn && !recalled && canRecallMessage({ 
+    uid, 
+    createdAt, 
+    recalled 
+  }, user?.uid);
 
   // Render message status for own messages
   const renderMessageStatus = () => {
@@ -81,17 +113,63 @@ export default function Message({
   };
 
   const renderMessageContent = () => {
+    // If message is recalled, show recall notice
+    if (recalled) {
+      const getRecallText = () => {
+        if (messageType === 'file') return '📁 File đã được thu hồi';
+        if (messageType === 'voice') return '🎤 Tin nhắn thoại đã được thu hồi';
+        if (messageType === 'location') return '📍 Vị trí đã được thu hồi';
+        return text || '💬 Tin nhắn đã được thu hồi';
+      };
+
+      return (
+        <div className={`${
+          isOwn
+            ? "bg-gray-500 text-white border-gray-500 rounded-2xl rounded-tr-sm"
+            : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border-gray-300 dark:border-gray-600 rounded-2xl rounded-tl-sm"
+        } border px-3 py-2 italic`}>
+          <span className="break-words">{getRecallText()}</span>
+        </div>
+      );
+    }
+
+    const renderContentWithRecallButton = (content) => (
+      <div className="relative group">
+        {content}
+        
+        {/* Recall button - show for all message types */}
+        {canRecall && (
+          <button
+            onClick={handleRecallMessage}
+            disabled={isRecalling}
+            className={`absolute ${
+              isOwn ? '-left-8' : '-right-8'
+            } top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 bg-gray-600 text-white rounded-full hover:bg-gray-700 disabled:opacity-50 z-10`}
+            title="Thu hồi tin nhắn"
+          >
+            {isRecalling ? (
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+            ) : (
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
+    );
+
     switch (messageType) {
       case 'file':
       case 'voice':
-        return <FilePreview file={fileData} />;
+        return renderContentWithRecallButton(<FilePreview file={fileData} />);
       
       case 'location':
-        return <LocationPreview location={locationData} />;
+        return renderContentWithRecallButton(<LocationPreview location={locationData} />);
       
       case 'text':
       default:
-        return (
+        return renderContentWithRecallButton(
           <div
             className={`${
               isOwn
@@ -106,7 +184,7 @@ export default function Message({
   };
 
   return (
-    <div className={`mb-2 flex items-start ${isOwn ? "flex-row-reverse" : ""}`}>
+    <div className={`mb-2 flex items-start message-group ${isOwn ? "flex-row-reverse" : ""}`}>
       <div className="h-8 w-8 flex-shrink-0">
         {photoURL ? (
           <img
@@ -127,9 +205,11 @@ export default function Message({
           }`}
         >
           <span
-            className={`text-[12px] font-semibold ${isOwn ? "ml-1" : "mr-1"}`}
+            className={`text-[12px] font-semibold ${isOwn ? "ml-1" : "mr-1"} ${
+              recalled ? "text-gray-500" : ""
+            }`}
           >
-            {displayName}
+            {recalled ? `${displayName} (đã thu hồi)` : displayName}
           </span>
           <span className="text-[10px] text-slate-500 dark:text-slate-400">
             {formatDate(createdAt?.seconds)}
