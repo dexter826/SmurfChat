@@ -12,6 +12,9 @@ import VoteMessage from './VoteMessage';
 import RoomInfoModal from './RoomInfoModal';
 import FileUpload from '../FileUpload/FileUpload';
 import VoiceRecording from '../FileUpload/VoiceRecording';
+import EmojiPickerComponent from './EmojiPicker';
+import { QuickReactions } from './EmojiText';
+import { useEmoji } from '../../hooks/useEmoji';
 
 export default function ChatWindow() {
   const {
@@ -26,10 +29,12 @@ export default function ChatWindow() {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
   const { confirm, success, error } = useAlert();
+  const { addToRecent } = useEmoji();
   const [inputValue, setInputValue] = useState('');
   const messageListRef = useRef();
   const inputRef = useRef();
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
+  const [showQuickReactions, setShowQuickReactions] = useState(false);
 
   // Online status component for conversations
   const ConversationOnlineStatus = ({ userId, typingStatus, currentUserId }) => {
@@ -106,6 +111,22 @@ export default function ChatWindow() {
         inputRef.current.focus();
       });
     }
+  };
+
+  // Handle emoji click
+  const handleEmojiClick = (emoji) => {
+    setInputValue(prev => prev + emoji);
+    addToRecent(emoji);
+    
+    // Focus back to input
+    if (inputRef?.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  // Toggle quick reactions
+  const toggleQuickReactions = () => {
+    setShowQuickReactions(!showQuickReactions);
   };
 
   // Handle file upload
@@ -481,6 +502,17 @@ export default function ChatWindow() {
                 </div>
               ) : null;
             })()}
+
+            {/* Quick Reactions */}
+            {showQuickReactions && (
+              <div className="mb-2">
+                <QuickReactions 
+                  onEmojiClick={handleEmojiClick}
+                  disabled={false}
+                />
+              </div>
+            )}
+
             <div className="flex items-center space-x-2 rounded border border-gray-200 p-1 dark:border-gray-700">
               {/* File Upload Component */}
               <FileUpload
@@ -488,6 +520,22 @@ export default function ChatWindow() {
                 onLocationShared={handleLocationShared}
                 disabled={false}
               />
+              
+              {/* Emoji Picker */}
+              <EmojiPickerComponent
+                onEmojiClick={handleEmojiClick}
+                disabled={false}
+              />
+
+              {/* Quick Reactions Toggle */}
+              <button
+                type="button"
+                onClick={toggleQuickReactions}
+                className="flex items-center justify-center p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-skybrand-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-skybrand-400 transition-colors duration-200"
+                title={showQuickReactions ? "Ẩn emoji nhanh" : "Hiện emoji nhanh"}
+              >
+                <span className="text-sm">⚡</span>
+              </button>
               
               {/* Text Input */}
               <input

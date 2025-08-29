@@ -7,16 +7,21 @@ import Message from './Message';
 import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
 import FileUpload from '../FileUpload/FileUpload';
 import VoiceRecording from '../FileUpload/VoiceRecording';
+import EmojiPickerComponent from './EmojiPicker';
+import { QuickReactions } from './EmojiText';
+import { useEmoji } from '../../hooks/useEmoji';
 
 export default function ConversationWindow() {
   const { selectedConversation } = useContext(AppContext);
   const {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
+  const { addToRecent } = useEmoji();
   const [inputValue, setInputValue] = useState('');
   const messageListRef = useRef();
   const inputRef = useRef();
   const [canChat, setCanChat] = useState(true);
+  const [showQuickReactions, setShowQuickReactions] = useState(false);
 
   // Online status component
   const OnlineStatus = ({ userId }) => {
@@ -59,6 +64,22 @@ export default function ConversationWindow() {
         inputRef.current.focus();
       });
     }
+  };
+
+  // Handle emoji click
+  const handleEmojiClick = (emoji) => {
+    setInputValue(prev => prev + emoji);
+    addToRecent(emoji);
+    
+    // Focus back to input
+    if (inputRef?.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  // Toggle quick reactions
+  const toggleQuickReactions = () => {
+    setShowQuickReactions(!showQuickReactions);
   };
 
   // Handle file upload
@@ -246,6 +267,17 @@ export default function ConversationWindow() {
                 Hai bạn chưa là bạn bè. Hãy kết bạn để có thể nhắn tin.
               </div>
             )}
+
+            {/* Quick Reactions */}
+            {showQuickReactions && canChat && (
+              <div className="mb-2">
+                <QuickReactions 
+                  onEmojiClick={handleEmojiClick}
+                  disabled={!canChat}
+                />
+              </div>
+            )}
+
             <div className="flex items-center space-x-2 rounded border border-gray-200 p-1 dark:border-gray-700">
               {/* File Upload Component */}
               <FileUpload
@@ -253,6 +285,27 @@ export default function ConversationWindow() {
                 onLocationShared={handleLocationShared}
                 disabled={!canChat}
               />
+              
+              {/* Emoji Picker */}
+              <EmojiPickerComponent
+                onEmojiClick={handleEmojiClick}
+                disabled={!canChat}
+              />
+
+              {/* Quick Reactions Toggle */}
+              <button
+                type="button"
+                onClick={toggleQuickReactions}
+                disabled={!canChat}
+                className={`flex items-center justify-center p-2 rounded-lg transition-colors duration-200 ${
+                  !canChat 
+                    ? 'text-slate-300 cursor-not-allowed dark:text-slate-600' 
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-skybrand-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-skybrand-400'
+                }`}
+                title={!canChat ? "Không thể sử dụng" : (showQuickReactions ? "Ẩn emoji nhanh" : "Hiện emoji nhanh")}
+              >
+                <span className="text-sm">⚡</span>
+              </button>
               
               {/* Text Input */}
               <input

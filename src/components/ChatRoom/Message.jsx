@@ -5,6 +5,8 @@ import { useAlert } from "../../Context/AlertProvider";
 import { recallMessage, canRecallMessage } from "../../firebase/services";
 import FilePreview from "../FileUpload/FilePreview";
 import LocationPreview from "../FileUpload/LocationPreview";
+import EmojiText, { EmojiOnlyMessage } from "./EmojiText";
+import { useEmoji } from "../../hooks/useEmoji";
 
 function formatDate(seconds) {
   let formattedDate = "";
@@ -36,6 +38,7 @@ export default function Message({
 }) {
   const { user } = React.useContext(AuthContext);
   const { success, error } = useAlert();
+  const { hasEmoji, parseEmojiText } = useEmoji();
   const [isRecalling, setIsRecalling] = useState(false);
   const isOwn = uid === user?.uid;
 
@@ -169,6 +172,16 @@ export default function Message({
       
       case 'text':
       default:
+        // Check if message is emoji-only for special rendering
+        const isEmojiOnly = text && hasEmoji(text) && 
+          parseEmojiText(text).every(part => 
+            part.type === 'emoji' || (part.type === 'text' && !part.content.trim())
+          );
+
+        if (isEmojiOnly) {
+          return renderContentWithRecallButton(<EmojiOnlyMessage text={text} />);
+        }
+
         return renderContentWithRecallButton(
           <div
             className={`${
@@ -177,7 +190,7 @@ export default function Message({
                 : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-sm"
             } border px-3 py-2`}
           >
-            <span className="break-words">{text}</span>
+            <EmojiText text={text} className="break-words" />
           </div>
         );
     }
