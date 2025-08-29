@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { GoogleOutlined } from "@ant-design/icons";
+import { FaGoogle } from "react-icons/fa";
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -186,7 +186,7 @@ export default function Login() {
           disabled={loading}
         >
           <span className="inline-flex items-center gap-2">
-            <GoogleOutlined /> Đăng nhập bằng Google
+            <FaGoogle /> Đăng nhập bằng Google
           </span>
         </button>
 

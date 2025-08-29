@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { FaPlus, FaTrash } from "react-icons/fa";
 import { createVote } from "../../firebase/services";
 import { useContext } from "react";
 import { AuthContext } from "../../Context/AuthProvider";
@@ -158,7 +158,7 @@ const VoteModal = () => {
                       onClick={() => handleRemoveOption(index)}
                       title="Xóa"
                     >
-                      <DeleteOutlined />
+                      <FaTrash />
                     </button>
                   )}
                 </div>
@@ -171,7 +171,7 @@ const VoteModal = () => {
                 title="Thêm lựa chọn"
               >
                 <span className="inline-flex items-center gap-1">
-                  <PlusOutlined /> Thêm lựa chọn
+                  <FaPlus /> Thêm lựa chọn
                 </span>
               </button>
             )}

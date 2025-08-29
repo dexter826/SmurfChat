@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { CameraOutlined } from "@ant-design/icons";
+import { FaCamera } from "react-icons/fa";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
 import { useAlert } from "../../Context/AlertProvider";
@@ -134,7 +134,7 @@ export default function RoomInfoModal({ visible, onClose, room }) {
                 }}
               />
               <span className="absolute inset-0 hidden items-center justify-center text-white hover:flex">
-                <CameraOutlined />
+                <FaCamera />
               </span>
             </label>
           </div>

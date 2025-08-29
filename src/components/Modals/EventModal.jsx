@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import { CalendarOutlined } from "@ant-design/icons";
+import { FaCalendar } from "react-icons/fa";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
 import { useAlert } from "../../Context/AlertProvider";
@@ -102,7 +102,7 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
       <div className="relative z-10 w-full max-w-xl rounded-lg border border-gray-200 bg-white p-5 shadow-xl dark:border-gray-700 dark:bg-slate-900">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="inline-flex items-center text-lg font-semibold">
-            <CalendarOutlined className="mr-2" />
+            <FaCalendar className="mr-2" />
             {initialData ? "Chỉnh sửa sự kiện" : "Tạo sự kiện mới"}
           </h3>
           <button

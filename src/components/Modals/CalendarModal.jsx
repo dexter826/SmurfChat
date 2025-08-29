@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { CalendarOutlined } from "@ant-design/icons";
+import { FaCalendar } from "react-icons/fa";
 import { AppContext } from "../../Context/AppProvider";
 import Calendar from "../Calendar/Calendar";
 
@@ -17,7 +17,7 @@ export default function CalendarModal() {
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center text-lg font-semibold">
             <span className="mr-2">
-              <CalendarOutlined />
+              <FaCalendar />
             </span>
             Lịch phòng
           </div>

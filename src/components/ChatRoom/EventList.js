@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { CalendarOutlined, EditOutlined, DeleteOutlined, ClockCircleOutlined, UserOutlined } from '@ant-design/icons';
+import { FaCalendar, FaEdit, FaTrash, FaClock, FaUser } from 'react-icons/fa';
 import { AppContext } from '../../Context/AppProvider.jsx';
 import { AuthContext } from '../../Context/AuthProvider.jsx';
 import { useAlert } from '../../Context/AlertProvider';
@@ -78,7 +78,7 @@ export default function EventList() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h4 className="m-0 inline-flex items-center text-base font-semibold"><CalendarOutlined className="mr-2" />Sự kiện phòng ({activeEvents.length})</h4>
+        <h4 className="m-0 inline-flex items-center text-base font-semibold"><FaCalendar className="mr-2" />Sự kiện phòng ({activeEvents.length})</h4>
         <button
           className="rounded-md bg-skybrand-600 px-3 py-2 text-xs font-medium text-white hover:bg-skybrand-700"
           onClick={() => { setEditingEvent(null); setEventModalVisible(true); }}
@@ -97,17 +97,17 @@ export default function EventList() {
             const canEdit = event.createdBy === user.uid;
             return (
               <li key={event.id} className="flex items-start py-2">
-                <div className="mr-3 mt-1 inline-flex h-6 w-6 items-center justify-center rounded bg-skybrand-600 text-white"><CalendarOutlined /></div>
+                <div className="mr-3 mt-1 inline-flex h-6 w-6 items-center justify-center rounded bg-skybrand-600 text-white"><FaCalendar /></div>
                 <div className="flex-1">
                   <div className="mb-1 inline-flex items-center gap-2">
                     <span className="text-sm font-semibold">{event.title}</span>
                     <span className={`rounded px-1.5 py-0.5 text-[10px] ${eventStatus.status === 'upcoming' ? 'bg-emerald-100 text-emerald-700' : eventStatus.status === 'ongoing' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>{eventStatus.text}</span>
                   </div>
                   <div className="mb-1 text-xs text-slate-600 dark:text-slate-300 inline-flex items-center gap-1">
-                    <ClockCircleOutlined /> <span>{formatEventTime(event.datetime)}</span>
+                    <FaClock /> <span>{formatEventTime(event.datetime)}</span>
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
-                    <UserOutlined /> <span>{event.createdByName}</span>
+                    <FaUser /> <span>{event.createdByName}</span>
                   </div>
                   {event.description && (
                     <div className="text-xs text-slate-500 dark:text-slate-400">{event.description}</div>
@@ -120,7 +120,7 @@ export default function EventList() {
                       onClick={() => handleEditEvent(event)}
                       title="Chỉnh sửa"
                     >
-                      <EditOutlined />
+                      <FaEdit />
                     </button>
                     <button
                       className="rounded border border-rose-300 p-1 text-xs text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
@@ -132,7 +132,7 @@ export default function EventList() {
                       }}
                       title="Xóa"
                     >
-                      <DeleteOutlined />
+                      <FaTrash />
                     </button>
                   </div>
                 )}

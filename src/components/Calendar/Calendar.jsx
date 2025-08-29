@@ -1,8 +1,8 @@
 import React, { useState, useContext } from "react";
 import {
-  CalendarOutlined,
-  ClockCircleOutlined,
-} from "@ant-design/icons";
+  FaCalendar,
+  FaClock,
+} from "react-icons/fa";
 import { AppContext } from "../../Context/AppProvider.jsx";
 // import { AuthContext } from '../../Context/AuthProvider.jsx';
 import useFirestore from "../../hooks/useFirestore";
@@ -45,7 +45,7 @@ export default function Calendar() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="m-0 inline-flex items-center text-lg font-semibold">
-          <CalendarOutlined className="mr-2" />
+          <FaCalendar className="mr-2" />
           Lịch phòng: {selectedRoom.name}
         </h3>
         <button
@@ -78,7 +78,7 @@ export default function Calendar() {
                 <li key={event.id} className="py-2">
                   <div className="text-sm font-medium">{event.title}</div>
                   <div className="text-xs text-slate-600 dark:text-slate-300 inline-flex items-center gap-1">
-                    <ClockCircleOutlined />{" "}
+                    <FaClock />{" "}
                     {format(event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime), "HH:mm")}
                   </div>
                   {event.description && (

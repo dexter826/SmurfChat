@@ -1,11 +1,11 @@
 import React, { useState, useContext, useMemo, useEffect } from "react";
 import {
-  CheckCircleOutlined,
-  DeleteOutlined,
-  BarChartOutlined,
-  UserOutlined,
-  CloseOutlined
-} from "@ant-design/icons";
+  FaCheckCircle,
+  FaTrash,
+  FaChartBar,
+  FaUser,
+  FaTimes
+} from "react-icons/fa";
 import { castVote, deleteVote } from "../../firebase/services";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
 import { useAlert } from "../../Context/AlertProvider";
@@ -129,7 +129,7 @@ const VoteMessage = ({ vote }) => {
         {/* Header */}
         <div className="mb-3 flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <BarChartOutlined className="text-blue-600 dark:text-blue-400" />
+            <FaChartBar className="text-blue-600 dark:text-blue-400" />
             <h4 className="font-semibold text-slate-800 dark:text-slate-200">
               {voteData.question}
             </h4>
@@ -141,7 +141,7 @@ const VoteMessage = ({ vote }) => {
               className="rounded-lg p-1.5 text-red-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
               title="Xóa vote"
             >
-              <DeleteOutlined />
+              <FaTrash />
             </button>
           )}
         </div>
@@ -192,7 +192,7 @@ const VoteMessage = ({ vote }) => {
                         ? "border-blue-500 bg-blue-500"
                         : "border-gray-300 dark:border-gray-600"
                     }`}>
-                      {isSelected && <CheckCircleOutlined className="text-xs text-white" />}
+                      {isSelected && <FaCheckCircle className="text-xs text-white" />}
                     </div>
                     <span className="font-medium text-slate-800 dark:text-slate-200">
                       {stat.option}
@@ -261,13 +261,13 @@ const VoteMessage = ({ vote }) => {
                 onClick={() => setVotersModalVisible(false)}
                 className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                <CloseOutlined />
+                <FaTimes />
               </button>
             </div>
             <div className="max-h-60 space-y-2 overflow-y-auto">
               {voteStats[selectedOptionIndex]?.voters.map((voter) => (
                 <div key={voter.uid} className="flex items-center gap-2 rounded p-2 bg-gray-50 dark:bg-gray-700">
-                  <UserOutlined className="text-gray-500" />
+                  <FaUser className="text-gray-500" />
                   <span className="text-sm">{voter.displayName}</span>
                 </div>
               ))}

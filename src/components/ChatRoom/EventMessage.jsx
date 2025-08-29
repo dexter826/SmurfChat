@@ -1,9 +1,9 @@
 import React from "react";
 import {
-  CalendarOutlined,
-  ClockCircleOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+  FaCalendar,
+  FaClock,
+  FaUser,
+} from "react-icons/fa";
 import { format, isToday, isTomorrow, isYesterday } from "date-fns";
 
 export default function EventMessage({ event, showActions = true }) {
@@ -49,7 +49,7 @@ export default function EventMessage({ event, showActions = true }) {
       <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-            <CalendarOutlined className="text-lg" />
+            <FaCalendar className="text-lg" />
           </div>
           <div>
             <div className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
@@ -64,7 +64,7 @@ export default function EventMessage({ event, showActions = true }) {
 
       {/* Time Display */}
       <div className="mb-3 flex items-center gap-2 rounded-lg bg-emerald-100/50 p-3 dark:bg-emerald-900/20">
-        <ClockCircleOutlined className="text-emerald-600 dark:text-emerald-400" />
+        <FaClock className="text-emerald-600 dark:text-emerald-400" />
         <span className="font-medium text-emerald-800 dark:text-emerald-300">
           {getTimeDisplay()}
         </span>
@@ -90,7 +90,7 @@ export default function EventMessage({ event, showActions = true }) {
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
         <span className="flex items-center gap-1">
-          <UserOutlined />
+          <FaUser />
           Tạo bởi {event.createdByName}
         </span>
         

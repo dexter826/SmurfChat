@@ -1,4 +1,4 @@
-import { CalendarOutlined, BarChartOutlined } from '@ant-design/icons';
+import { FaCalendar, FaChartBar } from 'react-icons/fa';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
@@ -423,14 +423,14 @@ export default function ChatWindow() {
                   className="rounded-md border border-gray-300 p-1 text-slate-700 hover:bg-slate-100 dark:border-gray-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   onClick={() => setIsCalendarVisible(true)}
                 >
-                  <CalendarOutlined />
+                  <FaCalendar />
                 </button>
                 <button
                   title="Tạo vote"
                   className="rounded-md border border-gray-300 p-1 text-slate-700 hover:bg-slate-100 dark:border-gray-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   onClick={() => setIsVoteModalVisible(true)}
                 >
-                  <BarChartOutlined />
+                  <FaChartBar />
                 </button>
                 <button
                   className="rounded-md border border-gray-300 px-2 py-1 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
