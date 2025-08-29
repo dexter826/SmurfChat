@@ -3,6 +3,7 @@ import UserInfo from './UserInfo';
 import UnifiedChatList from './UnifiedChatList';
 import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
+import { useAlert } from '../../Context/AlertProvider';
 import useFirestore from '../../hooks/useFirestore';
 import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation } from '../../firebase/services';
 
@@ -51,15 +52,20 @@ const LogOutIcon = () => (
 );
 
 export default function Sidebar() {
-  const { logout } = useContext(AuthContext);
-  const { clearState, selectConversation, setChatType, setIsAddFriendVisible } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  const { selectConversation, setChatType } = useContext(AppContext);
+  const { confirm } = useAlert();
   
   // Tab state
-  const [activeTab, setActiveTab] = useState('conversations');
-  const [friendSearchTerm, setFriendSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('chats');
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState({
+    friends: true,
+    pendingRequests: true,
+    sentRequests: true
+  });
   const [sectionsCollapsed, setSectionsCollapsed] = useState({
     incoming: false,
     outgoing: false,
@@ -429,7 +435,8 @@ export default function Sidebar() {
                             variant="secondary"
                             onClick={async (e) => { 
                               e.stopPropagation();
-                              if (window.confirm('Bạn có chắc muốn hủy kết bạn?')) {
+                              const confirmed = await confirm('Bạn có chắc muốn hủy kết bạn?');
+                              if (confirmed) {
                                 await removeFriendship(user.uid, otherId);
                               }
                             }}

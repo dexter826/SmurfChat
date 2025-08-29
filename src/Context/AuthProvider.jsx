@@ -3,6 +3,7 @@ import { useHistory } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/config";
 import { logoutUser } from "../firebase/services";
+import { useAlert } from "./AlertProvider";
 
 export const AuthContext = React.createContext();
 
@@ -10,6 +11,7 @@ export default function AuthProvider({ children }) {
   const [user, setUser] = useState({});
   const history = useHistory();
   const [isLoading, setIsLoading] = useState(true);
+  const { confirm } = useAlert();
 
   React.useEffect(() => {
     const unsubscibed = onAuthStateChanged(auth, (user) => {
@@ -39,7 +41,7 @@ export default function AuthProvider({ children }) {
   }, [history]);
 
   const handleLogout = async () => {
-    const confirmed = window.confirm('Bạn có chắc chắn muốn đăng xuất không?');
+    const confirmed = await confirm('Bạn có chắc chắn muốn đăng xuất không?');
     if (confirmed) {
       await logoutUser();
     }

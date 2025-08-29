@@ -4,9 +4,11 @@ import { createVote } from '../../firebase/services';
 import { useContext } from 'react';
 import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
+import { useAlert } from '../../Context/AlertProvider';
 
 const VoteModal = () => {
   const { isVoteModalVisible, setIsVoteModalVisible } = useContext(AppContext);
+  const { warning, error, success } = useAlert();
   const [form, setForm] = useState({ title: '', description: '' });
   const [options, setOptions] = useState(['', '']);
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,7 @@ const VoteModal = () => {
     if (options.length < 10) {
       setOptions([...options, '']);
     } else {
-      try { window.alert('Tối đa 10 lựa chọn'); } catch { }
+      warning('Tối đa 10 lựa chọn');
     }
   };
 
@@ -27,7 +29,7 @@ const VoteModal = () => {
       const newOptions = options.filter((_, i) => i !== index);
       setOptions(newOptions);
     } else {
-      try { window.alert('Cần ít nhất 2 lựa chọn'); } catch { }
+      warning('Cần ít nhất 2 lựa chọn');
     }
   };
 
@@ -43,7 +45,7 @@ const VoteModal = () => {
 
       // Validate form
       if (!form.title || form.title.trim().length < 3) {
-        try { window.alert('Tiêu đề vote phải có ít nhất 3 ký tự'); } catch { }
+        warning('Tiêu đề vote phải có ít nhất 3 ký tự');
         setLoading(false);
         return;
       }
@@ -52,7 +54,7 @@ const VoteModal = () => {
       const validOptions = options.filter(option => option.trim() !== '');
 
       if (validOptions.length < 2) {
-        try { window.alert('Cần ít nhất 2 lựa chọn hợp lệ'); } catch { }
+        warning('Cần ít nhất 2 lựa chọn hợp lệ');
         setLoading(false);
         return;
       }
@@ -69,16 +71,16 @@ const VoteModal = () => {
       };
 
       await createVote(voteData);
-      try { window.alert('Tạo vote thành công!'); } catch { }
+      success('Tạo vote thành công!');
 
       // Reset form and close modal
       setForm({ title: '', description: '' });
       setOptions(['', '']);
       setIsVoteModalVisible(false);
 
-    } catch (error) {
-      console.error('Error creating vote:', error);
-      try { window.alert('Có lỗi xảy ra khi tạo vote'); } catch { }
+    } catch (err) {
+      console.error('Error creating vote:', err);
+      error('Có lỗi xảy ra khi tạo vote');
     } finally {
       setLoading(false);
     }

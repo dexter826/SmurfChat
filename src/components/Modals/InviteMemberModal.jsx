@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
+import { useAlert } from '../../Context/AlertProvider';
 import { debounce } from 'lodash';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -135,6 +136,7 @@ export default function InviteMemberModal() {
     selectedRoom,
   } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  const { warning } = useAlert();
   const [value, setValue] = useState([]);
 
   const handleOk = () => {
@@ -142,7 +144,7 @@ export default function InviteMemberModal() {
     const totalMembers = selectedRoom.members.length + value.length;
 
     if (totalMembers < 3) {
-      window.alert('Nhóm chat phải có tối thiểu 3 thành viên (bao gồm người tạo nhóm).');
+      warning('Nhóm chat phải có tối thiểu 3 thành viên (bao gồm người tạo nhóm).');
       return;
     }
 

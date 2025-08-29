@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
+import { useAlert } from '../../Context/AlertProvider';
 import { createOrUpdateConversation } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
 
@@ -16,6 +17,7 @@ export default function NewMessageModal() {
   const [loading, setLoading] = useState(false);
   const { setSelectedConversationId, setChatType } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  const { error } = useAlert();
 
   // Friends data for current user
   const friendsCondition = React.useMemo(() => ({
@@ -88,9 +90,9 @@ export default function NewMessageModal() {
       // Close modal and reset search
       setIsNewMessageVisible(false);
       setSearchTerm('');
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      try { window.alert('Không thể tạo cuộc trò chuyện. Vui lòng thử lại.'); } catch { }
+    } catch (err) {
+      console.error('Error creating conversation:', err);
+      error('Không thể tạo cuộc trò chuyện. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }

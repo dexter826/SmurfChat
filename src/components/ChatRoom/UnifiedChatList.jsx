@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
+import { useAlert } from "../../Context/AlertProvider";
 import useFirestore from "../../hooks/useFirestore";
 import { useUserOnlineStatus } from "../../hooks/useOnlineStatus";
 import {
@@ -58,6 +59,7 @@ export default function UnifiedChatList() {
     selectConversation,
   } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  const { success, error, confirm } = useAlert();
   const [openMenuId, setOpenMenuId] = useState(null);
 
   // Get all users for conversation lookup
@@ -93,16 +95,12 @@ export default function UnifiedChatList() {
   const handlePinChat = async (chatId, isPinned, isConversation) => {
     try {
       await togglePinChat(chatId, isPinned, isConversation);
-      try {
-        window.alert(
-          isPinned ? "Đã bỏ ghim cuộc trò chuyện" : "Đã ghim cuộc trò chuyện"
-        );
-      } catch {}
-    } catch (error) {
-      console.error("Error toggling pin:", error);
-      try {
-        window.alert("Có lỗi xảy ra khi ghim/bỏ ghim");
-      } catch {}
+      success(
+        isPinned ? "Đã bỏ ghim cuộc trò chuyện" : "Đã ghim cuộc trò chuyện"
+      );
+    } catch (err) {
+      console.error("Error toggling pin:", err);
+      error("Có lỗi xảy ra khi ghim/bỏ ghim");
     }
   };
 
@@ -110,20 +108,14 @@ export default function UnifiedChatList() {
     try {
       if (isConversation) {
         await deleteConversation(chatId);
-        try {
-          window.alert("Đã xóa cuộc trò chuyện");
-        } catch {}
+        success("Đã xóa cuộc trò chuyện");
       } else {
         await dissolveRoom(chatId);
-        try {
-          window.alert("Đã xóa phòng chat");
-        } catch {}
+        success("Đã xóa phòng chat");
       }
-    } catch (error) {
-      console.error("Error deleting chat:", error);
-      try {
-        window.alert("Có lỗi xảy ra khi xóa");
-      } catch {}
+    } catch (err) {
+      console.error("Error deleting chat:", err);
+      error("Có lỗi xảy ra khi xóa");
     }
   };
 
@@ -135,18 +127,14 @@ export default function UnifiedChatList() {
       await updateDoc(ref, {
         [`mutedBy.${user.uid}`]: !current,
       });
-      try {
-        window.alert(
-          !current
-            ? "Đã tắt thông báo cuộc trò chuyện"
-            : "Đã bật thông báo cuộc trò chuyện"
-        );
-      } catch {}
-    } catch (error) {
-      console.error("Error toggling mute:", error);
-      try {
-        window.alert("Có lỗi xảy ra khi tắt/bật thông báo");
-      } catch {}
+      success(
+        !current
+          ? "Đã tắt thông báo cuộc trò chuyện"
+          : "Đã bật thông báo cuộc trò chuyện"
+      );
+    } catch (err) {
+      console.error("Error toggling mute:", err);
+      error("Có lỗi xảy ra khi tắt/bật thông báo");
     }
   };
 
@@ -418,10 +406,9 @@ export default function UnifiedChatList() {
                       
                       <button
                         className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors duration-150"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(null);
-                          if (window.confirm(`Bạn có chắc muốn xóa ${chat.type === "room" ? "phòng chat" : "cuộc trò chuyện"} này?`)) {
+                        onClick={async () => {
+                          const confirmed = await confirm(`Bạn có chắc muốn xóa ${chat.type === "room" ? "phòng chat" : "cuộc trò chuyện"} này?`);
+                          if (confirmed) {
                             handleDeleteChat(chat.id, chat.type === "conversation");
                           }
                         }}

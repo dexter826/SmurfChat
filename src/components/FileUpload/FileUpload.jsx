@@ -7,9 +7,11 @@ import {
   getFileCategory 
 } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
+import { useAlert } from '../../Context/AlertProvider';
 
 const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
   const { user } = React.useContext(AuthContext);
+  const { error } = useAlert();
   const [isUploading, setIsUploading] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const fileInputRef = useRef(null);
@@ -37,9 +39,9 @@ const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
           messageType: 'file'
         });
       }
-    } catch (error) {
-      console.error('Error uploading files:', error);
-      alert('Lỗi khi tải file lên. Vui lòng thử lại.');
+    } catch (err) {
+      console.error('Error uploading files:', err);
+      error('Lỗi khi tải file lên. Vui lòng thử lại.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -51,7 +53,7 @@ const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
   // Handle camera capture
   const handleCameraCapture = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert('Camera không được hỗ trợ trên thiết bị này');
+      error('Camera không được hỗ trợ trên thiết bị này');
       return;
     }
 
@@ -63,9 +65,9 @@ const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
         category: 'image',
         messageType: 'file'
       });
-    } catch (error) {
-      console.error('Error capturing photo:', error);
-      alert('Lỗi khi chụp ảnh. Vui lòng kiểm tra quyền truy cập camera.');
+    } catch (err) {
+      console.error('Error capturing photo:', err);
+      error('Lỗi khi chụp ảnh. Vui lòng kiểm tra quyền truy cập camera.');
     } finally {
       setIsUploading(false);
     }
@@ -75,7 +77,7 @@ const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
   // Handle location sharing
   const handleLocationShare = async () => {
     if (!navigator.geolocation) {
-      alert('Định vị không được hỗ trợ trên thiết bị này');
+      error('Định vị không được hỗ trợ trên thiết bị này');
       return;
     }
 
@@ -86,9 +88,9 @@ const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
         ...locationData,
         messageType: 'location'
       });
-    } catch (error) {
-      console.error('Error sharing location:', error);
-      alert('Lỗi khi chia sẻ vị trí. Vui lòng kiểm tra quyền truy cập vị trí.');
+    } catch (err) {
+      console.error('Error sharing location:', err);
+      error('Lỗi khi chia sẻ vị trí. Vui lòng kiểm tra quyền truy cập vị trí.');
     } finally {
       setIsUploading(false);
     }

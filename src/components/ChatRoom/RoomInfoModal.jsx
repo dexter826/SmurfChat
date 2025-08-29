@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import { CameraOutlined } from "@ant-design/icons";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
+import { useAlert } from "../../Context/AlertProvider";
 import {
   updateRoomAvatar,
   dissolveRoom,
@@ -15,6 +16,7 @@ import { db } from "../../firebase/config";
 export default function RoomInfoModal({ visible, onClose, room }) {
   const { members, clearState } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  const { success, error, confirm } = useAlert();
   const [selectedNewAdmin, setSelectedNewAdmin] = useState(null);
   const [showAdminSelection, setShowAdminSelection] = useState(false);
 
@@ -26,14 +28,10 @@ export default function RoomInfoModal({ visible, onClose, room }) {
       // Upload image to Firebase Storage
       const uploadResult = await uploadImage(file, user.uid);
       await updateRoomAvatar(room.id, uploadResult.url);
-      try {
-        window.alert("Đã cập nhật avatar nhóm!");
-      } catch {}
+      success("Đã cập nhật avatar nhóm!");
     } catch (error) {
       console.error("Lỗi khi upload avatar:", error);
-      try {
-        window.alert("Không thể cập nhật avatar nhóm");
-      } catch {}
+      error("Không thể cập nhật avatar nhóm");
     }
   };
 
@@ -48,25 +46,19 @@ export default function RoomInfoModal({ visible, onClose, room }) {
         members: updatedMembers,
       });
 
-      try {
-        window.alert("Đã xóa thành viên khỏi nhóm!");
-      } catch {}
+      success("Đã xóa thành viên khỏi nhóm!");
     }
   };
 
   const handleDissolveRoom = async () => {
     try {
       await dissolveRoom(room.id);
-      try {
-        window.alert("Nhóm đã được giải tán thành công!");
-      } catch {}
+      success("Nhóm đã được giải tán thành công!");
       onClose();
       clearState();
     } catch (error) {
       console.error("Error dissolving room:", error);
-      try {
-        window.alert("Có lỗi xảy ra khi giải tán nhóm!");
-      } catch {}
+      error("Có lỗi xảy ra khi giải tán nhóm!");
     }
   };
 
@@ -75,25 +67,19 @@ export default function RoomInfoModal({ visible, onClose, room }) {
       if (isCurrentUserAdmin && room?.members?.length > 1) {
         // Quản trị viên cần chọn người kế nhiệm
         if (!selectedNewAdmin) {
-          try {
-            window.alert("Vui lòng chọn quản trị viên mới trước khi rời nhóm!");
-          } catch {}
+          error("Vui lòng chọn quản trị viên mới trước khi rời nhóm!");
           return;
         }
         await transferRoomAdmin(room.id, selectedNewAdmin);
       }
 
       await leaveRoom(room.id, user.uid);
-      try {
-        window.alert("Đã rời nhóm thành công!");
-      } catch {}
+      success("Đã rời nhóm thành công!");
       onClose();
       clearState();
     } catch (error) {
       console.error("Error leaving room:", error);
-      try {
-        window.alert("Có lỗi xảy ra khi rời nhóm!");
-      } catch {}
+      error("Có lỗi xảy ra khi rời nhóm!");
     }
   };
 
@@ -192,11 +178,11 @@ export default function RoomInfoModal({ visible, onClose, room }) {
                 {isAdmin && member.uid !== user.uid && (
                   <button
                     className="rounded-md border border-rose-300 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
-                    onClick={() => {
-                      if (
-                        window.confirm("Bạn chắc chắn muốn xóa thành viên này?")
-                      )
+                    onClick={async () => {
+                      const confirmed = await confirm("Bạn chắc chắn muốn xóa thành viên này?");
+                      if (confirmed) {
                         handleRemoveMember(member.uid);
+                      }
                     }}
                   >
                     Xóa
@@ -253,13 +239,13 @@ export default function RoomInfoModal({ visible, onClose, room }) {
               <>
                 <button
                   className="rounded-md border border-rose-300 bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 dark:border-rose-700"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        "Bạn có chắc chắn muốn giải tán nhóm này? Hành động không thể hoàn tác!"
-                      )
-                    )
+                  onClick={async () => {
+                    const confirmed = await confirm(
+                      "Bạn có chắc chắn muốn giải tán nhóm này? Hành động không thể hoàn tác!"
+                    );
+                    if (confirmed) {
                       handleDissolveRoom();
+                    }
                   }}
                 >
                   Giải tán nhóm

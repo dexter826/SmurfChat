@@ -7,12 +7,14 @@ import {
 } from "@ant-design/icons";
 import { castVote, deleteVote } from "../../firebase/services";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
+import { useAlert } from "../../Context/AlertProvider";
 import useFirestore from "../../hooks/useFirestore";
 
 const VoteMessage = ({ vote }) => {
   const {
     user: { uid },
   } = useContext(AuthContext);
+  const { success, error, confirm } = useAlert();
   const [loading, setLoading] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [votersModalVisible, setVotersModalVisible] = useState(false);
@@ -73,14 +75,10 @@ const VoteMessage = ({ vote }) => {
       try {
         setLoading(true);
         await castVote(voteData.id, uid, newSelectedOptions);
-        try {
-          window.alert("Đã vote thành công!");
-        } catch {}
-      } catch (error) {
-        console.error("Error voting:", error);
-        try {
-          window.alert("Có lỗi xảy ra khi vote");
-        } catch {}
+        success("Đã vote thành công!");
+      } catch (err) {
+        console.error("Error voting:", err);
+        error("Có lỗi xảy ra khi vote");
         // Revert selection on error
         setSelectedOptions(selectedOptions);
       } finally {
@@ -92,14 +90,10 @@ const VoteMessage = ({ vote }) => {
   const handleDelete = async () => {
     try {
       await deleteVote(voteData.id);
-      try {
-        window.alert("Đã xóa vote");
-      } catch {}
-    } catch (error) {
-      console.error("Error deleting vote:", error);
-      try {
-        window.alert("Có lỗi xảy ra khi xóa vote");
-      } catch {}
+      success("Đã xóa vote");
+    } catch (err) {
+      console.error("Error deleting vote:", err);
+      error("Có lỗi xảy ra khi xóa vote");
     }
   };
 
@@ -152,9 +146,11 @@ const VoteMessage = ({ vote }) => {
         {isCreator && (
           <button
             className="rounded-md border border-rose-300 p-1 text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
-            onClick={() => {
-              if (window.confirm("Bạn có chắc muốn xóa vote này?"))
+            onClick={async () => {
+              const confirmed = await confirm("Bạn có chắc muốn xóa vote này?");
+              if (confirmed) {
                 handleDelete();
+              }
             }}
             title="Xóa vote"
           >

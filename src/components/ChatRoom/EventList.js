@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { CalendarOutlined, EditOutlined, DeleteOutlined, ClockCircleOutlined, UserOutlined } from '@ant-design/icons';
 import { AppContext } from '../../Context/AppProvider.jsx';
 import { AuthContext } from '../../Context/AuthProvider.jsx';
+import { useAlert } from '../../Context/AlertProvider';
 import { deleteEvent } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
 import moment from 'moment';
@@ -10,6 +11,7 @@ import EventModal from '../Modals/EventModal.jsx';
 export default function EventList() {
   const { selectedRoom } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  const { confirm } = useAlert();
   const [editingEvent, setEditingEvent] = useState(null);
   const [eventModalVisible, setEventModalVisible] = useState(false);
 
@@ -122,7 +124,12 @@ export default function EventList() {
                     </button>
                     <button
                       className="rounded border border-rose-300 p-1 text-xs text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
-                      onClick={() => { if (window.confirm('Bạn có chắc chắn muốn xóa sự kiện này?')) handleDeleteEvent(event.id); }}
+                      onClick={async () => {
+                        const confirmed = await confirm('Bạn có chắc chắn muốn xóa sự kiện này?');
+                        if (confirmed) {
+                          handleDeleteEvent(event.id);
+                        }
+                      }}
                       title="Xóa"
                     >
                       <DeleteOutlined />

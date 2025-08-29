@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { AppContext } from '../../Context/AppProvider';
 import { addDocument } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
+import { useAlert } from '../../Context/AlertProvider';
 import { debounce } from 'lodash';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -129,13 +130,14 @@ export default function AddRoomModal() {
   const {
     user: { uid },
   } = useContext(AuthContext);
+  const { warning } = useAlert();
   const [formState, setFormState] = useState({ name: '' });
   const [selectedMembers, setSelectedMembers] = useState([]);
 
   const handleOk = () => {
     // Validate room name
     if (!formState.name || formState.name.trim().length < 3) {
-      window.alert('Tên nhóm phải có ít nhất 3 ký tự!');
+      warning('Tên nhóm phải có ít nhất 3 ký tự!');
       return;
     }
 
@@ -143,7 +145,7 @@ export default function AddRoomModal() {
     const totalMembers = selectedMembers.length + 1; // +1 cho người tạo nhóm
 
     if (totalMembers < 3) {
-      window.alert('Nhóm chat phải có tối thiểu 3 thành viên (bao gồm người tạo nhóm). Vui lòng chọn thêm ít nhất 2 thành viên nữa.');
+      warning('Nhóm chat phải có tối thiểu 3 thành viên (bao gồm người tạo nhóm). Vui lòng chọn thêm ít nhất 2 thành viên nữa.');
       return;
     }
 

@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { uploadVoiceRecording } from '../../firebase/services';
 import { AuthContext } from '../../Context/AuthProvider';
+import { useAlert } from '../../Context/AlertProvider';
 
 const VoiceRecording = ({ onVoiceUploaded, disabled = false }) => {
   const { user } = React.useContext(AuthContext);
+  const { error } = useAlert();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -13,7 +15,7 @@ const VoiceRecording = ({ onVoiceUploaded, disabled = false }) => {
   // Start voice recording
   const startRecording = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert('Ghi âm không được hỗ trợ trên thiết bị này');
+      error('Ghi âm không được hỗ trợ trên thiết bị này');
       return;
     }
 
@@ -38,9 +40,9 @@ const VoiceRecording = ({ onVoiceUploaded, disabled = false }) => {
             messageType: 'voice',
             duration: recordingTime
           });
-        } catch (error) {
-          console.error('Error uploading voice:', error);
-          alert('Lỗi khi tải file ghi âm lên');
+        } catch (err) {
+          console.error('Error uploading voice:', err);
+          error('Lỗi khi tải file ghi âm lên');
         } finally {
           setIsUploading(false);
         }
@@ -59,9 +61,9 @@ const VoiceRecording = ({ onVoiceUploaded, disabled = false }) => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
 
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      alert('Lỗi khi bắt đầu ghi âm. Vui lòng kiểm tra quyền truy cập microphone.');
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      error('Lỗi khi bắt đầu ghi âm. Vui lòng kiểm tra quyền truy cập microphone.');
     }
   };
 

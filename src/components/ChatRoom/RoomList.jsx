@@ -2,6 +2,7 @@ import React from "react";
 import { CameraOutlined } from "@ant-design/icons";
 import { AppContext } from "../../Context/AppProvider.jsx";
 import { useTheme } from "../../Context/ThemeProvider.jsx";
+import { useAlert } from "../../Context/AlertProvider";
 import { updateRoomAvatar } from "../../firebase/services";
 
 function RoomItem({ onClick, children }) {
@@ -18,6 +19,7 @@ function RoomItem({ onClick, children }) {
 export default function RoomList() {
   const { rooms, setSelectedRoomId } = React.useContext(AppContext);
   const theme = useTheme();
+  const { success, error } = useAlert();
 
   const handleAvatarUpload = async (file, roomId) => {
     try {
@@ -29,16 +31,12 @@ export default function RoomList() {
       reader.onload = async (e) => {
         const avatarUrl = e.target.result;
         await updateRoomAvatar(roomId, avatarUrl);
-        try {
-          window.alert("Đã cập nhật avatar phòng!");
-        } catch {}
+        success("Đã cập nhật avatar phòng!");
       };
       reader.readAsDataURL(file);
-    } catch (error) {
-      console.error("Lỗi khi upload avatar:", error);
-      try {
-        window.alert("Không thể cập nhật avatar phòng");
-      } catch {}
+    } catch (err) {
+      console.error("Lỗi khi upload avatar:", err);
+      error("Không thể cập nhật avatar phòng");
     }
     return false; // Ngăn upload tự động
   };

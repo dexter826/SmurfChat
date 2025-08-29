@@ -2,12 +2,14 @@ import React, { useState, useContext, useEffect } from "react";
 import { CalendarOutlined } from "@ant-design/icons";
 import { AppContext } from "../../Context/AppProvider.jsx";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
+import { useAlert } from "../../Context/AlertProvider";
 import { createEvent } from "../../firebase/services";
 import moment from "moment";
 
 export default function EventModal({ visible, onCancel, initialData = null }) {
   const { selectedRoom, members } = useContext(AppContext);
   const { user } = useContext(AuthContext);
+  const { warning, success, error } = useAlert();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -43,24 +45,18 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
 
   const handleSubmit = async () => {
     if (!form.title || form.title.trim().length < 3) {
-      try {
-        window.alert("Tiêu đề sự kiện phải có ít nhất 3 ký tự!");
-      } catch {}
+      warning("Tiêu đề sự kiện phải có ít nhất 3 ký tự!");
       return;
     }
     if (!form.date || !form.time) {
-      try {
-        window.alert("Vui lòng chọn ngày/giờ!");
-      } catch {}
+      warning("Vui lòng chọn ngày/giờ!");
       return;
     }
     
     // Validate date is not in the past
     const eventDateTime = moment(`${form.date} ${form.time}`);
     if (eventDateTime.isBefore(moment())) {
-      try {
-        window.alert("Không thể tạo sự kiện trong quá khứ!");
-      } catch {}
+      warning("Không thể tạo sự kiện trong quá khứ!");
       return;
     }
 
@@ -88,15 +84,11 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
       };
 
       await createEvent(eventData);
-      try {
-        window.alert("Sự kiện đã được tạo thành công!");
-      } catch {}
+      success("Sự kiện đã được tạo thành công!");
       onCancel();
-    } catch (error) {
-      console.error("Error creating event:", error);
-      try {
-        window.alert("Có lỗi xảy ra khi tạo sự kiện!");
-      } catch {}
+    } catch (err) {
+      console.error("Error creating event:", err);
+      error("Có lỗi xảy ra khi tạo sự kiện!");
     } finally {
       setLoading(false);
     }
