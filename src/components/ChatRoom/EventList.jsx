@@ -5,7 +5,7 @@ import { AuthContext } from '../../Context/AuthProvider.jsx';
 import { useAlert } from '../../Context/AlertProvider';
 import { deleteEvent } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
-import moment from 'moment';
+import { format, isToday, isTomorrow, isYesterday, isBefore, isAfter, addHours, compareAsc } from 'date-fns';
 import EventModal from '../Modals/EventModal.jsx';
 
 export default function EventList() {
@@ -28,9 +28,9 @@ export default function EventList() {
   const activeEvents = events
     .filter(event => !event.deleted)
     .sort((a, b) => {
-      const timeA = moment(a.datetime.toDate());
-      const timeB = moment(b.datetime.toDate());
-      return timeA.diff(timeB);
+      const timeA = a.datetime.toDate();
+      const timeB = b.datetime.toDate();
+      return compareAsc(timeA, timeB);
     });
 
   const handleDeleteEvent = async (eventId) => {
@@ -47,13 +47,12 @@ export default function EventList() {
   };
 
   const getEventStatus = (eventTime) => {
-    const now = moment();
-    const event = moment(eventTime);
-    const eventEnd = event.clone().add(1, 'hour'); // Assume 1 hour duration
+    const now = new Date();
+    const eventEnd = addHours(eventTime, 1); // Assume 1 hour duration
 
-    if (now.isBefore(event)) {
+    if (isBefore(now, eventTime)) {
       return { status: 'upcoming', text: 'Sắp diễn ra', color: 'green' };
-    } else if (now.isBetween(event, eventEnd)) {
+    } else if (isAfter(now, eventTime) && isBefore(now, eventEnd)) {
       return { status: 'ongoing', text: 'Đang diễn ra', color: 'orange' };
     } else {
       return { status: 'past', text: 'Đã kết thúc', color: 'default' };
@@ -61,17 +60,16 @@ export default function EventList() {
   };
 
   const formatEventTime = (datetime) => {
-    const eventTime = moment(datetime.toDate());
-    const now = moment();
+    const eventTime = datetime.toDate();
 
-    if (eventTime.isSame(now, 'day')) {
-      return `Hôm nay ${eventTime.format('HH:mm')}`;
-    } else if (eventTime.isSame(now.clone().add(1, 'day'), 'day')) {
-      return `Ngày mai ${eventTime.format('HH:mm')}`;
-    } else if (eventTime.isSame(now.clone().subtract(1, 'day'), 'day')) {
-      return `Hôm qua ${eventTime.format('HH:mm')}`;
+    if (isToday(eventTime)) {
+      return `Hôm nay ${format(eventTime, 'HH:mm')}`;
+    } else if (isTomorrow(eventTime)) {
+      return `Ngày mai ${format(eventTime, 'HH:mm')}`;
+    } else if (isYesterday(eventTime)) {
+      return `Hôm qua ${format(eventTime, 'HH:mm')}`;
     } else {
-      return eventTime.format('DD/MM/YYYY HH:mm');
+      return format(eventTime, 'dd/MM/yyyy HH:mm');
     }
   };
 
@@ -92,7 +90,7 @@ export default function EventList() {
       ) : (
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           {activeEvents.map((event) => {
-            const eventTime = moment(event.datetime.toDate());
+            const eventTime = event.datetime.toDate();
             const eventStatus = getEventStatus(eventTime);
             const canEdit = event.createdBy === user.uid;
             return (
