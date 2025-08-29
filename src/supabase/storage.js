@@ -130,34 +130,77 @@ export const captureAndUploadPhoto = async (userId) => {
     });
 
     return new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      // Create camera preview modal
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.8); display: flex; justify-content: center; 
+        align-items: center; z-index: 9999;
+      `;
 
+      const container = document.createElement('div');
+      container.style.cssText = `
+        background: white; padding: 20px; border-radius: 10px; 
+        text-align: center; max-width: 400px;
+      `;
+
+      const video = document.createElement('video');
+      video.style.cssText = 'width: 100%; max-width: 300px; border-radius: 8px;';
       video.srcObject = stream;
       video.play();
 
-      video.onloadedmetadata = () => {
+      const buttonContainer = document.createElement('div');
+      buttonContainer.style.cssText = 'margin-top: 15px; display: flex; gap: 10px; justify-content: center;';
+
+      const captureBtn = document.createElement('button');
+      captureBtn.textContent = 'Chụp ảnh';
+      captureBtn.style.cssText = `
+        background: #0066cc; color: white; border: none; padding: 10px 20px; 
+        border-radius: 5px; cursor: pointer;
+      `;
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Hủy';
+      cancelBtn.style.cssText = `
+        background: #666; color: white; border: none; padding: 10px 20px; 
+        border-radius: 5px; cursor: pointer;
+      `;
+
+      const cleanup = () => {
+        stream.getTracks().forEach(track => track.stop());
+        document.body.removeChild(modal);
+      };
+
+      captureBtn.onclick = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
 
-        // Capture frame after 1 second
-        setTimeout(() => {
-          ctx.drawImage(video, 0, 0);
-
-          canvas.toBlob(async (blob) => {
-            stream.getTracks().forEach(track => track.stop());
-
-            try {
-              const file = new File([blob], `camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
-              const result = await uploadImage(file, userId);
-              resolve(result);
-            } catch (error) {
-              reject(error);
-            }
-          }, 'image/jpeg', 0.8);
-        }, 1000);
+        canvas.toBlob(async (blob) => {
+          cleanup();
+          try {
+            const file = new File([blob], `camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            const result = await uploadImage(file, userId);
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        }, 'image/jpeg', 0.8);
       };
+
+      cancelBtn.onclick = () => {
+        cleanup();
+        reject(new Error('Người dùng hủy chụp ảnh'));
+      };
+
+      buttonContainer.appendChild(captureBtn);
+      buttonContainer.appendChild(cancelBtn);
+      container.appendChild(video);
+      container.appendChild(buttonContainer);
+      modal.appendChild(container);
+      document.body.appendChild(modal);
     });
   } catch (error) {
     console.error('Error capturing photo:', error);
