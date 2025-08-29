@@ -1,10 +1,17 @@
-import React, { useContext, useState } from 'react';
-import { AppContext } from '../../Context/AppProvider';
-import { AuthContext } from '../../Context/AuthProvider';
-import { useAlert } from '../../Context/AlertProvider';
-import { debounce } from 'lodash';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import React, { useContext, useState } from "react";
+import { AppContext } from "../../Context/AppProvider";
+import { AuthContext } from "../../Context/AuthProvider";
+import { useAlert } from "../../Context/AlertProvider";
+import { debounce } from "lodash";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "../../firebase/config";
 
 function DebounceSelect({
   fetchOptions,
@@ -48,9 +55,22 @@ function DebounceSelect({
       />
       <div className="mt-2 flex flex-wrap gap-2">
         {(props.value || []).map((v) => (
-          <span key={v.value} className="inline-flex items-center gap-1 rounded-full bg-skybrand-100 px-2 py-0.5 text-xs text-skybrand-700 dark:bg-skybrand-900/20 dark:text-skybrand-300">
+          <span
+            key={v.value}
+            className="inline-flex items-center gap-1 rounded-full bg-skybrand-100 px-2 py-0.5 text-xs text-skybrand-700 dark:bg-skybrand-900/20 dark:text-skybrand-300"
+          >
             {v.label}
-            <button type="button" className="text-slate-500" onClick={() => props.onChange((props.value || []).filter(i => i.value !== v.value))}>×</button>
+            <button
+              type="button"
+              className="text-slate-500"
+              onClick={() =>
+                props.onChange(
+                  (props.value || []).filter((i) => i.value !== v.value)
+                )
+              }
+            >
+              ×
+            </button>
           </span>
         ))}
       </div>
@@ -62,11 +82,20 @@ function DebounceSelect({
             <li
               key={opt.value}
               className="flex cursor-pointer items-center gap-2 px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800"
-              onClick={() => props.onChange([...(props.value || []), { value: opt.value, label: opt.label }])}
+              onClick={() =>
+                props.onChange([
+                  ...(props.value || []),
+                  { value: opt.value, label: opt.label },
+                ])
+              }
               title={opt.label}
             >
               {opt.photoURL ? (
-                <img className="h-5 w-5 rounded-full" src={opt.photoURL} alt="avatar" />
+                <img
+                  className="h-5 w-5 rounded-full"
+                  src={opt.photoURL}
+                  alt="avatar"
+                />
               ) : (
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-skybrand-600 text-[10px] text-white">
                   {opt.label?.charAt(0)?.toUpperCase()}
@@ -82,49 +111,46 @@ function DebounceSelect({
 }
 
 async function fetchFriendsList(search, curMembers, currentUserId) {
-  
   // Get friends list first
-  const friendsRef = collection(db, 'friends');
+  const friendsRef = collection(db, "friends");
   const friendsQuery = query(
     friendsRef,
-    where('participants', 'array-contains', currentUserId)
+    where("participants", "array-contains", currentUserId)
   );
-  
+
   const friendsSnapshot = await getDocs(friendsQuery);
   const friendIds = [];
-  
-  friendsSnapshot.docs.forEach(doc => {
+
+  friendsSnapshot.docs.forEach((doc) => {
     const participants = doc.data().participants || [];
-    const friendId = participants.find(id => id !== currentUserId);
+    const friendId = participants.find((id) => id !== currentUserId);
     if (friendId && !curMembers.includes(friendId)) {
       friendIds.push(friendId);
     }
   });
-  
+
   if (friendIds.length === 0) return [];
-  
+
   // Get user details for friends
-  const usersRef = collection(db, 'users');
-  const usersQuery = query(
-    usersRef,
-    where('uid', 'in', friendIds)
-  );
-  
+  const usersRef = collection(db, "users");
+  const usersQuery = query(usersRef, where("uid", "in", friendIds));
+
   const usersSnapshot = await getDocs(usersQuery);
-  const friends = usersSnapshot.docs.map(doc => ({
+  const friends = usersSnapshot.docs.map((doc) => ({
     label: doc.data().displayName,
     value: doc.data().uid,
     photoURL: doc.data().photoURL,
-    keywords: doc.data().keywords || []
+    keywords: doc.data().keywords || [],
   }));
-  
+
   // Filter by search term
   if (!search) return friends;
-  
+
   const searchLower = search.toLowerCase();
-  return friends.filter(friend => 
-    friend.keywords.some(keyword => keyword.includes(searchLower)) ||
-    friend.label?.toLowerCase().includes(searchLower)
+  return friends.filter(
+    (friend) =>
+      friend.keywords.some((keyword) => keyword.includes(searchLower)) ||
+      friend.label?.toLowerCase().includes(searchLower)
   );
 }
 
@@ -144,7 +170,9 @@ export default function InviteMemberModal() {
     const totalMembers = selectedRoom.members.length + value.length;
 
     if (totalMembers < 3) {
-      warning('Nhóm chat phải có tối thiểu 3 thành viên (bao gồm người tạo nhóm).');
+      warning(
+        "Nhóm chat phải có tối thiểu 3 thành viên (bao gồm người tạo nhóm)."
+      );
       return;
     }
 
@@ -153,7 +181,7 @@ export default function InviteMemberModal() {
     setValue([]);
 
     // update members in current room
-    const roomRef = doc(db, 'rooms', selectedRoomId);
+    const roomRef = doc(db, "rooms", selectedRoomId);
 
     updateDoc(roomRef, {
       members: [...selectedRoom.members, ...value.map((val) => val.value)],
@@ -173,25 +201,47 @@ export default function InviteMemberModal() {
   if (!isInviteMemberVisible) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={handleCancel} />
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={handleCancel}
+      />
       <div className="relative z-10 w-full max-w-lg rounded-lg border border-gray-200 bg-white p-5 shadow-xl dark:border-gray-700 dark:bg-slate-900">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold">Mời thêm thành viên</h3>
-          <button className="rounded-md px-2 py-1 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" onClick={handleCancel}>Đóng</button>
+          <button
+            className="rounded-md px-2 py-1 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={handleCancel}
+          >
+            Đóng
+          </button>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">Mời thêm bạn bè</label>
+          <label className="mb-1 block text-sm font-medium">
+            Mời thêm bạn bè
+          </label>
           <DebounceSelect
             value={value}
-            placeholder='Tìm kiếm bạn bè để mời'
-            fetchOptions={(search, curMembers) => fetchFriendsList(search, curMembers, user?.uid)}
+            placeholder="Tìm kiếm bạn bè để mời"
+            fetchOptions={(search, curMembers) =>
+              fetchFriendsList(search, curMembers, user?.uid)
+            }
             onChange={(newValue) => setValue(newValue)}
             curMembers={selectedRoom.members}
           />
         </div>
         <div className="mt-6 flex justify-end gap-2">
-          <button className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700" onClick={handleCancel}>Hủy</button>
-          <button className="rounded-md bg-skybrand-600 px-4 py-2 text-sm font-medium text-white hover:bg-skybrand-700" onClick={handleOk}>Mời</button>
+          <button
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+            onClick={handleCancel}
+          >
+            Hủy
+          </button>
+          <button
+            className="rounded-md bg-skybrand-600 px-4 py-2 text-sm font-medium text-white hover:bg-skybrand-700"
+            onClick={handleOk}
+          >
+            Mời
+          </button>
         </div>
       </div>
     </div>

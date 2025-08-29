@@ -1,51 +1,70 @@
-import React, { useState, useContext } from 'react';
-import { AppContext } from '../../Context/AppProvider';
-import { AuthContext } from '../../Context/AuthProvider';
-import { useAlert } from '../../Context/AlertProvider';
-import { createOrUpdateConversation } from '../../firebase/services';
-import useFirestore from '../../hooks/useFirestore';
+import React, { useState, useContext } from "react";
+import { AppContext } from "../../Context/AppProvider";
+import { AuthContext } from "../../Context/AuthProvider";
+import { useAlert } from "../../Context/AlertProvider";
+import { createOrUpdateConversation } from "../../firebase/services";
+import useFirestore from "../../hooks/useFirestore";
 
 const SearchIcon = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  <svg
+    className="h-4 w-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
   </svg>
 );
 
 export default function NewMessageModal() {
-  const { isNewMessageVisible, setIsNewMessageVisible } = useContext(AppContext);
-  const [searchTerm, setSearchTerm] = useState('');
+  const { isNewMessageVisible, setIsNewMessageVisible } =
+    useContext(AppContext);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const { setSelectedConversationId, setChatType } = useContext(AppContext);
   const { user } = useContext(AuthContext);
   const { error } = useAlert();
 
   // Friends data for current user
-  const friendsCondition = React.useMemo(() => ({
-    fieldName: 'participants',
-    operator: 'array-contains',
-    compareValue: user?.uid,
-  }), [user?.uid]);
-  const friendEdges = useFirestore('friends', friendsCondition);
-  
+  const friendsCondition = React.useMemo(
+    () => ({
+      fieldName: "participants",
+      operator: "array-contains",
+      compareValue: user?.uid,
+    }),
+    [user?.uid]
+  );
+  const friendEdges = useFirestore("friends", friendsCondition);
+
   // All users to resolve friend details
-  const allUsersCondition = React.useMemo(() => ({
-    fieldName: 'uid',
-    operator: '!=',
-    compareValue: user?.uid,
-  }), [user?.uid]);
-  const allUsers = useFirestore('users', allUsersCondition);
-  
-  const getUserById = (uid) => allUsers.find(u => u.uid === uid);
+  const allUsersCondition = React.useMemo(
+    () => ({
+      fieldName: "uid",
+      operator: "!=",
+      compareValue: user?.uid,
+    }),
+    [user?.uid]
+  );
+  const allUsers = useFirestore("users", allUsersCondition);
+
+  const getUserById = (uid) => allUsers.find((u) => u.uid === uid);
 
   // Get friends list with user details
-  const friends = friendEdges.map(edge => {
-    const otherId = (edge.participants || []).find(id => id !== user.uid);
-    const friendUser = getUserById(otherId);
-    return friendUser ? { ...friendUser, friendshipId: edge.id } : null;
-  }).filter(Boolean);
-  
+  const friends = friendEdges
+    .map((edge) => {
+      const otherId = (edge.participants || []).find((id) => id !== user.uid);
+      const friendUser = getUserById(otherId);
+      return friendUser ? { ...friendUser, friendshipId: edge.id } : null;
+    })
+    .filter(Boolean);
+
   // Filter friends based on search term
-  const filteredFriends = friends.filter(friend => {
+  const filteredFriends = friends.filter((friend) => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -59,7 +78,7 @@ export default function NewMessageModal() {
       setLoading(true);
 
       // Create conversation ID (consistent ordering)
-      const conversationId = [user.uid, selectedUser.uid].sort().join('_');
+      const conversationId = [user.uid, selectedUser.uid].sort().join("_");
 
       // Create or update conversation
       await createOrUpdateConversation({
@@ -69,51 +88,58 @@ export default function NewMessageModal() {
           [user.uid]: {
             displayName: user.displayName,
             email: user.email,
-            photoURL: user.photoURL
+            photoURL: user.photoURL,
           },
           [selectedUser.uid]: {
             displayName: selectedUser.displayName,
             email: selectedUser.email,
-            photoURL: selectedUser.photoURL
-          }
+            photoURL: selectedUser.photoURL,
+          },
         },
-        type: 'direct',
-        lastMessage: '',
+        type: "direct",
+        lastMessage: "",
         lastMessageAt: null,
-        createdBy: user.uid
+        createdBy: user.uid,
       });
 
       // Switch to conversation view
-      setChatType('direct');
+      setChatType("direct");
       setSelectedConversationId(conversationId);
 
       // Close modal and reset search
       setIsNewMessageVisible(false);
-      setSearchTerm('');
+      setSearchTerm("");
     } catch (err) {
-      console.error('Error creating conversation:', err);
-      error('Không thể tạo cuộc trò chuyện. Vui lòng thử lại.');
+      console.error("Error creating conversation:", err);
+      error("Không thể tạo cuộc trò chuyện. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
   };
 
-
-
-
   const handleCancel = () => {
     setIsNewMessageVisible(false);
-    setSearchTerm('');
+    setSearchTerm("");
   };
 
   if (!isNewMessageVisible) return null;
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={handleCancel} />
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={handleCancel}
+      />
       <div className="relative z-10 w-full max-w-xl mx-auto rounded-lg border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-slate-900 max-h-[90vh] overflow-hidden">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Tạo tin nhắn mới</h3>
-          <button className="rounded-md px-2 py-1 text-sm hover:bg-slate-100 dark:hover:bg-slate-800" onClick={handleCancel}>Đóng</button>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            Tạo tin nhắn mới
+          </h3>
+          <button
+            className="rounded-md px-2 py-1 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={handleCancel}
+          >
+            Đóng
+          </button>
         </div>
         <div className="mb-4">
           <div className="relative">
@@ -133,10 +159,19 @@ export default function NewMessageModal() {
         {filteredFriends.length > 0 ? (
           <div className="thin-scrollbar max-h-80 space-y-2 overflow-y-auto">
             {filteredFriends.map((friend) => (
-              <div key={friend.uid} className={`flex items-center justify-between rounded-lg p-3 ${loading ? 'opacity-60' : ''} hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer`}>
+              <div
+                key={friend.uid}
+                className={`flex items-center justify-between rounded-lg p-3 ${
+                  loading ? "opacity-60" : ""
+                } hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer`}
+              >
                 <div className="flex items-center">
                   {friend.photoURL ? (
-                    <img className="h-10 w-10 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-700" src={friend.photoURL} alt="avatar" />
+                    <img
+                      className="h-10 w-10 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-700"
+                      src={friend.photoURL}
+                      alt="avatar"
+                    />
                   ) : (
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-skybrand-600 text-white ring-2 ring-slate-200 dark:ring-slate-700">
                       {friend.displayName?.charAt(0)?.toUpperCase()}
@@ -145,14 +180,18 @@ export default function NewMessageModal() {
                   <div className="ml-3">
                     <div className="text-sm font-medium text-slate-800 dark:text-slate-100">
                       {friend.displayName}
-                      <span className="ml-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] text-white">Bạn bè</span>
+                      <span className="ml-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] text-white">
+                        Bạn bè
+                      </span>
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">{friend.email}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {friend.email}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button 
-                    className="rounded-lg bg-skybrand-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-skybrand-600 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 disabled:opacity-50" 
+                  <button
+                    className="rounded-lg bg-skybrand-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-skybrand-600 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 disabled:opacity-50"
                     onClick={() => openChatWith(friend)}
                     disabled={loading}
                   >
@@ -164,7 +203,9 @@ export default function NewMessageModal() {
           </div>
         ) : (
           <div className="py-10 text-center text-slate-500 dark:text-slate-400">
-            {friends.length === 0 ? 'Bạn chưa có bạn bè nào. Hãy kết bạn trước khi tạo tin nhắn.' : 'Không tìm thấy bạn bè nào'}
+            {friends.length === 0
+              ? "Bạn chưa có bạn bè nào. Hãy kết bạn trước khi tạo tin nhắn."
+              : "Không tìm thấy bạn bè nào"}
           </div>
         )}
       </div>

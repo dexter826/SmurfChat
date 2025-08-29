@@ -7,21 +7,41 @@ export const uploadFile = async (file, folder = 'files', userId) => {
       throw new Error('Supabase chưa được cấu hình. Vui lòng kiểm tra file .env và đảm bảo có REACT_APP_SUPABASE_URL và REACT_APP_SUPABASE_ANON_KEY');
     }
 
+    if (!file) {
+      throw new Error('Không có file để upload');
+    }
+
+    if (!userId) {
+      throw new Error('UserId không hợp lệ');
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      throw new Error('File quá lớn. Kích thước tối đa là 10MB');
+    }
+
     const timestamp = Date.now();
-    const fileName = `${timestamp}_${file.name}`;
+    const fileName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     const filePath = `${folder}/${userId}/${fileName}`;
-    
-    const { data, error } = await supabase.storage
+
+    const { error } = await supabase.storage
       .from('chat-files')
-      .upload(filePath, file);
-    
-    if (error) throw error;
-    
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      throw new Error(`Lỗi khi tải file lên: ${error.message}`);
+    }
+
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from('chat-files')
       .getPublicUrl(filePath);
-    
+
     return {
       url: publicUrl,
       name: file.name,
@@ -39,6 +59,10 @@ export const uploadFile = async (file, folder = 'files', userId) => {
 // Upload image with compression
 export const uploadImage = async (file, userId, maxWidth = 1920, quality = 0.8) => {
   try {
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File không phải là hình ảnh');
+    }
+
     const compressedFile = await compressImage(file, maxWidth, quality);
     return await uploadFile(compressedFile, 'images', userId);
   } catch (error) {
@@ -49,21 +73,32 @@ export const uploadImage = async (file, userId, maxWidth = 1920, quality = 0.8) 
 
 // Compress image before upload
 const compressImage = (file, maxWidth = 1920, quality = 0.8) => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
-    
+
     img.onload = () => {
-      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
-      
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      
-      canvas.toBlob(resolve, file.type, quality);
+      try {
+        const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(new File([blob], file.name, { type: file.type }));
+          } else {
+            reject(new Error('Không thể nén ảnh'));
+          }
+        }, file.type, quality);
+      } catch (error) {
+        reject(error);
+      }
     };
-    
+
+    img.onerror = () => reject(new Error('Không thể tải ảnh'));
     img.src = URL.createObjectURL(file);
   });
 };
@@ -74,7 +109,7 @@ export const uploadVoiceRecording = async (audioBlob, userId, duration) => {
     const timestamp = Date.now();
     const fileName = `voice_${timestamp}.webm`;
     const file = new File([audioBlob], fileName, { type: 'audio/webm' });
-    
+
     const result = await uploadFile(file, 'voice', userId);
     return {
       ...result,
@@ -90,29 +125,29 @@ export const uploadVoiceRecording = async (audioBlob, userId, duration) => {
 // Capture and upload camera photo
 export const captureAndUploadPhoto = async (userId) => {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: 'user' } 
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user' }
     });
-    
+
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      
+
       video.srcObject = stream;
       video.play();
-      
+
       video.onloadedmetadata = () => {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        
+
         // Capture frame after 1 second
         setTimeout(() => {
           ctx.drawImage(video, 0, 0);
-          
+
           canvas.toBlob(async (blob) => {
             stream.getTracks().forEach(track => track.stop());
-            
+
             try {
               const file = new File([blob], `camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
               const result = await uploadImage(file, userId);
@@ -140,12 +175,12 @@ export const shareLocation = async (userId) => {
         maximumAge: 60000
       });
     });
-    
+
     const { latitude, longitude } = position.coords;
-    
+
     // Get address from coordinates (using reverse geocoding)
     const address = await reverseGeocode(latitude, longitude);
-    
+
     return {
       type: 'location',
       latitude,
@@ -181,7 +216,7 @@ export const deleteFile = async (filePath) => {
     const { error } = await supabase.storage
       .from('chat-files')
       .remove([filePath]);
-    
+
     if (error) throw error;
     return true;
   } catch (error) {
