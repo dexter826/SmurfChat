@@ -1,5 +1,5 @@
 // Lightweight notification using native alerts for now
-import moment from 'moment';
+import { subMinutes, isAfter, isBefore, differenceInMinutes, format, endOfDay, isWithinInterval, compareAsc } from 'date-fns';
 
 class ReminderService {
   constructor() {
@@ -24,14 +24,15 @@ class ReminderService {
   addReminder(event) {
     if (!event.datetime || !event.reminderMinutes) return;
 
-    const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
-    const reminderTime = eventTime.clone().subtract(event.reminderMinutes, 'minutes');
+    const eventTime = event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime);
+    const reminderTime = subMinutes(eventTime, event.reminderMinutes);
+    const now = new Date();
 
     // Only add reminder if it's in the future
-    if (reminderTime.isAfter(moment())) {
+    if (isAfter(reminderTime, now)) {
       this.reminders.set(event.id, {
         ...event,
-        reminderTime: reminderTime.toDate(),
+        reminderTime,
         notified: false
       });
     }
@@ -44,10 +45,10 @@ class ReminderService {
 
   // Check all reminders and show notifications
   checkReminders() {
-    const now = moment();
+    const now = new Date();
 
     this.reminders.forEach((reminder, eventId) => {
-      if (!reminder.notified && moment(reminder.reminderTime).isSameOrBefore(now)) {
+      if (!reminder.notified && (isBefore(reminder.reminderTime, now) || reminder.reminderTime.getTime() === now.getTime())) {
         this.showReminderNotification(reminder);
         reminder.notified = true;
       }
@@ -63,12 +64,14 @@ class ReminderService {
   showReminderNotification(event) {
     // Do not show reminders if the event's room is muted
     if (event.roomId && this.mutedChatIds.has(event.roomId)) return;
-    const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
-    const timeUntilEvent = eventTime.diff(moment(), 'minutes');
+    
+    const eventTime = event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime);
+    const now = new Date();
+    const timeUntilEvent = differenceInMinutes(eventTime, now);
 
     try {
       // Replace with a custom toast system later
-      const details = `${event.title}\nPhòng: ${event.roomName}\nThời gian: ${eventTime.format('DD/MM/YYYY HH:mm')}\nCòn ${timeUntilEvent} phút nữa` + (event.description ? `\n${event.description}` : '');
+      const details = `${event.title}\nPhòng: ${event.roomName}\nThời gian: ${format(eventTime, 'dd/MM/yyyy HH:mm')}\nCòn ${timeUntilEvent} phút nữa` + (event.description ? `\n${event.description}` : '');
       window.alert(`Nhắc nhở sự kiện\n\n${details}`);
     } catch { }
 
@@ -91,38 +94,38 @@ class ReminderService {
 
   // Get upcoming events (next 24 hours)
   getUpcomingEvents() {
-    const now = moment();
-    const tomorrow = now.clone().add(24, 'hours');
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     return Array.from(this.reminders.values())
       .filter(event => {
-        const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
-        return eventTime.isBetween(now, tomorrow);
+        const eventTime = event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime);
+        return isWithinInterval(eventTime, { start: now, end: tomorrow });
       })
       .sort((a, b) => {
-        const timeA = moment(a.datetime.toDate ? a.datetime.toDate() : a.datetime);
-        const timeB = moment(b.datetime.toDate ? b.datetime.toDate() : b.datetime);
-        return timeA.diff(timeB);
+        const timeA = a.datetime.toDate ? a.datetime.toDate() : new Date(a.datetime);
+        const timeB = b.datetime.toDate ? b.datetime.toDate() : new Date(b.datetime);
+        return compareAsc(timeA, timeB);
       });
   }
 
   // Show daily agenda
   showDailyAgenda(events) {
+    const now = new Date();
+    const todayEnd = endOfDay(now);
+
     const upcomingEvents = events.filter(event => {
       if (event.deleted || event.status !== 'active') return false;
 
-      const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
-      const now = moment();
-      const endOfDay = now.clone().endOf('day');
-
-      return eventTime.isBetween(now, endOfDay);
+      const eventTime = event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime);
+      return isWithinInterval(eventTime, { start: now, end: todayEnd });
     });
 
     if (upcomingEvents.length > 0) {
       try {
         const lines = upcomingEvents.slice(0, 3).map((event) => {
-          const eventTime = moment(event.datetime.toDate ? event.datetime.toDate() : event.datetime);
-          return `• ${event.title} (${eventTime.format('HH:mm')} - ${event.roomName})`;
+          const eventTime = event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime);
+          return `• ${event.title} (${format(eventTime, 'HH:mm')} - ${event.roomName})`;
         }).join('\n');
         const more = upcomingEvents.length > 3 ? `\n...và ${upcomingEvents.length - 3} sự kiện khác` : '';
         window.alert(`Lịch trình hôm nay\n\n${lines}${more}`);

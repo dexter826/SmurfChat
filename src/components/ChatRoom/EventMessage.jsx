@@ -4,7 +4,7 @@ import {
   ClockCircleOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import moment from "moment";
+import { format, isToday, isTomorrow, isYesterday } from "date-fns";
 
 export default function EventMessage({ event, showActions = true }) {
   // Handle different datetime formats
@@ -12,36 +12,34 @@ export default function EventMessage({ event, showActions = true }) {
   if (event.datetime) {
     if (event.datetime.toDate) {
       // Firestore Timestamp
-      eventTime = moment(event.datetime.toDate());
+      eventTime = event.datetime.toDate();
     } else if (event.datetime instanceof Date) {
       // JavaScript Date
-      eventTime = moment(event.datetime);
+      eventTime = event.datetime;
     } else if (typeof event.datetime === "string") {
       // String date
-      eventTime = moment(event.datetime);
+      eventTime = new Date(event.datetime);
     } else {
       // Fallback to current time if invalid
-      eventTime = moment();
+      eventTime = new Date();
     }
   } else {
-    eventTime = moment();
+    eventTime = new Date();
   }
 
-  const now = moment();
-
   const getTimeDisplay = () => {
-    if (!eventTime.isValid()) {
+    if (isNaN(eventTime.getTime())) {
       return "Thời gian không hợp lệ";
     }
 
-    if (eventTime.isSame(now, "day")) {
-      return `Hôm nay ${eventTime.format("HH:mm")}`;
-    } else if (eventTime.isSame(now.clone().add(1, "day"), "day")) {
-      return `Ngày mai ${eventTime.format("HH:mm")}`;
-    } else if (eventTime.isSame(now.clone().subtract(1, "day"), "day")) {
-      return `Hôm qua ${eventTime.format("HH:mm")}`;
+    if (isToday(eventTime)) {
+      return `Hôm nay ${format(eventTime, "HH:mm")}`;
+    } else if (isTomorrow(eventTime)) {
+      return `Ngày mai ${format(eventTime, "HH:mm")}`;
+    } else if (isYesterday(eventTime)) {
+      return `Hôm qua ${format(eventTime, "HH:mm")}`;
     } else {
-      return eventTime.format("DD/MM/YYYY HH:mm");
+      return format(eventTime, "dd/MM/yyyy HH:mm");
     }
   };
 

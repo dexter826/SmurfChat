@@ -6,7 +6,7 @@ import {
 import { AppContext } from "../../Context/AppProvider.jsx";
 // import { AuthContext } from '../../Context/AuthProvider.jsx';
 import useFirestore from "../../hooks/useFirestore";
-import moment from "moment";
+import { format, isSameDay } from "date-fns";
 import EventModal from "../Modals/EventModal.jsx";
 
 export default function Calendar() {
@@ -14,7 +14,7 @@ export default function Calendar() {
   // const {
   //   user: { uid },
   // } = useContext(AuthContext);
-  const [selectedDate, setSelectedDate] = useState(moment());
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [eventModalVisible, setEventModalVisible] = useState(false);
 
   // Get events for the selected room
@@ -34,8 +34,8 @@ export default function Calendar() {
 
   const getEventsForDate = (date) => {
     return activeEvents.filter((event) => {
-      const eventDate = moment(event.datetime.toDate());
-      return eventDate.format("YYYY-MM-DD") === date.format("YYYY-MM-DD");
+      const eventDate = event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime);
+      return isSameDay(eventDate, date);
     });
   };
 
@@ -64,13 +64,13 @@ export default function Calendar() {
           <input
             type="date"
             className="w-fit rounded border border-gray-300 bg-white px-2 py-1 text-sm text-slate-700 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
-            value={selectedDate.format("YYYY-MM-DD")}
-            onChange={(e) => setSelectedDate(moment(e.target.value))}
+            value={format(selectedDate, "yyyy-MM-dd")}
+            onChange={(e) => setSelectedDate(new Date(e.target.value))}
           />
         </div>
         <div className="w-1/3 rounded border border-gray-200 bg-slate-50 p-3 dark:border-gray-700 dark:bg-slate-800">
           <h4 className="m-0 text-sm font-semibold">
-            Sự kiện ngày {selectedDate.format("DD/MM/YYYY")}
+            Sự kiện ngày {format(selectedDate, "dd/MM/yyyy")}
           </h4>
           {selectedDateEvents.length > 0 ? (
             <ul className="mt-2 divide-y divide-gray-200 dark:divide-gray-700">
@@ -79,7 +79,7 @@ export default function Calendar() {
                   <div className="text-sm font-medium">{event.title}</div>
                   <div className="text-xs text-slate-600 dark:text-slate-300 inline-flex items-center gap-1">
                     <ClockCircleOutlined />{" "}
-                    {moment(event.datetime.toDate()).format("HH:mm")}
+                    {format(event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime), "HH:mm")}
                   </div>
                   {event.description && (
                     <div className="text-xs text-slate-500 dark:text-slate-400">

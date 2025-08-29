@@ -1,10 +1,10 @@
 import React, { useState, useContext, useEffect } from "react";
 import { CalendarOutlined } from "@ant-design/icons";
-import { AppContext } from "../../Context/AppProvider.jsx";
-import { AuthContext } from "../../Context/AuthProvider.jsx";
+import { AppContext } from "../../Context/AppProvider";
+import { AuthContext } from "../../Context/AuthProvider";
 import { useAlert } from "../../Context/AlertProvider";
 import { createEvent } from "../../firebase/services";
-import moment from "moment";
+import { format, parse, isBefore } from "date-fns";
 
 export default function EventModal({ visible, onCancel, initialData = null }) {
   const { selectedRoom, members } = useContext(AppContext);
@@ -14,19 +14,20 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    date: moment().format("YYYY-MM-DD"),
-    time: moment().format("HH:mm"),
+    date: format(new Date(), "yyyy-MM-dd"),
+    time: format(new Date(), "HH:mm"),
     participants: [],
     reminderMinutes: 15,
   });
 
   useEffect(() => {
     if (initialData) {
+      const eventDate = initialData.datetime.toDate ? initialData.datetime.toDate() : new Date(initialData.datetime);
       setForm({
         title: initialData.title || "",
         description: initialData.description || "",
-        date: moment(initialData.datetime).format("YYYY-MM-DD"),
-        time: moment(initialData.datetime).format("HH:mm"),
+        date: format(eventDate, "yyyy-MM-dd"),
+        time: format(eventDate, "HH:mm"),
         participants: initialData.participants || [],
         reminderMinutes: initialData.reminderMinutes ?? 15,
       });
@@ -54,18 +55,15 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
     }
 
     // Validate date is not in the past
-    const eventDateTime = moment(`${form.date} ${form.time}`);
-    if (eventDateTime.isBefore(moment())) {
+    const eventDateTime = parse(`${form.date} ${form.time}`, "yyyy-MM-dd HH:mm", new Date());
+    if (isBefore(eventDateTime, new Date())) {
       warning("Không thể tạo sự kiện trong quá khứ!");
       return;
     }
 
     setLoading(true);
     try {
-      const eventDateTime = moment(
-        `${form.date} ${form.time}`,
-        "YYYY-MM-DD HH:mm"
-      ).toDate();
+      const eventDateTime = parse(`${form.date} ${form.time}`, "yyyy-MM-dd HH:mm", new Date());
       const eventData = {
         title: form.title,
         description: form.description || "",
