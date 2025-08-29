@@ -363,7 +363,7 @@ export default function ChatWindow() {
   const hasActiveChat = (chatType === 'room' && selectedRoom.id) || (chatType === 'direct' && selectedConversation.id);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col bg-white dark:bg-slate-900">
       {hasActiveChat ? (
         <>
           <div className="flex h-14 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
