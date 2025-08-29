@@ -1,5 +1,4 @@
 // Lightweight notification using native alerts for now
-import { CalendarOutlined } from '@ant-design/icons';
 import moment from 'moment';
 
 class ReminderService {

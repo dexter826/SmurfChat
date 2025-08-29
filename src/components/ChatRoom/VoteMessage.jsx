@@ -3,7 +3,6 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
   BarChartOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import { castVote, deleteVote } from "../../firebase/services";
 import { AuthContext } from "../../Context/AuthProvider.jsx";

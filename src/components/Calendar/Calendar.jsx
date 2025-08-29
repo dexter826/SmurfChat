@@ -2,7 +2,6 @@ import React, { useState, useContext } from "react";
 import {
   CalendarOutlined,
   ClockCircleOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import { AppContext } from "../../Context/AppProvider.jsx";
 // import { AuthContext } from '../../Context/AuthProvider.jsx';
@@ -38,10 +37,6 @@ export default function Calendar() {
       const eventDate = moment(event.datetime.toDate());
       return eventDate.format("YYYY-MM-DD") === date.format("YYYY-MM-DD");
     });
-  };
-
-  const onDateSelect = (date) => {
-    setSelectedDate(date);
   };
 
   const selectedDateEvents = getEventsForDate(selectedDate);
