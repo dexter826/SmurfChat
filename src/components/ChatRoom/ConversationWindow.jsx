@@ -5,6 +5,8 @@ import { addDocument, updateConversationLastMessage, updateLastSeen, setTypingSt
 import useFirestore from '../../hooks/useFirestore';
 import Message from './Message';
 import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
+import FileUpload from '../FileUpload/FileUpload';
+import VoiceRecording from '../FileUpload/VoiceRecording';
 
 export default function ConversationWindow() {
   const { selectedConversation } = useContext(AppContext);
@@ -36,6 +38,7 @@ export default function ConversationWindow() {
       photoURL,
       conversationId: selectedConversation.id,
       displayName,
+      messageType: 'text',
     });
 
     // Update conversation's last message
@@ -55,6 +58,57 @@ export default function ConversationWindow() {
       setTimeout(() => {
         inputRef.current.focus();
       });
+    }
+  };
+
+  // Handle file upload
+  const handleFileUploaded = async (fileData) => {
+    if (!selectedConversation.id) return;
+
+    const messageData = {
+      uid,
+      photoURL,
+      displayName,
+      messageType: fileData.messageType,
+      fileData: fileData,
+      text: '', // Empty text for file messages
+      conversationId: selectedConversation.id,
+    };
+
+    addDocument('directMessages', messageData);
+
+    // Update conversation's last message
+    try {
+      const lastMessageText = fileData.messageType === 'voice' ? '🎤 Tin nhắn thoại' : 
+                             fileData.category === 'image' ? '🖼️ Hình ảnh' : 
+                             `📎 ${fileData.name}`;
+      await updateConversationLastMessage(selectedConversation.id, lastMessageText, uid);
+    } catch (error) {
+      console.error('Error updating conversation:', error);
+    }
+  };
+
+  // Handle location sharing
+  const handleLocationShared = async (locationData) => {
+    if (!selectedConversation.id) return;
+
+    const messageData = {
+      uid,
+      photoURL,
+      displayName,
+      messageType: 'location',
+      locationData: locationData,
+      text: '', // Empty text for location messages
+      conversationId: selectedConversation.id,
+    };
+
+    addDocument('directMessages', messageData);
+
+    // Update conversation's last message
+    try {
+      await updateConversationLastMessage(selectedConversation.id, '📍 Vị trí được chia sẻ', uid);
+    } catch (error) {
+      console.error('Error updating conversation:', error);
     }
   };
 
@@ -164,6 +218,9 @@ export default function ConversationWindow() {
                   displayName={mes.displayName}
                   createdAt={mes.createdAt}
                   uid={mes.uid}
+                  messageType={mes.messageType}
+                  fileData={mes.fileData}
+                  locationData={mes.locationData}
                 />
               ))}
             </div>
@@ -186,10 +243,18 @@ export default function ConversationWindow() {
                 Hai bạn chưa là bạn bè. Hãy kết bạn để có thể nhắn tin.
               </div>
             )}
-            <div className="flex items-center justify-between rounded border border-gray-200 p-1 dark:border-gray-700">
+            <div className="flex items-center space-x-2 rounded border border-gray-200 p-1 dark:border-gray-700">
+              {/* File Upload Component */}
+              <FileUpload
+                onFileUploaded={handleFileUploaded}
+                onLocationShared={handleLocationShared}
+                disabled={!canChat}
+              />
+              
+              {/* Text Input */}
               <input
                 ref={inputRef}
-                className="w-full bg-transparent px-2 py-1 outline-none placeholder:text-slate-400"
+                className="flex-1 bg-transparent px-2 py-1 outline-none placeholder:text-slate-400"
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleOnSubmit(); } }}
                 placeholder='Nhập tin nhắn...'
@@ -197,8 +262,15 @@ export default function ConversationWindow() {
                 value={inputValue}
                 disabled={!canChat}
               />
+              
+              {/* Voice Recording Button */}
+              <VoiceRecording
+                onVoiceUploaded={handleFileUploaded}
+                disabled={!canChat}
+              />
+              
               <button
-                className={`ml-2 rounded px-3 py-1 text-sm font-medium text-white ${canChat ? 'bg-skybrand-600 hover:bg-skybrand-700' : 'bg-slate-400'}`}
+                className={`rounded px-3 py-1 text-sm font-medium text-white ${canChat ? 'bg-skybrand-600 hover:bg-skybrand-700' : 'bg-slate-400'}`}
                 onClick={handleOnSubmit}
                 disabled={!canChat}
               >

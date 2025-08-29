@@ -26,9 +26,59 @@ export default function Message({
   messageType = 'text',
   fileData,
   locationData,
+  messageStatus = 'sent',
+  readBy = [],
 }) {
   const { user } = React.useContext(AuthContext);
   const isOwn = uid === user?.uid;
+
+  // Render message status for own messages
+  const renderMessageStatus = () => {
+    if (!isOwn) return null;
+
+    const getStatusIcon = () => {
+      switch (messageStatus) {
+        case 'sending':
+          return <span className="text-gray-400">⏳</span>;
+        case 'sent':
+          return <span className="text-gray-400">✓</span>;
+        case 'delivered':
+          return <span className="text-blue-500">✓✓</span>;
+        case 'read':
+          return <span className="text-blue-600">✓✓</span>;
+        case 'failed':
+          return <span className="text-red-500">❌</span>;
+        default:
+          return <span className="text-gray-400">✓</span>;
+      }
+    };
+
+    const getStatusText = () => {
+      switch (messageStatus) {
+        case 'sending':
+          return 'Đang gửi...';
+        case 'sent':
+          return 'Đã gửi';
+        case 'delivered':
+          return 'Đã nhận';
+        case 'read':
+          return readBy.length > 1 ? `Đã xem bởi ${readBy.length} người` : 'Đã xem';
+        case 'failed':
+          return 'Gửi thất bại';
+        default:
+          return 'Đã gửi';
+      }
+    };
+
+    return (
+      <div className="flex items-center justify-end mt-1 space-x-1">
+        {getStatusIcon()}
+        <span className="text-[10px] text-gray-500 dark:text-gray-400">
+          {getStatusText()}
+        </span>
+      </div>
+    );
+  };
 
   const renderMessageContent = () => {
     switch (messageType) {
@@ -86,6 +136,7 @@ export default function Message({
           </span>
         </div>
         {renderMessageContent()}
+        {renderMessageStatus()}
       </div>
     </div>
   );

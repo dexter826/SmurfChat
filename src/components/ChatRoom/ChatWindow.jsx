@@ -2,6 +2,7 @@ import { CalendarOutlined, BarChartOutlined } from '@ant-design/icons';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
+import { useAlert } from '../../Context/AlertProvider';
 import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, dissolveRoom, updateRoomLastMessage, updateLastSeen, setTypingStatus } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
 import Message from './Message';
@@ -24,6 +25,7 @@ export default function ChatWindow() {
   const {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
+  const { confirm, success, error } = useAlert();
   const [inputValue, setInputValue] = useState('');
   const messageListRef = useRef();
   const inputRef = useRef();
@@ -70,7 +72,7 @@ export default function ChatWindow() {
       // Suggest creating an event if time detected
       if (detectedTime) {
         const eventTitle = extractEventTitle(inputValue);
-        const ok = window.confirm('Phát hiện thời gian trong tin nhắn. Tạo sự kiện?');
+        const ok = await confirm('Phát hiện thời gian trong tin nhắn. Tạo sự kiện?');
         if (ok) {
           await handleCreateEventFromMessage(eventTitle, detectedTime);
         }
@@ -207,21 +209,24 @@ export default function ChatWindow() {
       };
 
       await createEvent(eventData);
-      try { window.alert('Sự kiện đã được tạo thành công!'); } catch { }
-    } catch (error) {
-      console.error('Error creating event from message:', error);
-      try { window.alert('Có lỗi xảy ra khi tạo sự kiện!'); } catch { }
+      success('Sự kiện đã được tạo thành công!');
+    } catch (err) {
+      console.error('Error creating event from message:', err);
+      error('Có lỗi xảy ra khi tạo sự kiện!');
     }
   };
 
   const handleDissolveRoom = async () => {
+    const confirmed = await confirm('Giải tán nhóm này? Hành động không thể hoàn tác.', 'Xác nhận giải tán');
+    if (!confirmed) return;
+    
     try {
       await dissolveRoom(selectedRoom.id);
-      try { window.alert('Nhóm đã được giải tán thành công!'); } catch { }
+      success('Nhóm đã được giải tán thành công!');
       setTimeout(() => { window.location.reload(); }, 1000);
-    } catch (error) {
-      console.error('Error dissolving room:', error);
-      try { window.alert('Có lỗi xảy ra khi giải tán nhóm!'); } catch { }
+    } catch (err) {
+      console.error('Error dissolving room:', err);
+      error('Có lỗi xảy ra khi giải tán nhóm!');
     }
   };
 
@@ -421,7 +426,7 @@ export default function ChatWindow() {
                 {isAdmin && (
                   <button
                     className="rounded-md border border-rose-300 px-2 py-1 text-sm font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
-                    onClick={() => { if (window.confirm('Giải tán nhóm này? Hành động không thể hoàn tác.')) handleDissolveRoom(); }}
+                    onClick={handleDissolveRoom}
                   >
                     Giải tán nhóm
                   </button>
@@ -452,6 +457,8 @@ export default function ChatWindow() {
                       messageType={item.messageType}
                       fileData={item.fileData}
                       locationData={item.locationData}
+                      messageStatus={item.messageStatus || 'sent'}
+                      readBy={item.readBy || []}
                     />
                   );
                 }

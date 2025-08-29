@@ -5,6 +5,7 @@ import ChatRoom from "./components/ChatRoom/index.jsx";
 import AuthProvider from "./Context/AuthProvider.jsx";
 import AppProvider from "./Context/AppProvider.jsx";
 import { ThemeProvider } from "./Context/ThemeProvider.jsx";
+import AlertProvider from "./Context/AlertProvider.jsx";
 import AddRoomModal from "./components/Modals/AddRoomModal.jsx";
 import InviteMemberModal from "./components/Modals/InviteMemberModal.jsx";
 import CalendarModal from "./components/Modals/CalendarModal.jsx";
@@ -16,22 +17,24 @@ function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
-        <div className="app-root">
-          <AuthProvider>
-            <AppProvider>
-              <Switch>
-                <Route component={Login} path="/login" />
-                <Route component={ChatRoom} path="/" />
-              </Switch>
-              <AddRoomModal />
-              <InviteMemberModal />
-              <CalendarModal />
-              <VoteModal />
-              <NewMessageModal />
-              <AddFriendModal />
-            </AppProvider>
-          </AuthProvider>
-        </div>
+        <AlertProvider>
+          <div className="app-root">
+            <AuthProvider>
+              <AppProvider>
+                <Switch>
+                  <Route component={Login} path="/login" />
+                  <Route component={ChatRoom} path="/" />
+                </Switch>
+                <AddRoomModal />
+                <InviteMemberModal />
+                <CalendarModal />
+                <VoteModal />
+                <NewMessageModal />
+                <AddFriendModal />
+              </AppProvider>
+            </AuthProvider>
+          </div>
+        </AlertProvider>
       </ThemeProvider>
     </BrowserRouter>
   );

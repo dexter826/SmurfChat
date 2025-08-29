@@ -3,7 +3,7 @@ import { doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 export const useOnlineStatus = (userId) => {
-  const [isOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
     if (!userId) return;
@@ -16,6 +16,7 @@ export const useOnlineStatus = (userId) => {
           isOnline: online,
           lastSeen: new Date()
         });
+        setIsOnline(online);
       } catch (error) {
         console.error('Error updating online status:', error);
       }
@@ -43,12 +44,20 @@ export const useOnlineStatus = (userId) => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Heartbeat to maintain online status every 30 seconds
+    const heartbeatInterval = setInterval(() => {
+      if (!document.hidden && navigator.onLine) {
+        updateOnlineStatus(true);
+      }
+    }, 30000);
+
     // Cleanup
     return () => {
       updateOnlineStatus(false);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(heartbeatInterval);
     };
   }, [userId]);
 
@@ -65,8 +74,23 @@ export const useUserOnlineStatus = (userId) => {
     const unsubscribe = onSnapshot(userRef, (doc) => {
       if (doc.exists()) {
         const data = doc.data();
+        const lastSeen = data.lastSeen;
+        let isOnline = data.isOnline || false;
+
+        // Check if user should be considered offline based on last activity
+        if (isOnline && lastSeen) {
+          const lastSeenTime = lastSeen.toDate ? lastSeen.toDate() : new Date(lastSeen);
+          const now = new Date();
+          const timeDiff = now - lastSeenTime;
+          
+          // Consider user offline if no activity for more than 5 minutes
+          if (timeDiff > 5 * 60 * 1000) {
+            isOnline = false;
+          }
+        }
+
         setUserStatus({
-          isOnline: data.isOnline || false,
+          isOnline,
           lastSeen: data.lastSeen
         });
       }
