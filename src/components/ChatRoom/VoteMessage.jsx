@@ -1,8 +1,10 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useMemo, useEffect } from "react";
 import {
   CheckCircleOutlined,
   DeleteOutlined,
   BarChartOutlined,
+  UserOutlined,
+  CloseOutlined
 } from "@ant-design/icons";
 import { castVote, deleteVote } from "../../firebase/services";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
@@ -10,276 +12,270 @@ import { useAlert } from "../../Context/AlertProvider";
 import useFirestore from "../../hooks/useFirestore";
 
 const VoteMessage = ({ vote }) => {
-  const {
-    user: { uid },
-  } = useContext(AuthContext);
+  const { user: { uid } } = useContext(AuthContext);
   const { success, error, confirm } = useAlert();
   const [loading, setLoading] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [votersModalVisible, setVotersModalVisible] = useState(false);
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(null);
 
-  // Real-time vote data
-  const voteCondition = React.useMemo(
-    () => ({
-      fieldName: "__name__",
-      operator: "==",
-      compareValue: vote.id,
-    }),
-    [vote.id]
-  );
-
-  const voteData = useFirestore("votes", voteCondition)?.[0] || vote;
+  // Real-time vote data with optimized condition
+  const voteData = useFirestore("votes", useMemo(() => ({
+    fieldName: "__name__",
+    operator: "==",
+    compareValue: vote.id,
+  }), [vote.id]))?.[0] || vote;
 
   const userVote = voteData.votes?.[uid];
   const hasVoted = userVote !== undefined;
+  const isCreator = voteData.createdBy === uid;
+  const totalVotes = Object.keys(voteData.votes || {}).length;
 
   // Initialize selected options from existing vote
-  React.useEffect(() => {
+  useEffect(() => {
     if (userVote && Array.isArray(userVote)) {
       setSelectedOptions(userVote);
     } else if (userVote !== undefined) {
       setSelectedOptions([userVote]);
     }
   }, [userVote]);
-  const isCreator = voteData.createdBy === uid;
-  const totalVotes = Object.keys(voteData.votes || {}).length;
 
   // Get all users for voter information
-  const allUsersCondition = React.useMemo(
-    () => ({
-      fieldName: "uid",
-      operator: "in",
-      compareValue: Object.keys(voteData.votes || {}),
-    }),
-    [voteData.votes]
-  );
+  const allUsers = useFirestore("users", useMemo(() => ({}), []));
 
-  const allUsers = useFirestore(
-    "users",
-    Object.keys(voteData.votes || {}).length > 0 ? allUsersCondition : null
-  );
+  // Calculate vote statistics
+  const voteStats = useMemo(() => {
+    const votes = voteData.votes || {};
+    const stats = voteData.options.map((option, index) => {
+      const voters = Object.entries(votes).filter(([, userVotes]) => {
+        return Array.isArray(userVotes) ? userVotes.includes(index) : userVotes === index;
+      });
+      
+      return {
+        option,
+        count: voters.length,
+        percentage: totalVotes > 0 ? Math.round((voters.length / totalVotes) * 100) : 0,
+        voters: voters.map(([userId]) => {
+          const user = allUsers.find(u => u.uid === userId);
+          return { uid: userId, displayName: user?.displayName || 'Unknown' };
+        })
+      };
+    });
+    
+    return stats;
+  }, [voteData.options, voteData.votes, totalVotes, allUsers]);
 
-  const handleOptionToggle = async (optionIndex) => {
-    if (hasVoted || loading) return;
-
-    const newSelectedOptions = selectedOptions.includes(optionIndex)
-      ? selectedOptions.filter((idx) => idx !== optionIndex)
-      : [...selectedOptions, optionIndex];
-
-    setSelectedOptions(newSelectedOptions);
-
-    // Auto-save vote if there are selected options
-    if (newSelectedOptions.length > 0) {
-      try {
-        setLoading(true);
-        await castVote(voteData.id, uid, newSelectedOptions);
-        success("Đã vote thành công!");
-      } catch (err) {
-        console.error("Error voting:", err);
-        error("Có lỗi xảy ra khi vote");
-        // Revert selection on error
-        setSelectedOptions(selectedOptions);
-      } finally {
-        setLoading(false);
+  const handleOptionToggle = (optionIndex) => {
+    if (hasVoted && !voteData.allowChangeVote) return;
+    
+    setSelectedOptions(prev => {
+      if (voteData.multipleChoice) {
+        return prev.includes(optionIndex)
+          ? prev.filter(i => i !== optionIndex)
+          : [...prev, optionIndex];
+      } else {
+        return [optionIndex];
       }
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await deleteVote(voteData.id);
-      success("Đã xóa vote");
-    } catch (err) {
-      console.error("Error deleting vote:", err);
-      error("Có lỗi xảy ra khi xóa vote");
-    }
-  };
-
-  const getOptionVoteCount = (optionIndex) => {
-    if (!voteData.votes) return 0;
-    return Object.values(voteData.votes).filter((vote) => {
-      if (Array.isArray(vote)) {
-        return vote.includes(optionIndex);
-      }
-      return vote === optionIndex;
-    }).length;
-  };
-
-  const getOptionPercentage = (optionIndex) => {
-    if (totalVotes === 0) return 0;
-    const count = getOptionVoteCount(optionIndex);
-    return Math.round((count / totalVotes) * 100);
-  };
-
-  const getVotersForOption = (optionIndex) => {
-    if (!voteData.votes || !allUsers) return [];
-
-    const voterIds = Object.entries(voteData.votes)
-      .filter(([, vote]) => {
-        if (Array.isArray(vote)) {
-          return vote.includes(optionIndex);
-        }
-        return vote === optionIndex;
-      })
-      .map(([userId]) => userId);
-
-    return voterIds.map((userId) => {
-      const user = allUsers.find((u) => u.uid === userId);
-      return user || { uid: userId, displayName: "Unknown User", photoURL: "" };
     });
   };
 
-  const handleShowVoters = (optionIndex) => {
+  const handleSubmitVote = async () => {
+    if (selectedOptions.length === 0) {
+      error("Vui lòng chọn ít nhất một tùy chọn!");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const voteValue = voteData.multipleChoice ? selectedOptions : selectedOptions[0];
+      await castVote(vote.id, uid, voteValue);
+      success(hasVoted ? "Đã cập nhật vote!" : "Đã vote thành công!");
+    } catch (err) {
+      console.error("Error casting vote:", err);
+      error("Không thể vote. Vui lòng thử lại!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteVote = async () => {
+    const confirmed = await confirm(
+      "Xác nhận xóa",
+      "Bạn có chắc chắn muốn xóa cuộc vote này? Hành động này không thể hoàn tác."
+    );
+    
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      await deleteVote(vote.id);
+      success("Đã xóa cuộc vote!");
+    } catch (err) {
+      console.error("Error deleting vote:", err);
+      error("Không thể xóa vote!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showVoters = (optionIndex) => {
     setSelectedOptionIndex(optionIndex);
     setVotersModalVisible(true);
   };
 
   return (
-    <div className="mx-auto my-2 block max-w-[60%] rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-slate-900">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="inline-flex items-center gap-2 text-skybrand-700 dark:text-skybrand-300">
-          <BarChartOutlined />
-          <h5 className="m-0 text-base font-semibold">{voteData.title}</h5>
-        </div>
-        {isCreator && (
-          <button
-            className="rounded-md border border-rose-300 p-1 text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
-            onClick={async () => {
-              const confirmed = await confirm("Bạn có chắc muốn xóa vote này?");
-              if (confirmed) {
-                handleDelete();
-              }
-            }}
-            title="Xóa vote"
-          >
-            <DeleteOutlined />
-          </button>
-        )}
-      </div>
-
-      {voteData.description && (
-        <div className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-          {voteData.description}
-        </div>
-      )}
-
-      <div>
-        {voteData.options?.map((option, index) => {
-          const selected = selectedOptions.includes(index);
-          const userSelected = Array.isArray(userVote)
-            ? userVote.includes(index)
-            : userVote === index;
-          const percent = getOptionPercentage(index);
-          return (
-            <div
-              key={index}
-              className={`my-2 cursor-pointer rounded-lg border px-3 py-2 ${
-                hasVoted ? "cursor-default" : ""
-              } ${
-                selected
-                  ? "border-skybrand-500 bg-skybrand-50 dark:bg-skybrand-900/10"
-                  : "border-gray-200 dark:border-gray-700"
-              }`}
-              onClick={() => handleOptionToggle(index)}
+    <>
+      <div className="mx-auto my-3 max-w-[85%] rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-4 shadow-sm dark:border-blue-800/40 dark:from-slate-800 dark:to-slate-900">
+        {/* Header */}
+        <div className="mb-3 flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            <BarChartOutlined className="text-blue-600 dark:text-blue-400" />
+            <h4 className="font-semibold text-slate-800 dark:text-slate-200">
+              {voteData.question}
+            </h4>
+          </div>
+          {isCreator && (
+            <button
+              onClick={handleDeleteVote}
+              disabled={loading}
+              className="rounded-lg p-1.5 text-red-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
+              title="Xóa vote"
             >
-              <div className="flex items-center justify-between">
-                <div className="inline-flex items-center gap-2">
-                  {hasVoted && userSelected && (
-                    <CheckCircleOutlined className="text-emerald-600" />
-                  )}
-                  {!hasVoted && selected && (
-                    <CheckCircleOutlined className="text-skybrand-600" />
-                  )}
-                  <span className="text-sm">{option}</span>
-                </div>
-                {hasVoted && (
-                  <button
-                    className="text-xs text-slate-500 underline dark:text-slate-400"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleShowVoters(index);
-                    }}
-                  >
-                    {getOptionVoteCount(index)} vote
-                    {getOptionVoteCount(index) !== 1 ? "s" : ""}
-                  </button>
-                )}
-              </div>
-              {hasVoted && (
-                <div className="mt-2 h-2 w-full rounded bg-slate-200 dark:bg-slate-700">
-                  <div
-                    className={`h-2 rounded ${
-                      userSelected ? "bg-emerald-500" : "bg-skybrand-600"
-                    }`}
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              <DeleteOutlined />
+            </button>
+          )}
+        </div>
 
-      <div className="mt-3 border-t border-gray-200 pt-2 text-xs text-slate-500 dark:border-gray-700 dark:text-slate-400">
-        {hasVoted ? (
-          <span>
-            Tổng cộng: {totalVotes} người đã vote • Tạo bởi{" "}
-            {voteData.creatorName}
-          </span>
-        ) : (
-          <span>
-            Chọn một hoặc nhiều lựa chọn • Tạo bởi {voteData.creatorName}
-          </span>
+        {/* Description */}
+        {voteData.description && (
+          <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
+            {voteData.description}
+          </p>
         )}
+
+        {/* Vote Options */}
+        <div className="space-y-2">
+          {voteStats.map((stat, index) => {
+            const isSelected = selectedOptions.includes(index);
+            const maxCount = Math.max(...voteStats.map(s => s.count));
+            const isWinning = stat.count > 0 && stat.count === maxCount;
+            
+            return (
+              <div
+                key={index}
+                className={`relative overflow-hidden rounded-lg border p-3 transition-all duration-200 ${
+                  hasVoted && !voteData.allowChangeVote
+                    ? "cursor-default"
+                    : "cursor-pointer hover:shadow-md"
+                } ${
+                  isSelected
+                    ? "border-blue-400 bg-blue-100 dark:border-blue-600 dark:bg-blue-900/30"
+                    : "border-gray-200 bg-white dark:border-gray-700 dark:bg-slate-800"
+                } ${
+                  isWinning && totalVotes > 0
+                    ? "ring-2 ring-green-400 dark:ring-green-600"
+                    : ""
+                }`}
+                onClick={() => handleOptionToggle(index)}
+              >
+                {/* Progress Bar Background */}
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-blue-200/40 to-blue-300/40 transition-all duration-300 dark:from-blue-800/20 dark:to-blue-700/20"
+                  style={{ width: `${stat.percentage}%` }}
+                />
+                
+                {/* Content */}
+                <div className="relative flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                      isSelected
+                        ? "border-blue-500 bg-blue-500"
+                        : "border-gray-300 dark:border-gray-600"
+                    }`}>
+                      {isSelected && <CheckCircleOutlined className="text-xs text-white" />}
+                    </div>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {stat.option}
+                    </span>
+                    {isWinning && totalVotes > 0 && (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        Dẫn đầu
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      {stat.count} ({stat.percentage}%)
+                    </span>
+                    {stat.count > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          showVoters(index);
+                        }}
+                        className="rounded px-1.5 py-0.5 text-xs text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                      >
+                        Chi tiết
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Vote Actions */}
+        {(!hasVoted || voteData.allowChangeVote) && (
+          <div className="mt-4 flex justify-between items-center">
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {voteData.multipleChoice ? "Có thể chọn nhiều tùy chọn" : "Chỉ chọn một tùy chọn"}
+            </div>
+            <button
+              onClick={handleSubmitVote}
+              disabled={loading || selectedOptions.length === 0}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? "Đang xử lý..." : hasVoted ? "Cập nhật vote" : "Vote"}
+            </button>
+          </div>
+        )}
+
+        {/* Vote Summary */}
+        <div className="mt-3 flex justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>Tổng cộng: {totalVotes} người vote</span>
+          <span>Tạo bởi: {voteData.createdByName}</span>
+        </div>
       </div>
 
-      {votersModalVisible && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setVotersModalVisible(false)}
-          />
-          <div className="relative z-10 w-full max-w-sm rounded-lg border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-slate-900">
+      {/* Voters Modal */}
+      {votersModalVisible && selectedOptionIndex !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-xl dark:bg-slate-800">
             <div className="mb-3 flex items-center justify-between">
-              <h4 className="m-0 text-sm font-semibold">
-                Người đã vote cho: {voteData.options?.[selectedOptionIndex]}
+              <h4 className="font-semibold">
+                Người vote: "{voteStats[selectedOptionIndex]?.option}"
               </h4>
               <button
-                className="rounded px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800"
                 onClick={() => setVotersModalVisible(false)}
+                className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                Đóng
+                <CloseOutlined />
               </button>
             </div>
-            <ul className="max-h-64 space-y-2 overflow-y-auto">
-              {(selectedOptionIndex !== null
-                ? getVotersForOption(selectedOptionIndex)
-                : []
-              ).map((voter) => (
-                <li key={voter.uid} className="flex items-center gap-2">
-                  {voter.photoURL ? (
-                    <img
-                      className="h-6 w-6 rounded-full"
-                      src={voter.photoURL}
-                      alt="avatar"
-                    />
-                  ) : (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-skybrand-600 text-[10px] text-white">
-                      {voter.displayName?.charAt(0)?.toUpperCase()}
-                    </div>
-                  )}
-                  <div className="text-sm">{voter.displayName}</div>
-                  <div className="ml-auto text-xs text-slate-500">
-                    {voter.uid === uid ? "Bạn" : "Thành viên"}
-                  </div>
-                </li>
+            <div className="max-h-60 space-y-2 overflow-y-auto">
+              {voteStats[selectedOptionIndex]?.voters.map((voter) => (
+                <div key={voter.uid} className="flex items-center gap-2 rounded p-2 bg-gray-50 dark:bg-gray-700">
+                  <UserOutlined className="text-gray-500" />
+                  <span className="text-sm">{voter.displayName}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
