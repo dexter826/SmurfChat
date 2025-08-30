@@ -10,7 +10,7 @@
 
 import { useState, useRef, useContext } from 'react';
 import { AuthContext } from '../Context/AuthProvider';
-import { addDocument, sendMessage, updateRoomLastMessage, updateConversationLastMessage } from '../firebase/services';
+import { sendMessage, updateRoomLastMessage, updateConversationLastMessage } from '../firebase/services';
 import { useEmoji } from './useEmoji';
 
 export const useMessageHandler = (chatType, chatData) => {

@@ -22,10 +22,12 @@ export default function ConversationWindow() {
   const {
     user: { uid },
   } = useContext(AuthContext);
-  
+
   // Get other user ID from conversation
-  const otherUserId = selectedConversation?.participants?.find(id => id !== uid);
-  
+  const otherUserId = selectedConversation?.participants?.find(
+    (id) => id !== uid
+  );
+
   // Use the new message handler hook
   const {
     inputValue,
@@ -37,15 +39,12 @@ export default function ConversationWindow() {
     handleLocationMessage,
     handleEmojiClick,
     toggleQuickReactions,
-  } = useMessageHandler('direct', selectedConversation);
-  
+  } = useMessageHandler("direct", selectedConversation);
+
   // Use the new block status hook
-  const {
-    isBlockedByMe,
-    isBlockingMe,
-    canSendMessage,
-  } = useBlockStatus(otherUserId);
-  
+  const { isBlockedByMe, isBlockingMe, canSendMessage } =
+    useBlockStatus(otherUserId);
+
   const messageListRef = useRef();
   const [canChat, setCanChat] = useState(true);
 
@@ -77,7 +76,15 @@ export default function ConversationWindow() {
     await handleLocationMessage(locationData);
   };
 
-  const condition = React.useMemo(
+  const directCondition = React.useMemo(
+    () => ({
+      fieldName: "type",
+      operator: "==",
+      compareValue: "direct",
+    }),
+    []
+  );
+  const conversationCondition = React.useMemo(
     () => ({
       fieldName: "conversationId",
       operator: "==",
@@ -85,21 +92,15 @@ export default function ConversationWindow() {
     }),
     [selectedConversation.id]
   );
-
-  const directCondition = React.useMemo(() => ({
-    fieldName: "type",
-    operator: "==",
-    compareValue: "direct",
-  }), []);
-  const conversationCondition = React.useMemo(() => ({
-    fieldName: "conversationId",
-    operator: "==",
-    compareValue: selectedConversation.id,
-  }), [selectedConversation.id]);
-  const messages = useFirestore("unified", directCondition && conversationCondition ? {
-    ...conversationCondition,
-    ...directCondition,
-  } : conversationCondition);
+  const messages = useFirestore(
+    "unified",
+    directCondition && conversationCondition
+      ? {
+          ...conversationCondition,
+          ...directCondition,
+        }
+      : conversationCondition
+  );
 
   useEffect(() => {
     // scroll to bottom after message changed
