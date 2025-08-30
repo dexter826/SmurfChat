@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useFirestore from '../hooks/useFirestore';
 import { AuthContext } from './AuthProvider';
+import { useAlert } from './AlertProvider';
 import { createOrUpdateConversation } from '../firebase/services';
 import reminderService from '../components/Notifications/ReminderService';
 
@@ -22,6 +23,13 @@ export default function AppProvider({ children }) {
   const {
     user: { uid },
   } = React.useContext(AuthContext);
+  
+  const alertProvider = useAlert();
+
+  // Set alert provider for reminder service
+  React.useEffect(() => {
+    reminderService.setAlertProvider(alertProvider);
+  }, [alertProvider]);
 
   const roomsCondition = React.useMemo(() => {
     return {
@@ -170,6 +178,7 @@ export default function AppProvider({ children }) {
   const originalTitleRef = useRef(document.title);
   const titleIntervalRef = useRef(null);
   const [, setUnreadCount] = useState(0);
+  const isInitialLoadRef = useRef(true); // Track if this is initial page load
 
   useEffect(() => {
     // Preload custom sound
@@ -181,6 +190,11 @@ export default function AppProvider({ children }) {
 
     // Store original title
     originalTitleRef.current = document.title;
+    
+    // Mark as not initial load after a short delay
+    setTimeout(() => {
+      isInitialLoadRef.current = false;
+    }, 2000); // Wait 2 seconds before enabling notifications
   }, []);
 
   const playNotificationSound = React.useCallback(async () => {
@@ -261,7 +275,8 @@ export default function AppProvider({ children }) {
 
   // Notify for direct messages (any conversation, not only selected)
   useEffect(() => {
-    if (!Array.isArray(conversations)) return;
+    if (!Array.isArray(conversations) || isInitialLoadRef.current) return; // Skip notifications during initial load
+    
     conversations.forEach((conv) => {
       if (!conv || conv.deleted) return;
       const lastAt = conv.lastMessageAt;
@@ -284,18 +299,21 @@ export default function AppProvider({ children }) {
         lastAtDate && notifiedConversationsRef.current[conv.id].getTime() === lastAtDate.getTime();
       
       const shouldNotify = lastAtDate && isFromOther && isUnread && !isMuted && !hasNotifiedForThisMessage &&
-        (!notifiedConversationsRef.current[conv.id] || lastAtDate > notifiedConversationsRef.current[conv.id]);
+        (!notifiedConversationsRef.current[conv.id] || lastAtDate > notifiedConversationsRef.current[conv.id]) &&
+        // Don't notify if user is currently viewing this conversation
+        (chatType !== 'direct' || selectedConversationId !== conv.id);
       
       if (shouldNotify) {
         notifiedConversationsRef.current[conv.id] = lastAtDate;
         playNotificationSound();
       }
     });
-  }, [conversations, uid, playNotificationSound]);
+  }, [conversations, uid, playNotificationSound, chatType, selectedConversationId]);
 
   // Optional: Notify for rooms as well using lastMessageAt/lastSeen
   useEffect(() => {
-    if (!Array.isArray(rooms)) return;
+    if (!Array.isArray(rooms) || isInitialLoadRef.current) return; // Skip notifications during initial load
+    
     rooms.forEach((room) => {
       if (!room || room.deleted) return;
       const lastAt = room.lastMessageAt;
@@ -312,14 +330,16 @@ export default function AppProvider({ children }) {
         lastAtDate && notifiedRoomsRef.current[room.id].getTime() === lastAtDate.getTime();
       
       const shouldNotify = lastAtDate && isFromOther && isUnread && !isMuted && !hasNotifiedForThisMessage &&
-        (!notifiedRoomsRef.current[room.id] || lastAtDate > notifiedRoomsRef.current[room.id]);
+        (!notifiedRoomsRef.current[room.id] || lastAtDate > notifiedRoomsRef.current[room.id]) &&
+        // Don't notify if user is currently viewing this room
+        (chatType !== 'room' || selectedRoomId !== room.id);
       
       if (shouldNotify) {
         notifiedRoomsRef.current[room.id] = lastAtDate;
         playNotificationSound();
       }
     });
-  }, [rooms, uid, playNotificationSound]);
+  }, [rooms, uid, playNotificationSound, chatType, selectedRoomId]);
 
   const clearState = () => {
     setSelectedRoomId('');

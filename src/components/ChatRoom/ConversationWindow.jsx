@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
-import { addDocument, updateConversationLastMessage, updateLastSeen, setTypingStatus, areUsersFriends } from '../../firebase/services';
+import { addDocument, updateConversationLastMessage, updateLastSeen, setTypingStatus, areUsersFriends, markMessageAsRead } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
 import Message from './Message';
 import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
@@ -180,6 +180,30 @@ export default function ConversationWindow() {
     };
     if (selectedConversation.id) {
       markSeen();
+    }
+  }, [selectedConversation.id, uid, messages]);
+
+  // Mark individual messages as read when conversation is open
+  useEffect(() => {
+    const markMessagesRead = async () => {
+      try {
+        if (messages && messages.length > 0 && selectedConversation.id && uid) {
+          // Mark all unread messages in this conversation as read
+          const unreadMessages = messages.filter(msg => 
+            msg.senderId !== uid && (!msg.readBy || !msg.readBy.includes(uid))
+          );
+          
+          for (const message of unreadMessages) {
+            await markMessageAsRead(message.id, uid, 'directMessages');
+          }
+        }
+      } catch (e) {
+        console.error('Error marking messages as read:', e);
+      }
+    };
+
+    if (selectedConversation.id && messages && messages.length > 0) {
+      markMessagesRead();
     }
   }, [selectedConversation.id, uid, messages]);
 

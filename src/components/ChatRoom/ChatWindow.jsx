@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
 import { useAlert } from '../../Context/AlertProvider';
-import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, dissolveRoom, updateRoomLastMessage, updateLastSeen, setTypingStatus } from '../../firebase/services';
+import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, updateRoomLastMessage, updateLastSeen, setTypingStatus, markMessageAsRead } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
 import Message from './Message';
 import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
@@ -237,20 +237,6 @@ export default function ChatWindow() {
     }
   };
 
-  const handleDissolveRoom = async () => {
-    const confirmed = await confirm('Giải tán nhóm này? Hành động không thể hoàn tác.', 'Xác nhận giải tán');
-    if (!confirmed) return;
-    
-    try {
-      await dissolveRoom(selectedRoom.id);
-      success('Nhóm đã được giải tán thành công!');
-      setTimeout(() => { window.location.reload(); }, 1000);
-    } catch (err) {
-      console.error('Error dissolving room:', err);
-      error('Có lỗi xảy ra khi giải tán nhóm!');
-    }
-  };
-
   // Conditions for fetching messages based on chat type
   const roomCondition = React.useMemo(
     () => ({
@@ -341,8 +327,36 @@ export default function ChatWindow() {
       try {
         if (chatType === 'room' && selectedRoom.id) {
           await updateLastSeen(selectedRoom.id, uid, false);
+          
+          // Mark all unread messages in this room as read
+          const unreadMessages = messages.filter(msg => 
+            msg.uid !== uid && // Not sent by current user
+            (!msg.readBy || !msg.readBy.includes(uid)) // Not already read by current user
+          );
+          
+          for (const message of unreadMessages) {
+            try {
+              await markMessageAsRead(message.id, uid, 'messages');
+            } catch (err) {
+              console.error('Error marking message as read:', err);
+            }
+          }
         } else if (chatType === 'direct' && selectedConversation.id) {
           await updateLastSeen(selectedConversation.id, uid, true);
+          
+          // Mark all unread direct messages as read
+          const unreadMessages = messages.filter(msg => 
+            msg.uid !== uid && // Not sent by current user
+            (!msg.readBy || !msg.readBy.includes(uid)) // Not already read by current user
+          );
+          
+          for (const message of unreadMessages) {
+            try {
+              await markMessageAsRead(message.id, uid, 'directMessages');
+            } catch (err) {
+              console.error('Error marking direct message as read:', err);
+            }
+          }
         }
       } catch (e) {
         console.error('Error updating last seen:', e);
@@ -351,7 +365,7 @@ export default function ChatWindow() {
     if ((chatType === 'room' && selectedRoom.id) || (chatType === 'direct' && selectedConversation.id)) {
       markSeen();
     }
-  }, [chatType, selectedRoom.id, selectedConversation.id, combinedMessages, uid]);
+  }, [chatType, selectedRoom.id, selectedConversation.id, combinedMessages, uid, messages]);
 
   // Update typing status (self)
   useEffect(() => {
@@ -377,8 +391,6 @@ export default function ChatWindow() {
     return () => clearTimeout(t);
   }, [inputValue, chatType, selectedRoom.id, selectedConversation.id, uid]);
 
-
-  const isAdmin = selectedRoom.admin === uid;
 
   // Determine if there's an active chat
   const hasActiveChat = (chatType === 'room' && selectedRoom.id) || (chatType === 'direct' && selectedConversation.id);
@@ -444,14 +456,6 @@ export default function ChatWindow() {
                 >
                   Thông tin nhóm
                 </button>
-                {isAdmin && (
-                  <button
-                    className="rounded-md border border-rose-300 px-2 py-1 text-sm font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
-                    onClick={handleDissolveRoom}
-                  >
-                    Giải tán nhóm
-                  </button>
-                )}
               </div>
             )}
           </div>

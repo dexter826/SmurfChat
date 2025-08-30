@@ -119,8 +119,12 @@ const FilePreview = ({ file, onDownload }) => {
             {file.duration && `${Math.floor(file.duration / 60)}:${(file.duration % 60).toString().padStart(2, '0')} • `}
             {formatFileSize(file.size)}
           </div>
-          <audio controls className="mt-2 w-full h-8">
-            <source src={file.url} type={file.type} />
+          <audio controls className="mt-2 w-full h-8" preload="metadata">
+            <source src={file.url} type={file.type || 'audio/webm'} />
+            {/* Fallback sources for better compatibility */}
+            <source src={file.url} type="audio/webm" />
+            <source src={file.url} type="audio/mp4" />
+            <source src={file.url} type="audio/ogg" />
             Trình duyệt không hỗ trợ audio này.
           </audio>
         </div>

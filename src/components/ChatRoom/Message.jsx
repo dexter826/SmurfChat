@@ -81,8 +81,18 @@ export default function Message({
   const renderMessageStatus = () => {
     if (!isOwn) return null;
 
+    // Determine status based on readBy array
+    let currentStatus = messageStatus;
+    if (readBy && readBy.length > 0) {
+      // If message has been read by someone other than sender
+      const readByOthers = readBy.filter(userId => userId !== uid);
+      if (readByOthers.length > 0) {
+        currentStatus = 'read';
+      }
+    }
+
     const getStatusIcon = () => {
-      switch (messageStatus) {
+      switch (currentStatus) {
         case 'sending':
           return <span className="text-gray-400">⏳</span>;
         case 'sent':
@@ -99,7 +109,7 @@ export default function Message({
     };
 
     const getStatusText = () => {
-      switch (messageStatus) {
+      switch (currentStatus) {
         case 'sending':
           return 'Đang gửi...';
         case 'sent':
@@ -107,7 +117,8 @@ export default function Message({
         case 'delivered':
           return 'Đã nhận';
         case 'read':
-          return readBy.length > 1 ? `Đã xem bởi ${readBy.length} người` : 'Đã xem';
+          const readByOthers = readBy ? readBy.filter(userId => userId !== uid) : [];
+          return readByOthers.length > 1 ? `Đã xem bởi ${readByOthers.length} người` : 'Đã xem';
         case 'failed':
           return 'Gửi thất bại';
         default:

@@ -6,7 +6,13 @@ class ReminderService {
     this.reminders = new Map();
     this.checkInterval = null;
     this.mutedChatIds = new Set();
+    this.alertProvider = null;
     this.startReminderCheck();
+  }
+
+  // Set alert provider for notifications
+  setAlertProvider(alertProvider) {
+    this.alertProvider = alertProvider;
   }
 
   // Start checking for reminders every minute
@@ -49,7 +55,7 @@ class ReminderService {
 
     this.reminders.forEach((reminder, eventId) => {
       if (!reminder.notified && (isBefore(reminder.reminderTime, now) || reminder.reminderTime.getTime() === now.getTime())) {
-        this.showReminderNotification(reminder);
+        this.showReminderNotification(reminder, this.alertProvider);
         reminder.notified = true;
       }
     });
@@ -61,7 +67,7 @@ class ReminderService {
   }
 
   // Show reminder notification
-  showReminderNotification(event) {
+  showReminderNotification(event, alertProvider = null) {
     // Do not show reminders if the event's room is muted
     if (event.roomId && this.mutedChatIds.has(event.roomId)) return;
     
@@ -70,9 +76,15 @@ class ReminderService {
     const timeUntilEvent = differenceInMinutes(eventTime, now);
 
     try {
-      // Replace with a custom toast system later
       const details = `${event.title}\nPhòng: ${event.roomName}\nThời gian: ${format(eventTime, 'dd/MM/yyyy HH:mm')}\nCòn ${timeUntilEvent} phút nữa` + (event.description ? `\n${event.description}` : '');
-      window.alert(`Nhắc nhở sự kiện\n\n${details}`);
+      
+      // Use custom modal instead of browser alert
+      if (alertProvider && alertProvider.info) {
+        alertProvider.info(details, 'Nhắc nhở sự kiện');
+      } else {
+        // Fallback to browser alert if modal not available
+        window.alert(`Nhắc nhở sự kiện\n\n${details}`);
+      }
     } catch { }
 
     // Also show a message for immediate attention
@@ -128,7 +140,14 @@ class ReminderService {
           return `• ${event.title} (${format(eventTime, 'HH:mm')} - ${event.roomName})`;
         }).join('\n');
         const more = upcomingEvents.length > 3 ? `\n...và ${upcomingEvents.length - 3} sự kiện khác` : '';
-        window.alert(`Lịch trình hôm nay\n\n${lines}${more}`);
+        
+        // Use custom modal instead of browser alert
+        if (this.alertProvider && this.alertProvider.info) {
+          this.alertProvider.info(`${lines}${more}`, 'Lịch trình hôm nay');
+        } else {
+          // Fallback to browser alert
+          window.alert(`Lịch trình hôm nay\n\n${lines}${more}`);
+        }
       } catch { }
     }
   }

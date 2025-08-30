@@ -8,11 +8,13 @@ import {
 } from "react-icons/fa";
 import { castVote, deleteVote } from "../../firebase/services";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
+import { AppContext } from "../../Context/AppProvider.jsx";
 import { useAlert } from "../../Context/AlertProvider";
 import useFirestore from "../../hooks/useFirestore";
 
 const VoteMessage = ({ vote }) => {
   const { user: { uid } } = useContext(AuthContext);
+  const { members } = useContext(AppContext);
   const { success, error, confirm } = useAlert();
   const [loading, setLoading] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState([]);
@@ -41,7 +43,11 @@ const VoteMessage = ({ vote }) => {
   }, [userVote]);
 
   // Get all users for voter information
-  const allUsers = useFirestore("users", useMemo(() => ({}), []));
+  const allUsers = useFirestore("users", useMemo(() => ({
+    fieldName: 'uid',
+    operator: '!=',
+    compareValue: null // Get all users
+  }), []));
 
   // Calculate vote statistics
   const voteStats = useMemo(() => {
@@ -56,40 +62,51 @@ const VoteMessage = ({ vote }) => {
         count: voters.length,
         percentage: totalVotes > 0 ? Math.round((voters.length / totalVotes) * 100) : 0,
         voters: voters.map(([userId]) => {
-          const user = allUsers.find(u => u.uid === userId);
-          return { uid: userId, displayName: user?.displayName || 'Unknown' };
+          // Try to find user in members first (room members), then in allUsers
+          let user = members.find(u => u.uid === userId);
+          if (!user) {
+            user = allUsers.find(u => u.uid === userId);
+          }
+          return { 
+            uid: userId, 
+            displayName: user?.displayName || user?.email || `User ${userId.substring(0, 6)}...` 
+          };
         })
       };
     });
     
     return stats;
-  }, [voteData.options, voteData.votes, totalVotes, allUsers]);
+  }, [voteData.options, voteData.votes, totalVotes, allUsers, members]);
 
   const handleOptionToggle = (optionIndex) => {
     if (hasVoted && !voteData.allowChangeVote) return;
     
-    setSelectedOptions(prev => {
-      if (voteData.multipleChoice) {
-        return prev.includes(optionIndex)
-          ? prev.filter(i => i !== optionIndex)
-          : [...prev, optionIndex];
-      } else {
-        return [optionIndex];
-      }
-    });
+    // Auto-submit vote when option is selected
+    const newSelectedOptions = voteData.multipleChoice 
+      ? (selectedOptions.includes(optionIndex)
+          ? selectedOptions.filter(i => i !== optionIndex)
+          : [...selectedOptions, optionIndex])
+      : [optionIndex];
+    
+    setSelectedOptions(newSelectedOptions);
+    
+    // Auto-submit the vote immediately
+    if (newSelectedOptions.length > 0) {
+      handleSubmitVote(newSelectedOptions);
+    }
   };
 
-  const handleSubmitVote = async () => {
-    if (selectedOptions.length === 0) {
+  const handleSubmitVote = async (optionsToSubmit = selectedOptions) => {
+    if (optionsToSubmit.length === 0) {
       error("Vui lòng chọn ít nhất một tùy chọn!");
       return;
     }
 
     setLoading(true);
     try {
-      const voteValue = voteData.multipleChoice ? selectedOptions : selectedOptions[0];
+      const voteValue = voteData.multipleChoice ? optionsToSubmit : optionsToSubmit[0];
       await castVote(vote.id, uid, voteValue);
-      success(hasVoted ? "Đã cập nhật vote!" : "Đã vote thành công!");
+      // Don't show success modal - removed as requested
     } catch (err) {
       console.error("Error casting vote:", err);
       error("Không thể vote. Vui lòng thử lại!");
@@ -225,22 +242,6 @@ const VoteMessage = ({ vote }) => {
             );
           })}
         </div>
-
-        {/* Vote Actions */}
-        {(!hasVoted || voteData.allowChangeVote) && (
-          <div className="mt-4 flex justify-between items-center">
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              {voteData.multipleChoice ? "Có thể chọn nhiều tùy chọn" : "Chỉ chọn một tùy chọn"}
-            </div>
-            <button
-              onClick={handleSubmitVote}
-              disabled={loading || selectedOptions.length === 0}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? "Đang xử lý..." : hasVoted ? "Cập nhật vote" : "Vote"}
-            </button>
-          </div>
-        )}
 
         {/* Vote Summary */}
         <div className="mt-3 flex justify-between text-xs text-slate-500 dark:text-slate-400">

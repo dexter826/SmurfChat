@@ -21,7 +21,19 @@ const VoiceRecording = ({ onVoiceUploaded, disabled = false }) => {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      
+      // Try different audio formats for better browser compatibility
+      const mimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus',
+        'audio/wav'
+      ];
+      
+      // Use the first supported mime type
+      const supportedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'audio/webm';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: supportedMimeType });
       const audioChunks = [];
 
       mediaRecorder.ondataavailable = (event) => {
@@ -29,7 +41,20 @@ const VoiceRecording = ({ onVoiceUploaded, disabled = false }) => {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        // Try different audio formats for better browser compatibility
+        let audioBlob;
+        const mimeTypes = [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/mp4',
+          'audio/ogg;codecs=opus',
+          'audio/wav'
+        ];
+        
+        // Use the first supported mime type
+        const supportedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'audio/webm';
+        audioBlob = new Blob(audioChunks, { type: supportedMimeType });
+        
         setIsUploading(true);
         
         try {
@@ -38,7 +63,8 @@ const VoiceRecording = ({ onVoiceUploaded, disabled = false }) => {
             ...result,
             category: 'voice',
             messageType: 'voice',
-            duration: recordingTime
+            duration: recordingTime,
+            type: supportedMimeType // Pass the actual mime type used
           });
         } catch (err) {
           console.error('Error uploading voice:', err);
