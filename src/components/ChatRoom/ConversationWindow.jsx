@@ -59,7 +59,7 @@ export default function ConversationWindow() {
         messageType: "text",
       };
 
-      await sendMessage(messageData, selectedConversation.id);
+      await sendMessage("directMessages", messageData);
 
       // Update conversation's last message
       if (selectedConversation.id) {
@@ -118,7 +118,7 @@ export default function ConversationWindow() {
         conversationId: selectedConversation.id,
       };
 
-      await sendMessage(messageData, selectedConversation.id);
+      await sendMessage("directMessages", messageData);
 
       // Update conversation's last message
       const lastMessageText =
@@ -155,7 +155,7 @@ export default function ConversationWindow() {
         conversationId: selectedConversation.id,
       };
 
-      await sendMessage(messageData, selectedConversation.id);
+      await sendMessage("directMessages", messageData);
 
       // Update conversation's last message
       await updateConversationLastMessage(

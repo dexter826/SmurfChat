@@ -153,7 +153,7 @@ export default function ChatWindow() {
           conversationId: selectedConversation.id,
         };
         
-        await sendMessage(fileMessage, selectedConversation.id);
+        await sendMessage("directMessages", fileMessage);
         
         // Update conversation's last message
         const { updateConversationLastMessage } = await import('../../firebase/services');
