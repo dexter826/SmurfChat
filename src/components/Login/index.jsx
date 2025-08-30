@@ -60,14 +60,14 @@ export default function Login() {
     setError("");
 
     const { email, password } = form;
-    
+
     // Validate inputs
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Email không hợp lệ!");
       setLoading(false);
       return;
     }
-    
+
     if (!password || password.length < 6) {
       setError("Mật khẩu phải có ít nhất 6 ký tự!");
       setLoading(false);
@@ -112,9 +112,9 @@ export default function Login() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Left side - Banner and description */}
           <div className="hidden lg:flex flex-col items-center justify-center text-center space-y-6">
-            <img 
-              src="/banner.png" 
-              alt="SmurfChat Banner" 
+            <img
+              src="/banner.png"
+              alt="SmurfChat Banner"
               className="w-full max-w-md h-auto object-contain"
             />
             <div className="space-y-4">
@@ -122,11 +122,12 @@ export default function Login() {
                 SmurfChat
               </h1>
               <p className="text-lg text-slate-600 dark:text-slate-300 max-w-md">
-                Kết nối với bạn bè và gia đình thông qua tin nhắn, cuộc gọi và nhiều tính năng thú vị khác.
+                Kết nối với bạn bè và gia đình thông qua tin nhắn và nhiều tính
+                năng thú vị khác.
               </p>
             </div>
           </div>
-          
+
           {/* Right side - Login form */}
           <div className="w-full max-w-md mx-auto lg:mx-0">
             <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-xl dark:border-gray-700 dark:bg-slate-900">
@@ -134,64 +135,76 @@ export default function Login() {
                 Đăng nhập
               </h2>
 
-        {error && (
-          <div className="mb-4 rounded border border-rose-300 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-700 dark:bg-rose-900/20 dark:text-rose-300">
-            <div className="flex items-start justify-between">
-              <span>{error}</span>
+              {error && (
+                <div className="mb-4 rounded border border-rose-300 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-700 dark:bg-rose-900/20 dark:text-rose-300">
+                  <div className="flex items-start justify-between">
+                    <span>{error}</span>
+                    <button
+                      className="ml-3 text-xs underline"
+                      onClick={() => setError("")}
+                    >
+                      Đóng
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
+                    placeholder="Email"
+                    value={form.email}
+                    onChange={(e) =>
+                      setForm({ ...form, email: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Mật khẩu
+                  </label>
+                  <input
+                    type="password"
+                    className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
+                    placeholder="Mật khẩu"
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm({ ...form, password: e.target.value })
+                    }
+                  />
+                </div>
+                <button
+                  className="w-full rounded-md bg-skybrand-600 px-4 py-2 text-sm font-medium text-white hover:bg-skybrand-700 disabled:opacity-50"
+                  onClick={handleEmailLogin}
+                  disabled={loading || !form.email || !form.password}
+                >
+                  {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+                </button>
+              </div>
+
+              <div className="my-5 text-center text-xs text-slate-500">
+                Hoặc
+              </div>
+
               <button
-                className="ml-3 text-xs underline"
-                onClick={() => setError("")}
+                className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-medium dark:border-gray-700"
+                onClick={handleGoogleLogin}
+                disabled={loading}
               >
-                Đóng
+                <span className="inline-flex items-center gap-2">
+                  <FaGoogle /> Đăng nhập bằng Google
+                </span>
               </button>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
-            <input
-              type="email"
-              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
-              placeholder="Email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Mật khẩu</label>
-            <input
-              type="password"
-              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
-              placeholder="Mật khẩu"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-          </div>
-          <button
-            className="w-full rounded-md bg-skybrand-600 px-4 py-2 text-sm font-medium text-white hover:bg-skybrand-700 disabled:opacity-50"
-            onClick={handleEmailLogin}
-            disabled={loading || !form.email || !form.password}
-          >
-            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-          </button>
-        </div>
-
-        <div className="my-5 text-center text-xs text-slate-500">Hoặc</div>
-
-        <button
-          className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-medium dark:border-gray-700"
-          onClick={handleGoogleLogin}
-          disabled={loading}
-        >
-          <span className="inline-flex items-center gap-2">
-            <FaGoogle /> Đăng nhập bằng Google
-          </span>
-        </button>
 
               <div className="mt-6 text-center text-sm">
-                <span className="text-slate-600 dark:text-slate-400">Chưa có tài khoản? </span>
+                <span className="text-slate-600 dark:text-slate-400">
+                  Chưa có tài khoản?{" "}
+                </span>
                 <button
                   className="text-skybrand-600 hover:text-skybrand-700 font-medium underline dark:text-skybrand-400 dark:hover:text-skybrand-300"
                   onClick={() => setShowRegister(true)}
