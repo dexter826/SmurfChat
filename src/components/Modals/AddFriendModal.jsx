@@ -1,8 +1,8 @@
-import React, { useState, useContext } from "react";
+import React, { useContext } from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
-import { sendFriendRequest, isUserBlocked } from "../../firebase/services";
-import useFirestore from "../../hooks/useFirestore";
+import { sendFriendRequest } from "../../firebase/services";
+import { useUserSearch } from "../../hooks/useUserSearch";
 
 const SearchIcon = () => (
   <svg
@@ -23,95 +23,24 @@ const SearchIcon = () => (
 export default function AddFriendModal() {
   const { isAddFriendVisible, setIsAddFriendVisible } = useContext(AppContext);
   const { user } = useContext(AuthContext);
-  const [publicSearchTerm, setPublicSearchTerm] = useState("");
-  const [blockedUsers, setBlockedUsers] = useState(new Set());
 
-  // Incoming friend requests for current user
-  const incomingReqsCondition = React.useMemo(
-    () => ({
-      fieldName: "to",
-      operator: "==",
-      compareValue: user?.uid,
-    }),
-    [user?.uid]
-  );
-  const incomingRequests = useFirestore(
-    "friend_requests",
-    incomingReqsCondition
-  ).filter((r) => r.status === "pending");
+  // Use useUserSearch hook for non-friends search
+  const {
+    searchTerm,
+    searchResults,
+    nonFriends,
+    incomingRequests,
+    outgoingRequests,
+    friendIds,
+    handleSearchChange,
+    clearSearch
+  } = useUserSearch({ 
+    searchType: 'non-friends', 
+    excludeBlocked: true 
+  });
 
-  // Outgoing friend requests
-  const outgoingReqsCondition = React.useMemo(
-    () => ({
-      fieldName: "from",
-      operator: "==",
-      compareValue: user?.uid,
-    }),
-    [user?.uid]
-  );
-  const outgoingRequests = useFirestore(
-    "friend_requests",
-    outgoingReqsCondition
-  ).filter((r) => r.status === "pending");
-
-  // Friends list (edges containing current user)
-  const friendsCondition = React.useMemo(
-    () => ({
-      fieldName: "participants",
-      operator: "array-contains",
-      compareValue: user?.uid,
-    }),
-    [user?.uid]
-  );
-  const friendEdges = useFirestore("friends", friendsCondition);
-
-  // Fetch all users (to resolve names)
-  const allUsersCondition = React.useMemo(
-    () => ({
-      fieldName: "uid",
-      operator: "!=",
-      compareValue: user?.uid,
-    }),
-    [user?.uid]
-  );
-  const allUsers = useFirestore("users", allUsersCondition);
-
-  // Load blocked users when modal opens
-  React.useEffect(() => {
-    const loadBlockedUsers = async () => {
-      if (!user?.uid || !isAddFriendVisible) return;
-
-      const blocked = new Set();
-      const checkPromises = allUsers.map(async (otherUser) => {
-        try {
-          const isBlocked = await isUserBlocked(user.uid, otherUser.uid);
-          if (isBlocked) {
-            blocked.add(otherUser.uid);
-          }
-        } catch (err) {
-          console.error('Error checking block status:', err);
-        }
-      });
-
-      await Promise.all(checkPromises);
-      setBlockedUsers(blocked);
-    };
-
-    loadBlockedUsers();
-  }, [user?.uid, isAddFriendVisible, allUsers]);
-
-  // Filter users for public search
-  const publicUsers = allUsers.filter(
-    (u) => {
-      // Filter out blocked users
-      if (blockedUsers.has(u.uid)) {
-        return false;
-      }
-      
-      return u.displayName?.toLowerCase().includes(publicSearchTerm.toLowerCase()) ||
-             u.email?.toLowerCase().includes(publicSearchTerm.toLowerCase());
-    }
-  );
+  // Use search results when there's a search term, otherwise show non-friends
+  const displayedUsers = searchTerm ? searchResults : nonFriends;
 
   const ActionButton = ({
     onClick,
@@ -179,7 +108,7 @@ export default function AddFriendModal() {
 
   const handleCancel = () => {
     setIsAddFriendVisible(false);
-    setPublicSearchTerm("");
+    clearSearch();
   };
 
   if (!isAddFriendVisible) return null;
@@ -211,8 +140,8 @@ export default function AddFriendModal() {
             <input
               type="text"
               placeholder="Tìm kiếm người dùng..."
-              value={publicSearchTerm}
-              onChange={(e) => setPublicSearchTerm(e.target.value)}
+              value={searchTerm}
+              onChange={handleSearchChange}
               className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 transition-all duration-200"
               autoFocus
             />
@@ -220,17 +149,15 @@ export default function AddFriendModal() {
         </div>
 
         <div className="thin-scrollbar max-h-80 overflow-y-auto">
-          {publicSearchTerm &&
-            publicUsers.slice(0, 10).map((searchUser) => {
+          {searchTerm &&
+            displayedUsers.slice(0, 10).map((searchUser) => {
               const hasOutgoingRequest = outgoingRequests.some(
                 (req) => req.to === searchUser.uid
               );
               const hasIncomingRequest = incomingRequests.some(
                 (req) => req.from === searchUser.uid
               );
-              const isFriend = friendEdges.some((edge) =>
-                edge.participants?.includes(searchUser.uid)
-              );
+              const isFriend = friendIds.includes(searchUser.uid);
 
               return (
                 <UserCard
@@ -253,7 +180,7 @@ export default function AddFriendModal() {
                         variant="primary"
                         onClick={async () => {
                           await sendFriendRequest(user.uid, searchUser.uid);
-                          setPublicSearchTerm("");
+                          clearSearch();
                         }}
                       >
                         Kết bạn
@@ -263,12 +190,12 @@ export default function AddFriendModal() {
                 />
               );
             })}
-          {publicSearchTerm && publicUsers.length === 0 && (
+          {searchTerm && displayedUsers.length === 0 && (
             <div className="py-8 text-center text-slate-500 dark:text-slate-400">
               Không tìm thấy người dùng nào
             </div>
           )}
-          {!publicSearchTerm && (
+          {!searchTerm && (
             <div className="py-8 text-center text-slate-500 dark:text-slate-400">
               Nhập tên hoặc email để tìm kiếm người dùng
             </div>

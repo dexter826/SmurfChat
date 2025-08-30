@@ -1,9 +1,9 @@
-import React, { useState, useContext } from "react";
+import React, { useContext } from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
-import { useAlert } from "../../Context/AlertProvider";
 import { createOrUpdateConversation } from "../../firebase/services";
-import useFirestore from "../../hooks/useFirestore";
+import { useAlert } from "../../Context/AlertProvider";
+import { useUserSearch } from "../../hooks/useUserSearch";
 
 const SearchIcon = () => (
   <svg
@@ -22,61 +22,26 @@ const SearchIcon = () => (
 );
 
 export default function NewMessageModal() {
-  const { isNewMessageVisible, setIsNewMessageVisible } =
-    useContext(AppContext);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { isNewMessageVisible, setIsNewMessageVisible } = useContext(AppContext);
   const { setSelectedConversationId, setChatType } = useContext(AppContext);
   const { user } = useContext(AuthContext);
   const { error } = useAlert();
+  
+    // Use useUserSearch hook
+  const {
+    searchTerm,
+    searchResults,
+    friends,
+    handleSearchChange,
+    clearSearch,
+    loading
+  } = useUserSearch({ searchType: 'friends' });
 
-  // Friends data for current user
-  const friendsCondition = React.useMemo(
-    () => ({
-      fieldName: "participants",
-      operator: "array-contains",
-      compareValue: user?.uid,
-    }),
-    [user?.uid]
-  );
-  const friendEdges = useFirestore("friends", friendsCondition);
-
-  // All users to resolve friend details
-  const allUsersCondition = React.useMemo(
-    () => ({
-      fieldName: "uid",
-      operator: "!=",
-      compareValue: user?.uid,
-    }),
-    [user?.uid]
-  );
-  const allUsers = useFirestore("users", allUsersCondition);
-
-  const getUserById = (uid) => allUsers.find((u) => u.uid === uid);
-
-  // Get friends list with user details
-  const friends = friendEdges
-    .map((edge) => {
-      const otherId = (edge.participants || []).find((id) => id !== user.uid);
-      const friendUser = getUserById(otherId);
-      return friendUser ? { ...friendUser, friendshipId: edge.id } : null;
-    })
-    .filter(Boolean);
-
-  // Filter friends based on search term
-  const filteredFriends = friends.filter((friend) => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      friend.displayName?.toLowerCase().includes(searchLower) ||
-      friend.email?.toLowerCase().includes(searchLower)
-    );
-  });
+  // Use search results when there's a search term, otherwise show all friends
+  const displayedUsers = searchTerm ? searchResults : friends;
 
   const openChatWith = async (selectedUser) => {
     try {
-      setLoading(true);
-
       // Create conversation ID (consistent ordering)
       const conversationId = [user.uid, selectedUser.uid].sort().join("_");
 
@@ -108,18 +73,16 @@ export default function NewMessageModal() {
 
       // Close modal and reset search
       setIsNewMessageVisible(false);
-      setSearchTerm("");
+      clearSearch();
     } catch (err) {
       console.error("Error creating conversation:", err);
       error(err.message || "Không thể tạo cuộc trò chuyện. Vui lòng thử lại.");
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleCancel = () => {
     setIsNewMessageVisible(false);
-    setSearchTerm("");
+    clearSearch();
   };
 
   if (!isNewMessageVisible) return null;
@@ -150,15 +113,15 @@ export default function NewMessageModal() {
               className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 transition-all duration-200"
               placeholder="Tìm kiếm bạn bè..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
               autoFocus
             />
           </div>
         </div>
 
-        {filteredFriends.length > 0 ? (
+        {displayedUsers.length > 0 ? (
           <div className="thin-scrollbar max-h-80 space-y-2 overflow-y-auto">
-            {filteredFriends.map((friend) => (
+            {displayedUsers.map((friend) => (
               <div
                 key={friend.uid}
                 className={`flex items-center justify-between rounded-lg p-3 ${
