@@ -10,21 +10,6 @@ import { FaCamera, FaTimes, FaEnvelope, FaCalendarAlt, FaCircle, FaBan } from 'r
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import useFirestore from '../../hooks/useFirestore';
 
-// Helper function để format join date
-const formatJoinDate = (date) => {
-  if (!date) return 'Không xác định';
-  try {
-    return new Intl.DateTimeFormat('vi-VN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(new Date(date));
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Không xác định';
-  }
-};
-
 function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile = false }) {
   const { user: currentUser } = useContext(AuthContext);
   const { selectConversation, setChatType } = useContext(AppContext);
