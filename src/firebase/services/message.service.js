@@ -3,7 +3,7 @@ import { db } from '../config';
 import { areMutuallyBlocked } from './block.service';
 
 // Delete message (hard delete)
-export const deleteMessage = async (messageId, collectionName = 'messages') => {
+export const deleteMessage = async (messageId, collectionName = 'unified', type) => {
   try {
     const messageRef = doc(db, collectionName, messageId);
     await deleteDoc(messageRef);
@@ -14,7 +14,7 @@ export const deleteMessage = async (messageId, collectionName = 'messages') => {
 };
 
 // Recall message (withdraw message within time limit)
-export const recallMessage = async (messageId, collectionName = 'messages', userId) => {
+export const recallMessage = async (messageId, collectionName = 'unified', userId, type) => {
   try {
     const messageRef = doc(db, collectionName, messageId);
     const messageDoc = await getDoc(messageRef);
@@ -75,11 +75,9 @@ export const recallMessage = async (messageId, collectionName = 'messages', user
     const { updateConversationLastMessage } = await import('./conversation.service');
 
     // Update room/conversation lastMessage if this was the latest message
-    if (collectionName === 'messages' && messageData.roomId) {
-      // For room messages
+    if (type === 'room' && messageData.roomId) {
       await updateRoomLastMessage(messageData.roomId, 'Tin nhắn đã được thu hồi', userId);
-    } else if (collectionName === 'directMessages' && messageData.conversationId) {
-      // For direct messages
+    } else if (type === 'direct' && messageData.conversationId) {
       await updateConversationLastMessage(messageData.conversationId, 'Tin nhắn đã được thu hồi', userId);
     }
 
@@ -103,7 +101,7 @@ export const canRecallMessage = (message, userId) => {
 };
 
 // Mark message as read
-export const markMessageAsRead = async (messageId, userId, collectionName = 'messages') => {
+export const markMessageAsRead = async (messageId, userId, collectionName = 'unified', type) => {
   try {
     const messageRef = doc(db, collectionName, messageId);
     const messageDoc = await getDoc(messageRef);
@@ -134,7 +132,7 @@ export const markMessageAsRead = async (messageId, userId, collectionName = 'mes
 export const sendMessage = async (collectionName, messageData) => {
   try {
     // Check for blocks in direct messages
-    if (collectionName === 'directMessages' && messageData.conversationId) {
+  if (collectionName === 'unified' && messageData.type === 'direct' && messageData.conversationId) {
       // Extract participant IDs from conversation ID (format: uid1_uid2)
       const participantIds = messageData.conversationId.split('_');
       
@@ -168,7 +166,7 @@ export const sendMessage = async (collectionName, messageData) => {
       createdAt: serverTimestamp(),
     });
     
-    return result.id;
+  return result.id;
   } catch (error) {
     console.error('Error sending message:', error);
     throw error;

@@ -111,7 +111,8 @@ export const useUserSearch = (options = {}) => {
 
   // Filter users by search term
   const filterUsersBySearch = useCallback((users, term) => {
-    if (!term.trim()) return users;
+  if (typeof term !== 'string') term = String(term || '');
+  if (!term.trim()) return users;
 
     const searchLower = term.toLowerCase();
     
@@ -215,8 +216,16 @@ export const useUserSearch = (options = {}) => {
 
   // Handle search term change
   const handleSearchChange = useCallback((term) => {
-    setSearchTerm(term);
-    debouncedSearch(term);
+    let value = term;
+    if (typeof value !== 'string') {
+      if (value && value.target && typeof value.target.value === 'string') {
+        value = value.target.value;
+      } else {
+        value = String(value || '');
+      }
+    }
+    setSearchTerm(value);
+    debouncedSearch(value);
   }, [debouncedSearch]);
 
   // Clear search

@@ -86,7 +86,20 @@ export default function ConversationWindow() {
     [selectedConversation.id]
   );
 
-  const messages = useFirestore("directMessages", condition);
+  const directCondition = React.useMemo(() => ({
+    fieldName: "type",
+    operator: "==",
+    compareValue: "direct",
+  }), []);
+  const conversationCondition = React.useMemo(() => ({
+    fieldName: "conversationId",
+    operator: "==",
+    compareValue: selectedConversation.id,
+  }), [selectedConversation.id]);
+  const messages = useFirestore("unified", directCondition && conversationCondition ? {
+    ...conversationCondition,
+    ...directCondition,
+  } : conversationCondition);
 
   useEffect(() => {
     // scroll to bottom after message changed
@@ -143,7 +156,7 @@ export default function ConversationWindow() {
           );
 
           for (const message of unreadMessages) {
-            await markMessageAsRead(message.id, uid, "directMessages");
+            await markMessageAsRead(message.id, uid, "unified", "direct");
           }
         }
       } catch (e) {

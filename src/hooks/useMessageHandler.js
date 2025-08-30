@@ -44,19 +44,18 @@ export const useMessageHandler = (chatType, chatData) => {
 
       if (chatType === 'room') {
         // Room message
-        await addDocument('messages', {
+        await sendMessage('unified', {
           ...messageData,
           roomId: chatData.id,
+          type: 'room',
         });
-        
         await updateRoomLastMessage(chatData.id, inputValue, uid);
       } else if (chatType === 'direct') {
-        // Direct message
-        await sendMessage("directMessages", {
+        await sendMessage('unified', {
           ...messageData,
           conversationId: chatData.id,
+          type: 'direct',
         });
-        
         await updateConversationLastMessage(chatData.id, inputValue, uid);
       }
 
@@ -93,18 +92,18 @@ export const useMessageHandler = (chatType, chatData) => {
 
     try {
       if (chatType === 'room') {
-        await addDocument('messages', {
+        await sendMessage('unified', {
           ...messageData,
           roomId: chatData.id,
+          type: 'room',
         });
-        
         await updateRoomLastMessage(chatData.id, lastMessageText, uid);
       } else if (chatType === 'direct') {
-        await sendMessage("directMessages", {
+        await sendMessage('unified', {
           ...messageData,
           conversationId: chatData.id,
+          type: 'direct',
         });
-        
         await updateConversationLastMessage(chatData.id, lastMessageText, uid);
       }
     } catch (error) {
@@ -132,18 +131,18 @@ export const useMessageHandler = (chatType, chatData) => {
 
     try {
       if (chatType === 'room') {
-        await addDocument('messages', {
+        await sendMessage('unified', {
           ...messageData,
           roomId: chatData.id,
+          type: 'room',
         });
-        
         await updateRoomLastMessage(chatData.id, lastMessageText, uid);
       } else if (chatType === 'direct') {
-        await sendMessage('directMessages', {
+        await sendMessage('unified', {
           ...messageData,
           conversationId: chatData.id,
+          type: 'direct',
         });
-        
         await updateConversationLastMessage(chatData.id, lastMessageText, uid);
       }
     } catch (error) {

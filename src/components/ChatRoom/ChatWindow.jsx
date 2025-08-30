@@ -95,7 +95,15 @@ export default function ChatWindow() {
     [selectedConversation.id]
   );
 
-  const roomMessages = useFirestore('messages', chatType === 'room' ? roomCondition : null);
+  const roomTypeCondition = React.useMemo(() => ({
+    fieldName: 'type',
+    operator: '==',
+    compareValue: 'room',
+  }), []);
+  const roomMessages = useFirestore('unified', chatType === 'room' ? {
+    ...roomCondition,
+    ...roomTypeCondition,
+  } : null);
   const directMessages = useFirestore('directMessages', chatType === 'direct' ? conversationCondition : null);
 
   const messages = chatType === 'room' ? roomMessages : directMessages;
@@ -173,7 +181,7 @@ export default function ChatWindow() {
           
           for (const message of unreadMessages) {
             try {
-              await markMessageAsRead(message.id, uid, 'messages');
+              await markMessageAsRead(message.id, uid, 'unified', 'room');
             } catch (err) {
               console.error('Error marking message as read:', err);
             }
