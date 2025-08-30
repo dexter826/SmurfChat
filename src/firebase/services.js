@@ -1,6 +1,20 @@
-import { collection, addDoc, serverTimestamp, doc, setDoc, updateDoc, getDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { db, auth } from './config';
+/**
+ * Firebase Services - Main Export File
+ * 
+ * This file serves as the main entry point for all Firebase services.
+ * It maintains backward compatibility by re-exporting functions from
+ * modular service files.
+ * 
+ * Architecture: Modular Services Pattern
+ * - Each service category has its own file (auth, message, room, etc.)
+ * - This file re-exports everything for seamless migration
+ * - No breaking changes for existing imports
+ * 
+ * Last Refactored: August 2025
+ */
+
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from './config';
 import { 
   uploadFile, 
   uploadImage, 
@@ -12,6 +26,63 @@ import {
   formatFileSize 
 } from '../supabase/storage';
 
+// Re-export authentication services for backward compatibility
+export { registerWithEmailAndPassword, loginWithEmailAndPassword, logoutUser } from './services/auth.service';
+
+// Re-export message services for backward compatibility
+export { deleteMessage, recallMessage, canRecallMessage, markMessageAsRead } from './services/message.service';
+
+// Re-export conversation services for backward compatibility
+export { 
+  createOrUpdateConversation, 
+  updateConversationLastMessage, 
+  updateRoomLastMessage, 
+  deleteConversation, 
+  togglePinChat 
+} from './services/conversation.service';
+
+// Re-export room services for backward compatibility
+export { 
+  leaveRoom, 
+  transferRoomAdmin, 
+  updateRoomAvatar, 
+  dissolveRoom 
+} from './services/room.service';
+
+// Re-export event services for backward compatibility
+export { 
+  createEvent, 
+  updateEvent, 
+  deleteEvent, 
+  extractEventTitle 
+} from './services/event.service';
+
+// Re-export vote services for backward compatibility
+export { 
+  createVote, 
+  castVote, 
+  deleteVote 
+} from './services/vote.service';
+
+// Re-export friend services for backward compatibility
+export { 
+  sendFriendRequest, 
+  cancelFriendRequest, 
+  acceptFriendRequest, 
+  declineFriendRequest, 
+  removeFriendship, 
+  areUsersFriends, 
+  getPendingFriendRequest 
+} from './services/friend.service';
+
+// Re-export user services for backward compatibility
+export { 
+  generateKeywords, 
+  updateUserSettings, 
+  updateLastSeen, 
+  setTypingStatus 
+} from './services/user.service';
+
 export const addDocument = (collectionName, data) => {
   const docRef = collection(db, collectionName);
 
@@ -19,761 +90,6 @@ export const addDocument = (collectionName, data) => {
     ...data,
     createdAt: serverTimestamp(),
   });
-};
-
-// Authentication services
-export const registerWithEmailAndPassword = async (email, password, displayName) => {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
-    // Update user profile with display name
-    await updateProfile(user, {
-      displayName: displayName
-    });
-
-    // Create user document in Firestore
-    const userDocRef = doc(db, 'users', user.uid);
-    await setDoc(userDocRef, {
-      displayName: displayName,
-      email: user.email,
-      photoURL: user.photoURL || null,
-      uid: user.uid,
-      providerId: 'password',
-      searchVisibility: 'public',
-      keywords: [
-        ...generateKeywords(displayName?.toLowerCase()),
-        ...generateKeywords(user.email?.toLowerCase()),
-      ],
-      createdAt: serverTimestamp(),
-    });
-
-    return { user, error: null };
-  } catch (error) {
-    return { user: null, error: error.message };
-  }
-};
-
-export const loginWithEmailAndPassword = async (email, password) => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return { user: userCredential.user, error: null };
-  } catch (error) {
-    return { user: null, error: error.message };
-  }
-};
-
-export const logoutUser = async () => {
-  try {
-    await signOut(auth);
-    return { error: null };
-  } catch (error) {
-    return { error: error.message };
-  }
-};
-
-// Create or update conversation
-export const createOrUpdateConversation = async (conversationData) => {
-  const { id, ...data } = conversationData;
-  const conversationRef = doc(db, 'conversations', id);
-
-  try {
-    await setDoc(conversationRef, {
-      ...data,
-      id,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-    return id;
-  } catch (error) {
-    console.error('Error creating/updating conversation:', error);
-    throw error;
-  }
-};
-
-// Update conversation last message
-export const updateConversationLastMessage = async (conversationId, message, userId) => {
-  const conversationRef = doc(db, 'conversations', conversationId);
-
-  try {
-    await updateDoc(conversationRef, {
-      lastMessage: message,
-      lastMessageAt: serverTimestamp(),
-      updatedBy: userId,
-    });
-  } catch (error) {
-    console.error('Error updating conversation last message:', error);
-    throw error;
-  }
-};
-
-// Update room last message
-export const updateRoomLastMessage = async (roomId, message, userId) => {
-  const roomRef = doc(db, 'rooms', roomId);
-
-  try {
-    await updateDoc(roomRef, {
-      lastMessage: message,
-      lastMessageAt: serverTimestamp(),
-      updatedBy: userId,
-    });
-  } catch (error) {
-    console.error('Error updating room last message:', error);
-    throw error;
-  }
-};
-
-// Room management services
-export const leaveRoom = async (roomId, userId) => {
-  try {
-    const roomRef = doc(db, 'rooms', roomId);
-    const roomDoc = await getDoc(roomRef);
-
-    if (roomDoc.exists()) {
-      const roomData = roomDoc.data();
-      const updatedMembers = roomData.members.filter(memberId => memberId !== userId);
-
-      await updateDoc(roomRef, {
-        members: updatedMembers,
-      });
-    }
-  } catch (error) {
-    console.error('Error leaving room:', error);
-    throw error;
-  }
-};
-
-export const transferRoomAdmin = async (roomId, newAdminId) => {
-  try {
-    const roomRef = doc(db, 'rooms', roomId);
-    await updateDoc(roomRef, {
-      admin: newAdminId,
-    });
-  } catch (error) {
-    console.error('Error transferring room admin:', error);
-    throw error;
-  }
-};
-
-// Event management services
-export const createEvent = async (eventData) => {
-  try {
-    const docRef = await addDoc(collection(db, 'events'), {
-      ...eventData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error('Error creating event:', error);
-    throw error;
-  }
-};
-
-export const updateEvent = async (eventId, eventData) => {
-  const eventRef = doc(db, 'events', eventId);
-
-  try {
-    await updateDoc(eventRef, {
-      ...eventData,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error('Error updating event:', error);
-    throw error;
-  }
-};
-
-// Delete event (hard delete)
-export const deleteEvent = async (eventId) => {
-  const eventRef = doc(db, 'events', eventId);
-
-  try {
-    await deleteDoc(eventRef);
-  } catch (error) {
-    console.error('Error deleting event:', error);
-    throw error;
-  }
-};
-
-// Dissolve room (hard delete with cleanup)
-export const dissolveRoom = async (roomId) => {
-  try {
-    // Delete all messages in the room first
-    const messagesQuery = query(collection(db, 'messages'), where('roomId', '==', roomId));
-    const messagesSnapshot = await getDocs(messagesQuery);
-    const messageDeletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
-    await Promise.all(messageDeletePromises);
-
-    // Delete all events in the room
-    const eventsQuery = query(collection(db, 'events'), where('roomId', '==', roomId));
-    const eventsSnapshot = await getDocs(eventsQuery);
-    const eventDeletePromises = eventsSnapshot.docs.map(doc => deleteDoc(doc.ref));
-    await Promise.all(eventDeletePromises);
-
-    // Delete all votes in the room
-    const votesQuery = query(collection(db, 'votes'), where('roomId', '==', roomId));
-    const votesSnapshot = await getDocs(votesQuery);
-    const voteDeletePromises = votesSnapshot.docs.map(doc => deleteDoc(doc.ref));
-    await Promise.all(voteDeletePromises);
-
-    // Finally delete the room itself
-    const roomRef = doc(db, 'rooms', roomId);
-    await deleteDoc(roomRef);
-
-    return true;
-  } catch (error) {
-    console.error('Error dissolving room:', error);
-    throw error;
-  }
-};
-
-// Vote management services
-export const createVote = async (voteData) => {
-  try {
-    const docRef = await addDoc(collection(db, 'votes'), {
-      ...voteData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      votes: {}, // Object to store user votes: { userId: optionIndex }
-      voteCounts: voteData.options.map(() => 0), // Array of vote counts for each option
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error('Error creating vote:', error);
-    throw error;
-  }
-};
-
-export const castVote = async (voteId, userId, optionIndex) => {
-  const voteRef = doc(db, 'votes', voteId);
-
-  try {
-    // Get current vote data
-    const voteDoc = await getDoc(voteRef);
-    if (!voteDoc.exists()) {
-      throw new Error('Vote not found');
-    }
-
-    const voteData = voteDoc.data();
-    const currentVotes = voteData.votes || {};
-    const currentCounts = [...(voteData.voteCounts || [])];
-
-    // Remove previous vote if exists
-    if (currentVotes[userId] !== undefined) {
-      const previousOption = currentVotes[userId];
-      currentCounts[previousOption] = Math.max(0, currentCounts[previousOption] - 1);
-    }
-
-    // Add new vote
-    currentVotes[userId] = optionIndex;
-    currentCounts[optionIndex] = (currentCounts[optionIndex] || 0) + 1;
-
-    await updateDoc(voteRef, {
-      votes: currentVotes,
-      voteCounts: currentCounts,
-      updatedAt: serverTimestamp(),
-    });
-
-    return true;
-  } catch (error) {
-    console.error('Error casting vote:', error);
-    throw error;
-  }
-};
-
-export const deleteVote = async (voteId) => {
-  const voteRef = doc(db, 'votes', voteId);
-
-  try {
-    await deleteDoc(voteRef);
-  } catch (error) {
-    console.error('Error deleting vote:', error);
-    throw error;
-  }
-};
-
-// Parse time expressions from Vietnamese text
-export const parseTimeFromMessage = (message) => {
-  const timePatterns = [
-    // "lúc 3h chiều mai", "3h chiều mai", "15h mai"
-    /(lúc\s+)?(\d{1,2})h(\d{0,2})?(\s+(sáng|chiều|tối))?\s+(mai|ngày mai)/gi,
-    // "lúc 9h30 sáng thứ 2", "9h sáng thứ hai"
-    /(lúc\s+)?(\d{1,2})h(\d{0,2})?(\s+(sáng|chiều|tối))?\s+(thứ\s+(hai|ba|tư|năm|sáu|bảy|2|3|4|5|6|7)|chủ nhật)/gi,
-    // "15:30 ngày 25/12", "lúc 14:00 ngày 15/10"
-    /(lúc\s+)?(\d{1,2}):(\d{2})\s+(ngày\s+)?(\d{1,2})\/(\d{1,2})/gi,
-  ];
-
-  const dayMap = {
-    'hai': 1, 'ba': 2, 'tư': 3, 'năm': 4, 'sáu': 5, 'bảy': 6, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6
-  };
-
-  for (const pattern of timePatterns) {
-    const match = pattern.exec(message.toLowerCase());
-    if (match) {
-      const now = new Date();
-      let targetDate = new Date();
-
-      if (match[0].includes('mai')) {
-        targetDate.setDate(now.getDate() + 1);
-        const hour = parseInt(match[2]);
-        const minute = match[3] ? parseInt(match[3]) : 0;
-        const period = match[5];
-
-        let finalHour = hour;
-        if (period === 'chiều' && hour < 12) finalHour += 12;
-        if (period === 'tối' && hour < 12) finalHour += 12;
-
-        targetDate.setHours(finalHour, minute, 0, 0);
-        return targetDate;
-      }
-
-      if (match[0].includes('thứ')) {
-        const dayName = match[7];
-        const targetDay = dayMap[dayName] || 0;
-        const currentDay = now.getDay();
-        const daysToAdd = (targetDay - currentDay + 7) % 7 || 7;
-
-        targetDate.setDate(now.getDate() + daysToAdd);
-        const hour = parseInt(match[2]);
-        const minute = match[3] ? parseInt(match[3]) : 0;
-        const period = match[5];
-
-        let finalHour = hour;
-        if (period === 'chiều' && hour < 12) finalHour += 12;
-        if (period === 'tối' && hour < 12) finalHour += 12;
-
-        targetDate.setHours(finalHour, minute, 0, 0);
-        return targetDate;
-      }
-
-      if (match[5] && match[6]) {
-        const hour = parseInt(match[2]);
-        const minute = parseInt(match[3]);
-        const day = parseInt(match[5]);
-        const month = parseInt(match[6]) - 1;
-
-        targetDate.setMonth(month, day);
-        targetDate.setHours(hour, minute, 0, 0);
-
-        if (targetDate < now) {
-          targetDate.setFullYear(now.getFullYear() + 1);
-        }
-
-        return targetDate;
-      }
-    }
-  }
-
-  return null;
-};
-
-// Extract event title from message
-export const extractEventTitle = (message) => {
-  const eventPatterns = [
-    /^(.+?)\s+(lúc|vào|tại)\s+/i,
-    /^(.+?)\s+(\d{1,2}h)/i,
-  ];
-
-  for (const pattern of eventPatterns) {
-    const match = pattern.exec(message);
-    if (match) {
-      return match[1].trim();
-    }
-  }
-
-  return message.length > 50 ? message.substring(0, 50) + '...' : message;
-};
-
-// tao keywords cho displayName, su dung cho search
-export const generateKeywords = (displayName) => {
-  // liet ke tat cac hoan vi. vd: name = ["David", "Van", "Teo"]
-  // => ["David", "Van", "Teo"], ["David", "Teo", "Van"], ["Teo", "David", "Van"],...
-  const name = displayName.split(' ').filter((word) => word);
-
-  const length = name.length;
-  let flagArray = [];
-  let result = [];
-  let stringArray = [];
-
-  /**
-   * khoi tao mang flag false
-   * dung de danh dau xem gia tri
-   * tai vi tri nay da duoc su dung
-   * hay chua
-   **/
-  for (let i = 0; i < length; i++) {
-    flagArray[i] = false;
-  }
-
-  const createKeywords = (name) => {
-    const arrName = [];
-    let curName = '';
-    name.split('').forEach((letter) => {
-      curName += letter;
-      arrName.push(curName);
-    });
-    return arrName;
-  };
-
-  function findPermutation(k) {
-    for (let i = 0; i < length; i++) {
-      if (!flagArray[i]) {
-        flagArray[i] = true;
-        result[k] = name[i];
-
-        if (k === length - 1) {
-          stringArray.push(result.join(' '));
-        }
-
-        findPermutation(k + 1);
-        flagArray[i] = false;
-      }
-    }
-  }
-
-  findPermutation(0);
-
-  const keywords = stringArray.reduce((acc, cur) => {
-    const words = createKeywords(cur);
-    return [...acc, ...words];
-  }, []);
-
-  return keywords;
-};
-
-// Cập nhật avatar phòng chat
-export const updateRoomAvatar = async (roomId, avatarUrl) => {
-  try {
-    const roomRef = doc(db, 'rooms', roomId);
-    await updateDoc(roomRef, {
-      avatar: avatarUrl,
-      updatedAt: serverTimestamp()
-    });
-  } catch (error) {
-    console.error('Lỗi khi cập nhật avatar phòng:', error);
-    throw error;
-  }
-};
-
-// Delete message (hard delete)
-export const deleteMessage = async (messageId, collectionName = 'messages') => {
-  try {
-    const messageRef = doc(db, collectionName, messageId);
-    await deleteDoc(messageRef);
-  } catch (error) {
-    console.error('Error deleting message:', error);
-    throw error;
-  }
-};
-
-// Recall message (withdraw message within time limit)
-export const recallMessage = async (messageId, collectionName = 'messages', userId) => {
-  try {
-    const messageRef = doc(db, collectionName, messageId);
-    const messageDoc = await getDoc(messageRef);
-
-    if (!messageDoc.exists()) {
-      throw new Error('Tin nhắn không tồn tại');
-    }
-
-    const messageData = messageDoc.data();
-    
-    // Check if user is the sender
-    if (messageData.uid !== userId) {
-      throw new Error('Chỉ người gửi mới có thể thu hồi tin nhắn');
-    }
-
-    // Check if message is already recalled
-    if (messageData.recalled) {
-      throw new Error('Tin nhắn đã được thu hồi trước đó');
-    }
-
-    // Check time limit (10 minutes = 600 seconds)
-    const now = new Date();
-    const messageTime = messageData.createdAt?.toDate ? messageData.createdAt.toDate() : new Date(messageData.createdAt?.seconds * 1000);
-    const timeDiff = (now - messageTime) / 1000; // difference in seconds
-
-    if (timeDiff > 600) { // 10 minutes
-      throw new Error('Không thể thu hồi tin nhắn sau 10 phút');
-    }
-
-    // Prepare recall data based on message type
-    const recallData = {
-      recalled: true,
-      recalledAt: serverTimestamp(),
-    };
-
-    // Handle different message types
-    if (messageData.messageType === 'text' || !messageData.messageType) {
-      recallData.originalText = messageData.text;
-      recallData.text = 'Tin nhắn đã được thu hồi';
-    } else if (messageData.messageType === 'file' || messageData.messageType === 'voice') {
-      recallData.originalFileData = messageData.fileData;
-      recallData.fileData = null;
-      recallData.text = `${messageData.messageType === 'voice' ? 'Tin nhắn thoại' : 'File'} đã được thu hồi`;
-    } else if (messageData.messageType === 'location') {
-      recallData.originalLocationData = messageData.locationData;
-      recallData.locationData = null;
-      recallData.text = 'Vị trí đã được thu hồi';
-    } else {
-      // For any other message types
-      recallData.text = 'Tin nhắn đã được thu hồi';
-    }
-
-    // Update the message
-    await updateDoc(messageRef, recallData);
-
-    // Update room/conversation lastMessage if this was the latest message
-    if (collectionName === 'messages' && messageData.roomId) {
-      // For room messages
-      await updateRoomLastMessage(messageData.roomId, 'Tin nhắn đã được thu hồi', userId);
-    } else if (collectionName === 'directMessages' && messageData.conversationId) {
-      // For direct messages
-      await updateConversationLastMessage(messageData.conversationId, 'Tin nhắn đã được thu hồi', userId);
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error recalling message:', error);
-    throw error;
-  }
-};
-
-// Check if message can be recalled (helper function)
-export const canRecallMessage = (message, userId) => {
-  if (!message || message.uid !== userId) return false;
-  if (message.recalled) return false;
-  
-  const now = new Date();
-  const messageTime = message.createdAt?.toDate ? message.createdAt.toDate() : new Date(message.createdAt?.seconds * 1000);
-  const timeDiff = (now - messageTime) / 1000; // difference in seconds
-  
-  return timeDiff <= 600; // 10 minutes
-};
-
-// Mark message as read
-export const markMessageAsRead = async (messageId, userId, collectionName = 'messages') => {
-  try {
-    const messageRef = doc(db, collectionName, messageId);
-    const messageDoc = await getDoc(messageRef);
-
-    if (messageDoc.exists()) {
-      const messageData = messageDoc.data();
-      const readBy = messageData.readBy || [];
-      const readByDetails = messageData.readByDetails || {};
-
-      if (!readBy.includes(userId)) {
-        await updateDoc(messageRef, {
-          readBy: [...readBy, userId],
-          readByDetails: {
-            ...readByDetails,
-            [userId]: serverTimestamp()
-          },
-          lastReadAt: serverTimestamp(),
-        });
-      }
-    }
-  } catch (error) {
-    console.error('Error marking message as read:', error);
-    throw error;
-  }
-};
-
-// Delete conversation
-export const deleteConversation = async (conversationId) => {
-  try {
-    // Delete all messages in this conversation first
-    const messagesQuery = query(
-      collection(db, 'directMessages'),
-      where('conversationId', '==', conversationId)
-    );
-    const messagesSnapshot = await getDocs(messagesQuery);
-    
-    // Delete all messages in batches
-    const deletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
-    await Promise.all(deletePromises);
-    
-    // Then delete the conversation itself
-    const conversationRef = doc(db, 'conversations', conversationId);
-    await deleteDoc(conversationRef);
-  } catch (error) {
-    console.error('Error deleting conversation:', error);
-    throw error;
-  }
-};
-
-// Pin/Unpin conversation or room
-export const togglePinChat = async (chatId, isPinned, isConversation = false) => {
-  try {
-    const collectionName = isConversation ? 'conversations' : 'rooms';
-    const docRef = doc(db, collectionName, chatId);
-    await updateDoc(docRef, {
-      pinned: !isPinned,
-      pinnedAt: !isPinned ? serverTimestamp() : null,
-    });
-  } catch (error) {
-    console.error('Error toggling pin status:', error);
-    throw error;
-  }
-};
-
-// Update last seen timestamp for user in room/conversation
-export const updateLastSeen = async (roomId, userId, isConversation = false) => {
-  try {
-    const collectionName = isConversation ? 'conversations' : 'rooms';
-    const docRef = doc(db, collectionName, roomId);
-    const docSnapshot = await getDoc(docRef);
-
-    if (docSnapshot.exists()) {
-      const data = docSnapshot.data();
-      const lastSeen = data.lastSeen || {};
-
-      await updateDoc(docRef, {
-        lastSeen: {
-          ...lastSeen,
-          [userId]: serverTimestamp()
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error updating last seen:', error);
-    throw error;
-  }
-};
-
-// Typing status helpers
-export const setTypingStatus = async (chatId, userId, isTyping, isConversation = false) => {
-  try {
-    const collectionName = isConversation ? 'conversations' : 'rooms';
-    const docRef = doc(db, collectionName, chatId);
-    const docSnapshot = await getDoc(docRef);
-    if (docSnapshot.exists()) {
-      const data = docSnapshot.data();
-      const typingStatus = data.typingStatus || {};
-      await updateDoc(docRef, {
-        typingStatus: {
-          ...typingStatus,
-          [userId]: isTyping
-        },
-        typingUpdatedAt: serverTimestamp(),
-      });
-    }
-  } catch (error) {
-    console.error('Error updating typing status:', error);
-    throw error;
-  }
-};
-
-// Update user settings (e.g., privacy options)
-export const updateUserSettings = async (userId, data) => {
-  try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      ...data,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error('Error updating user settings:', error);
-    throw error;
-  }
-};
-
-// ==============================
-// Friends system services
-// ==============================
-
-// Send a friend request (if not existing)
-export const sendFriendRequest = async (fromUserId, toUserId) => {
-  if (fromUserId === toUserId) throw new Error('Không thể kết bạn với chính mình');
-  const requestsRef = collection(db, 'friend_requests');
-
-  // Check existing pending or accepted
-  const q = query(
-    requestsRef,
-    where('participants', 'in', [
-      [fromUserId, toUserId].sort().join('_'),
-    ])
-  );
-  const snapshot = await getDocs(q);
-  const exists = snapshot.docs.find(d => !d.data().deleted && d.data().status !== 'declined');
-  if (exists) return exists.id;
-
-  const docRef = await addDoc(requestsRef, {
-    from: fromUserId,
-    to: toUserId,
-    participants: [fromUserId, toUserId].sort().join('_'),
-    status: 'pending',
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  return docRef.id;
-};
-
-export const cancelFriendRequest = async (requestId, byUserId) => {
-  const reqRef = doc(db, 'friend_requests', requestId);
-  const req = await getDoc(reqRef);
-  if (!req.exists()) throw new Error('Friend request not found');
-  const data = req.data();
-  if (data.from !== byUserId) throw new Error('Chỉ người gửi mới có thể hủy lời mời');
-  await updateDoc(reqRef, {
-    status: 'cancelled',
-    updatedAt: serverTimestamp(),
-  });
-};
-
-export const acceptFriendRequest = async (requestId, byUserId) => {
-  const reqRef = doc(db, 'friend_requests', requestId);
-  const req = await getDoc(reqRef);
-  if (!req.exists()) throw new Error('Friend request not found');
-  const data = req.data();
-  if (data.to !== byUserId) throw new Error('Chỉ người nhận mới có thể chấp nhận');
-
-  await updateDoc(reqRef, {
-    status: 'accepted',
-    updatedAt: serverTimestamp(),
-  });
-
-  // Add to friends collection (bidirectional via two docs or single edge)
-  const edgeId = [data.from, data.to].sort().join('_');
-  await setDoc(doc(db, 'friends', edgeId), {
-    id: edgeId,
-    participants: [data.from, data.to],
-    createdAt: serverTimestamp(),
-  }, { merge: true });
-};
-
-export const declineFriendRequest = async (requestId, byUserId) => {
-  const reqRef = doc(db, 'friend_requests', requestId);
-  const req = await getDoc(reqRef);
-  if (!req.exists()) throw new Error('Friend request not found');
-  const data = req.data();
-  if (data.to !== byUserId) throw new Error('Chỉ người nhận mới có thể từ chối');
-  await updateDoc(reqRef, {
-    status: 'declined',
-    updatedAt: serverTimestamp(),
-  });
-};
-
-export const removeFriendship = async (userA, userB) => {
-  const edgeId = [userA, userB].sort().join('_');
-  await deleteDoc(doc(db, 'friends', edgeId));
-};
-
-export const areUsersFriends = async (userA, userB) => {
-  const edgeId = [userA, userB].sort().join('_');
-  const ref = doc(db, 'friends', edgeId);
-  const snap = await getDoc(ref);
-  return snap.exists();
-};
-
-export const getPendingFriendRequest = async (userA, userB) => {
-  const requestsRef = collection(db, 'friend_requests');
-  const q = query(
-    requestsRef,
-    where('participants', '==', [userA, userB].sort().join('_')),
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs[0] ? { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } : null;
 };
 
 // ==============================

@@ -2,8 +2,7 @@ import { FaCalendar, FaChartBar } from 'react-icons/fa';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
-import { useAlert } from '../../Context/AlertProvider';
-import { addDocument, parseTimeFromMessage, extractEventTitle, createEvent, updateRoomLastMessage, updateLastSeen, setTypingStatus, markMessageAsRead } from '../../firebase/services';
+import { addDocument, updateRoomLastMessage, updateLastSeen, setTypingStatus, markMessageAsRead } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
 import Message from './Message';
 import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
@@ -29,7 +28,6 @@ export default function ChatWindow() {
   const {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
-  const { confirm, success, error } = useAlert();
   const { addToRecent } = useEmoji();
   const [inputValue, setInputValue] = useState('');
   const messageListRef = useRef();
@@ -56,15 +54,12 @@ export default function ChatWindow() {
 
     if (chatType === 'room' && selectedRoom.id) {
       // Handle room message
-      const detectedTime = parseTimeFromMessage(inputValue);
-
       addDocument('messages', {
         text: inputValue,
         uid,
         photoURL,
         roomId: selectedRoom.id,
         displayName,
-        hasTimeInfo: !!detectedTime,
         messageType: 'text',
       });
 
@@ -73,15 +68,6 @@ export default function ChatWindow() {
         await updateRoomLastMessage(selectedRoom.id, inputValue, uid);
       } catch (error) {
         console.error('Error updating room last message:', error);
-      }
-
-      // Suggest creating an event if time detected
-      if (detectedTime) {
-        const eventTitle = extractEventTitle(inputValue);
-        const ok = await confirm('Phát hiện thời gian trong tin nhắn. Tạo sự kiện?');
-        if (ok) {
-          await handleCreateEventFromMessage(eventTitle, detectedTime);
-        }
       }
     } else if (chatType === 'direct' && selectedConversation.id) {
       // Handle direct message
@@ -211,30 +197,6 @@ export default function ChatWindow() {
       } catch (error) {
         console.error('Error updating conversation:', error);
       }
-    }
-  };
-
-  const handleCreateEventFromMessage = async (title, datetime) => {
-    try {
-      const eventData = {
-        title,
-        description: `Được tạo từ tin nhắn: "${inputValue}"`,
-        datetime,
-        roomId: selectedRoom.id,
-        roomName: selectedRoom.name,
-        createdBy: uid,
-        createdByName: displayName,
-        participants: selectedRoom.members,
-        reminderMinutes: 15,
-        status: 'active',
-        type: 'meeting'
-      };
-
-      await createEvent(eventData);
-      success('Sự kiện đã được tạo thành công!');
-    } catch (err) {
-      console.error('Error creating event from message:', err);
-      error('Có lỗi xảy ra khi tạo sự kiện!');
     }
   };
 
