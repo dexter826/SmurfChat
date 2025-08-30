@@ -8,6 +8,7 @@ import {
   areUsersFriends,
   markMessageAsRead,
   sendMessage,
+  isUserBlocked,
 } from "../../firebase/services";
 import useFirestore from "../../hooks/useFirestore";
 import Message from "./Message";
@@ -29,6 +30,11 @@ export default function ConversationWindow() {
   const inputRef = useRef();
   const [canChat, setCanChat] = useState(true);
   const [showQuickReactions, setShowQuickReactions] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isBlockedByOther, setIsBlockedByOther] = useState(false);
+
+  // Computed value: can chat if friends AND not blocked
+  const canActuallyChat = canChat && !isBlocked && !isBlockedByOther;
 
   // Online status component
   const OnlineStatus = ({ userId }) => {
@@ -206,6 +212,38 @@ export default function ConversationWindow() {
     }
   }, [selectedConversation, uid]);
 
+  // Check block status to show appropriate UI
+  useEffect(() => {
+    const checkBlockStatus = async () => {
+      try {
+        const otherId = (selectedConversation.participants || []).find(
+          (id) => id !== uid
+        );
+        if (!otherId) {
+          setIsBlocked(false);
+          setIsBlockedByOther(false);
+          return;
+        }
+
+        // Check if current user blocked the other user
+        const userBlockedOther = await isUserBlocked(uid, otherId);
+        // Check if other user blocked current user
+        const otherBlockedUser = await isUserBlocked(otherId, uid);
+
+        setIsBlocked(userBlockedOther);
+        setIsBlockedByOther(otherBlockedUser);
+      } catch (error) {
+        console.error("Error checking block status:", error);
+        setIsBlocked(false);
+        setIsBlockedByOther(false);
+      }
+    };
+
+    if (selectedConversation && selectedConversation.participants) {
+      checkBlockStatus();
+    }
+  }, [selectedConversation, uid]);
+
   // Mark conversation as read when messages change and this conversation is open
   useEffect(() => {
     const markSeen = async () => {
@@ -357,12 +395,25 @@ export default function ConversationWindow() {
               </div>
             )}
 
+            {/* Block Status Messages */}
+            {isBlocked && (
+              <div className="my-2 rounded border border-red-300 bg-red-50 p-2 text-xs text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300">
+                Bạn đã chặn người này. Bỏ chặn để có thể nhắn tin.
+              </div>
+            )}
+
+            {isBlockedByOther && (
+              <div className="my-2 rounded border border-gray-300 bg-gray-50 p-2 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900/20 dark:text-gray-300">
+                👤 Người này hiện không có mặt
+              </div>
+            )}
+
             {/* Quick Reactions */}
-            {showQuickReactions && canChat && (
+            {showQuickReactions && canActuallyChat && (
               <div className="mb-2">
                 <QuickReactions
                   onEmojiClick={handleEmojiClick}
-                  disabled={!canChat}
+                  disabled={!canActuallyChat}
                 />
               </div>
             )}
@@ -372,27 +423,27 @@ export default function ConversationWindow() {
               <FileUpload
                 onFileUploaded={handleFileUploaded}
                 onLocationShared={handleLocationShared}
-                disabled={!canChat}
+                disabled={!canActuallyChat}
               />
 
               {/* Emoji Picker */}
               <EmojiPickerComponent
                 onEmojiClick={handleEmojiClick}
-                disabled={!canChat}
+                disabled={!canActuallyChat}
               />
 
               {/* Quick Reactions Toggle */}
               <button
                 type="button"
                 onClick={toggleQuickReactions}
-                disabled={!canChat}
+                disabled={!canActuallyChat}
                 className={`flex items-center justify-center p-2 rounded-lg transition-colors duration-200 ${
-                  !canChat
+                  !canActuallyChat
                     ? "text-slate-300 cursor-not-allowed dark:text-slate-600"
                     : "text-slate-600 hover:bg-slate-100 hover:text-skybrand-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-skybrand-400"
                 }`}
                 title={
-                  !canChat
+                  !canActuallyChat
                     ? "Không thể sử dụng"
                     : showQuickReactions
                     ? "Ẩn emoji nhanh"
@@ -416,23 +467,23 @@ export default function ConversationWindow() {
                 placeholder="Nhập tin nhắn..."
                 autoComplete="off"
                 value={inputValue}
-                disabled={!canChat}
+                disabled={!canActuallyChat}
               />
 
               {/* Voice Recording Button */}
               <VoiceRecording
                 onVoiceUploaded={handleFileUploaded}
-                disabled={!canChat}
+                disabled={!canActuallyChat}
               />
 
               <button
                 className={`rounded px-3 py-1 text-sm font-medium text-white ${
-                  canChat
+                  canActuallyChat
                     ? "bg-skybrand-600 hover:bg-skybrand-700"
                     : "bg-slate-400"
                 }`}
                 onClick={handleOnSubmit}
-                disabled={!canChat}
+                disabled={!canActuallyChat}
               >
                 Gửi
               </button>

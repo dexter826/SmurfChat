@@ -111,7 +111,7 @@ export default function NewMessageModal() {
       setSearchTerm("");
     } catch (err) {
       console.error("Error creating conversation:", err);
-      error("Không thể tạo cuộc trò chuyện. Vui lòng thử lại.");
+      error(err.message || "Không thể tạo cuộc trò chuyện. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }

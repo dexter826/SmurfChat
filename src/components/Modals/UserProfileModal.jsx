@@ -104,7 +104,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
       success('Đã mở cuộc trò chuyện!');
     } catch (err) {
       console.error('Error creating conversation:', err);
-      error('Không thể mở cuộc trò chuyện');
+      error(err.message || 'Không thể mở cuộc trò chuyện');
     }
   };
 

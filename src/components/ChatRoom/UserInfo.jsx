@@ -23,12 +23,18 @@ const MoonIcon = () => (
   </svg>
 );
 
+const BlockIcon = () => (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+  </svg>
+);
+
 
 export default function UserInfo() {
   const {
     user: { displayName, photoURL, uid },
   } = React.useContext(AuthContext);
-  const { setIsAddRoomVisible, setIsNewMessageVisible, setIsUserProfileVisible, setSelectedUser } = React.useContext(AppContext);
+  const { setIsAddRoomVisible, setIsNewMessageVisible, setIsUserProfileVisible, setSelectedUser, setIsBlockedUsersVisible } = React.useContext(AppContext);
   const { isDarkMode, toggleTheme } = useTheme();
   const { isOnline } = useOnlineStatus(uid);
 
@@ -43,6 +49,10 @@ export default function UserInfo() {
   const handleOpenProfile = () => {
     setSelectedUser({ displayName, photoURL, uid });
     setIsUserProfileVisible(true);
+  };
+
+  const handleOpenBlockedUsers = () => {
+    setIsBlockedUsersVisible(true);
   };
 
   const QuickActionButton = ({ onClick, title, children, variant = 'default' }) => {
@@ -105,6 +115,15 @@ export default function UserInfo() {
           variant="theme"
         >
           {isDarkMode ? <SunIcon /> : <MoonIcon />}
+        </QuickActionButton>
+
+        {/* Blocked Users */}
+        <QuickActionButton
+          title="Quản lý người bị chặn"
+          onClick={handleOpenBlockedUsers}
+          variant="default"
+        >
+          <BlockIcon />
         </QuickActionButton>
       </div>
 

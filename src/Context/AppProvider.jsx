@@ -19,6 +19,7 @@ export default function AppProvider({ children }) {
   const [isAddFriendVisible, setIsAddFriendVisible] = useState(false);
   const [isUserProfileVisible, setIsUserProfileVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [isBlockedUsersVisible, setIsBlockedUsersVisible] = useState(false);
 
   const {
     user: { uid },
@@ -134,13 +135,18 @@ export default function AppProvider({ children }) {
       }
 
       // Create new conversation in Firestore
-      createOrUpdateConversation({
-        id: newConversationId,
-        participants: [uid, otherUserId],
-        createdAt: new Date(),
-        lastMessage: '',
-        lastMessageAt: null,
-      });
+      try {
+        createOrUpdateConversation({
+          id: newConversationId,
+          participants: [uid, otherUserId],
+          createdAt: new Date(),
+          lastMessage: '',
+          lastMessageAt: null,
+        });
+      } catch (err) {
+        console.error('Error creating conversation in AppProvider:', err);
+        // Silent fail in AppProvider to prevent app crash
+      }
 
       return {
         id: newConversationId,
@@ -447,6 +453,8 @@ export default function AppProvider({ children }) {
         setIsUserProfileVisible,
         selectedUser,
         setSelectedUser,
+        isBlockedUsersVisible,
+        setIsBlockedUsersVisible,
         userEvents,
         allUsers,
         clearState,

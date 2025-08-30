@@ -367,19 +367,25 @@ export default function Sidebar() {
                               <ActionButton
                                 variant="primary"
                                 onClick={async () => {
-                                  await acceptFriendRequest(req.id, user.uid);
-                                  const otherId = req.from;
-                                  const conversationId = [user.uid, otherId].sort().join('_');
-                                  await createOrUpdateConversation({
-                                    id: conversationId,
-                                    participants: [user.uid, otherId],
-                                    type: 'direct',
-                                    lastMessage: '',
-                                    lastMessageAt: null,
-                                    createdBy: user.uid
-                                  });
-                                  setChatType && setChatType('direct');
-                                  selectConversation(conversationId);
+                                  try {
+                                    await acceptFriendRequest(req.id, user.uid);
+                                    const otherId = req.from;
+                                    const conversationId = [user.uid, otherId].sort().join('_');
+                                    await createOrUpdateConversation({
+                                      id: conversationId,
+                                      participants: [user.uid, otherId],
+                                      type: 'direct',
+                                      lastMessage: '',
+                                      lastMessageAt: null,
+                                      createdBy: user.uid
+                                    });
+                                    setChatType && setChatType('direct');
+                                    selectConversation(conversationId);
+                                  } catch (err) {
+                                    console.error('Error accepting friend request:', err);
+                                    // Note: Sidebar doesn't have access to alert context, 
+                                    // so we'll just log the error for now
+                                  }
                                 }}
                               >
                                 Chấp nhận
@@ -464,30 +470,35 @@ export default function Sidebar() {
                         className="hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg transition-colors duration-200 cursor-pointer"
                         onAvatarClick={handleUserClick}
                         onClick={async () => {
-                          // Open chat with friend
-                          const conversationId = [user.uid, otherId].sort().join('_');
-                          await createOrUpdateConversation({
-                            id: conversationId,
-                            participants: [user.uid, otherId],
-                            participantDetails: {
-                              [user.uid]: {
-                                displayName: user.displayName,
-                                email: user.email,
-                                photoURL: user.photoURL
+                          try {
+                            // Open chat with friend
+                            const conversationId = [user.uid, otherId].sort().join('_');
+                            await createOrUpdateConversation({
+                              id: conversationId,
+                              participants: [user.uid, otherId],
+                              participantDetails: {
+                                [user.uid]: {
+                                  displayName: user.displayName,
+                                  email: user.email,
+                                  photoURL: user.photoURL
+                                },
+                                [otherId]: {
+                                  displayName: other.displayName,
+                                  email: other.email,
+                                  photoURL: other.photoURL
+                                }
                               },
-                              [otherId]: {
-                                displayName: other.displayName,
-                                email: other.email,
-                                photoURL: other.photoURL
-                              }
-                            },
-                            type: 'direct',
-                            lastMessage: '',
-                            lastMessageAt: null,
-                            createdBy: user.uid
-                          });
-                          setChatType('direct');
-                          selectConversation(conversationId);
+                              type: 'direct',
+                              lastMessage: '',
+                              lastMessageAt: null,
+                              createdBy: user.uid
+                            });
+                            setChatType('direct');
+                            selectConversation(conversationId);
+                          } catch (err) {
+                            console.error('Error creating conversation:', err);
+                            // Note: This component doesn't have access to alert context
+                          }
                         }}
                         actions={
                           <ActionButton

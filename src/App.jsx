@@ -13,6 +13,7 @@ import VoteModal from "./components/Modals/VoteModal.jsx";
 import NewMessageModal from "./components/Modals/NewMessageModal.jsx";
 import AddFriendModal from "./components/Modals/AddFriendModal.jsx";
 import UserProfileModal from "./components/Modals/UserProfileModal.jsx";
+import BlockedUsersModal from "./components/Modals/BlockedUsersModal.jsx";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
                 <NewMessageModal />
                 <AddFriendModal />
                 <UserProfileModal />
+                <BlockedUsersModal />
               </AppProvider>
             </AuthProvider>
           </div>
