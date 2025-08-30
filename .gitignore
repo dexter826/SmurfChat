@@ -23,10 +23,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# firebase hosting
-.firebaserc
-firebase.json
-firestore.rules
-/.firebase
+# firebase hosting (moved to /emulators directory)
 /emulators
 
