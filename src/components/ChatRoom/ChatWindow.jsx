@@ -461,7 +461,7 @@ export default function ChatWindow() {
           </div>
           <div className="flex h-[calc(100%_-_56px)] flex-col justify-end p-3">
             <div ref={messageListRef} className="thin-scrollbar max-h-full overflow-y-auto">
-              {combinedMessages.map((item) => {
+              {combinedMessages.map((item, index) => {
                 if (item.type === 'event') {
                   return (
                     <EventMessage key={item.id} event={item} />
@@ -487,6 +487,11 @@ export default function ChatWindow() {
                       readBy={item.readBy || []}
                       recalled={item.recalled}
                       chatType={chatType}
+                      isLatestFromSender={
+                        index === combinedMessages.length - 1 || 
+                        (index < combinedMessages.length - 1 && combinedMessages[index + 1].uid !== item.uid)
+                      }
+                      members={selectedRoom?.members || []} // Pass room members for avatar display
                     />
                   );
                 }

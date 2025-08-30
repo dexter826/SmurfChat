@@ -36,6 +36,9 @@ export default function Message({
   readBy = [],
   recalled = false,
   chatType, // 'room' or 'direct'
+  isLatestFromSender = false, // New prop to identify if this is the latest message from sender
+  members = [], // For room chat to get user info
+  otherParticipant = null, // For direct chat to get other user info
 }) {
   const { user } = React.useContext(AuthContext);
   const { setSelectedUser, setIsUserProfileVisible } = React.useContext(AppContext);
@@ -79,32 +82,28 @@ export default function Message({
 
   // Render message status for own messages
   const renderMessageStatus = () => {
-    if (!isOwn) return null;
+    if (!isOwn || !isLatestFromSender) return null; // Only show for own latest messages
 
     // Determine status based on readBy array
     let currentStatus = messageStatus;
-    if (readBy && readBy.length > 0) {
-      // If message has been read by someone other than sender
-      const readByOthers = readBy.filter(userId => userId !== uid);
-      if (readByOthers.length > 0) {
-        currentStatus = 'read';
-      }
+    const readByOthers = readBy ? readBy.filter(userId => userId !== user?.uid) : [];
+    
+    if (readByOthers.length > 0) {
+      currentStatus = 'read';
     }
 
     const getStatusIcon = () => {
       switch (currentStatus) {
         case 'sending':
-          return <span className="text-gray-400">⏳</span>;
+          return <span className="text-gray-400 text-xs">⏳</span>;
         case 'sent':
-          return <span className="text-gray-400">✓</span>;
+          return <span className="text-gray-400 text-xs">✓</span>;
         case 'delivered':
-          return <span className="text-blue-500">✓✓</span>;
-        case 'read':
-          return <span className="text-blue-600">✓✓</span>;
+          return <span className="text-blue-500 text-xs">✓✓</span>;
         case 'failed':
-          return <span className="text-red-500">❌</span>;
+          return <span className="text-red-500 text-xs">❌</span>;
         default:
-          return <span className="text-gray-400">✓</span>;
+          return <span className="text-gray-400 text-xs">✓</span>;
       }
     };
 
@@ -116,9 +115,6 @@ export default function Message({
           return 'Đã gửi';
         case 'delivered':
           return 'Đã nhận';
-        case 'read':
-          const readByOthers = readBy ? readBy.filter(userId => userId !== uid) : [];
-          return readByOthers.length > 1 ? `Đã xem bởi ${readByOthers.length} người` : 'Đã xem';
         case 'failed':
           return 'Gửi thất bại';
         default:
@@ -126,10 +122,59 @@ export default function Message({
       }
     };
 
+    // If message is read, show reader avatars
+    if (currentStatus === 'read' && readByOthers.length > 0) {
+      return (
+        <div className="flex items-center justify-end mt-1 space-x-1">
+          <div className="flex -space-x-1">
+            {readByOthers.slice(0, 3).map((userId) => {
+              // Find user info from members (for room) or from conversation participants
+              let userInfo = null;
+              
+              if (chatType === 'room' && members) {
+                userInfo = members.find(member => member.uid === userId);
+              } else if (chatType === 'direct' && otherParticipant) {
+                // For direct messages, use otherParticipant info
+                userInfo = otherParticipant;
+              }
+              
+              if (!userInfo) return null;
+              
+              return (
+                <div key={userId} className="relative">
+                  {userInfo.photoURL ? (
+                    <img
+                      className="h-3 w-3 rounded-full object-cover border border-white"
+                      src={userInfo.photoURL}
+                      alt=""
+                      title={`Đã xem bởi ${userInfo.displayName || 'Unknown'}`}
+                    />
+                  ) : (
+                    <div 
+                      className="flex h-3 w-3 items-center justify-center rounded-full bg-skybrand-600 text-[8px] font-semibold text-white border border-white"
+                      title={`Đã xem bởi ${userInfo.displayName || 'Unknown'}`}
+                    >
+                      {(userInfo.displayName || '?').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {readByOthers.length > 3 && (
+              <div className="flex h-3 w-3 items-center justify-center rounded-full bg-gray-500 text-[6px] font-semibold text-white border border-white">
+                +{readByOthers.length - 3}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Show status icon and text for non-read messages
     return (
       <div className="flex items-center justify-end mt-1 space-x-1">
         {getStatusIcon()}
-        <span className="text-[10px] text-gray-500 dark:text-gray-400">
+        <span className="text-[9px] text-gray-500 dark:text-gray-400">
           {getStatusText()}
         </span>
       </div>

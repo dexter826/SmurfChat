@@ -255,23 +255,31 @@ export default function ConversationWindow() {
           </div>
           <div className="flex h-[calc(100%_-_56px)] flex-col justify-end p-3">
             <div ref={messageListRef} className="thin-scrollbar max-h-full overflow-y-auto">
-              {messages.map((mes) => (
-                <Message
-                  key={mes.id}
-                  id={mes.id}
-                  text={mes.text}
-                  photoURL={mes.photoURL}
-                  displayName={mes.displayName}
-                  createdAt={mes.createdAt}
-                  uid={mes.uid}
-                  messageType={mes.messageType || 'text'}
-                  fileData={mes.fileData}
-                  locationData={mes.locationData}
-                  recalled={mes.recalled}
-                  readBy={mes.readBy || []}
-                  chatType="direct"
-                />
-              ))}
+              {messages.map((mes, index) => {
+                // Check if this is the latest message from the sender
+                const isLatestFromSender = index === messages.length - 1 || 
+                  (index < messages.length - 1 && messages[index + 1].uid !== mes.uid);
+                  
+                return (
+                  <Message
+                    key={mes.id}
+                    id={mes.id}
+                    text={mes.text}
+                    photoURL={mes.photoURL} // Keep original message photo for message display
+                    displayName={mes.displayName}
+                    createdAt={mes.createdAt}
+                    uid={mes.uid}
+                    messageType={mes.messageType || 'text'}
+                    fileData={mes.fileData}
+                    locationData={mes.locationData}
+                    recalled={mes.recalled}
+                    readBy={mes.readBy || []}
+                    chatType="direct"
+                    isLatestFromSender={isLatestFromSender}
+                    otherParticipant={otherParticipant} // Pass other participant info for read status display
+                  />
+                );
+              })}
             </div>
             {(() => {
               const typingMap = selectedConversation?.typingStatus;
