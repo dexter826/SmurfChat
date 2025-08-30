@@ -2,12 +2,13 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
 import { useAlert } from '../../Context/AlertProvider';
-import { uploadImage, sendFriendRequest, createOrUpdateConversation, blockUser, unblockUser, isUserBlocked } from '../../firebase/services';
+import { uploadImage, sendFriendRequest, createOrUpdateConversation, blockUser, unblockUser } from '../../firebase/services';
 import { updateProfile } from 'firebase/auth';
 import { auth, db } from '../../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { FaCamera, FaTimes, FaEnvelope, FaCalendarAlt, FaCircle, FaBan } from 'react-icons/fa';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { useBlockStatus } from '../../hooks/useBlockStatus';
 import useFirestore from '../../hooks/useFirestore';
 
 function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile = false }) {
@@ -16,7 +17,6 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
   const { success, error, confirm } = useAlert();
   const [isUploading, setIsUploading] = useState(false);
   const [isAddingFriend, setIsAddingFriend] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
   const [isBlockingUser, setIsBlockingUser] = useState(false);
   const [fullUserData, setFullUserData] = useState(null);
   const { isOnline } = useOnlineStatus(targetUser?.uid);
@@ -39,23 +39,14 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
   
   const outgoingRequests = useFirestore('friend_requests', outgoingReqsCondition);
 
-  // Kiểm tra trạng thái block khi modal mở
-  React.useEffect(() => {
-    const checkBlockStatus = async () => {
-      if (currentUser?.uid && targetUser?.uid && !isOwnProfile && visible) {
-        try {
-          const blocked = await isUserBlocked(currentUser.uid, targetUser.uid);
-          setIsBlocked(blocked);
-        } catch (err) {
-          console.error('Error checking block status:', err);
-        }
-      }
-    };
+  const { isBlockedByMe, refreshBlockStatus } = useBlockStatus(targetUser?.uid);
 
-    if (visible) {
-      checkBlockStatus();
+  // Kiểm tra trạng thái block khi modal mở (simplified with hook)
+  React.useEffect(() => {
+    if (visible && targetUser?.uid && !isOwnProfile) {
+      refreshBlockStatus();
     }
-  }, [visible, currentUser?.uid, targetUser?.uid, isOwnProfile]);
+  }, [visible, targetUser?.uid, isOwnProfile, refreshBlockStatus]);
 
   // Lấy thông tin user đầy đủ từ database nếu cần
   React.useEffect(() => {
@@ -173,7 +164,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
 
   // Xử lý chặn/bỏ chặn người dùng
   const handleToggleBlock = async () => {
-    const actionText = isBlocked ? 'bỏ chặn' : 'chặn';
+    const actionText = isBlockedByMe ? 'bỏ chặn' : 'chặn';
     const confirmed = await confirm(
       `Bạn có chắc muốn ${actionText} ${targetUser.displayName}?`
     );
@@ -182,16 +173,17 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
 
     setIsBlockingUser(true);
     try {
-      if (isBlocked) {
+      if (isBlockedByMe) {
         await unblockUser(currentUser.uid, targetUser.uid);
-        setIsBlocked(false);
         success(`Đã bỏ chặn ${targetUser.displayName}`);
       } else {
         await blockUser(currentUser.uid, targetUser.uid);
-        setIsBlocked(true);
         success(`Đã chặn ${targetUser.displayName}`);
         onClose(); // Đóng modal sau khi chặn
       }
+      
+      // Refresh block status after action
+      refreshBlockStatus();
     } catch (err) {
       console.error('Error toggling block:', err);
       error(err.message || `Không thể ${actionText} người dùng`);
@@ -307,7 +299,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
             {/* Primary Action Buttons */}
             <div className="flex gap-3">
               {/* Send Message Button */}
-              {isFriend && !isBlocked && (
+              {isFriend && !isBlockedByMe && (
                 <button
                   onClick={handleSendMessage}
                   className="flex-1 rounded-lg bg-skybrand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-skybrand-700 focus:outline-none focus:ring-2 focus:ring-skybrand-500 focus:ring-offset-1"
@@ -317,7 +309,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
               )}
 
               {/* Add Friend Button */}
-              {!isFriend && !isBlocked && (
+              {!isFriend && !isBlockedByMe && (
                 <button
                   onClick={handleAddFriend}
                   disabled={isAddingFriend}
@@ -346,7 +338,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
               onClick={handleToggleBlock}
               disabled={isBlockingUser}
               className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-1 ${
-                isBlocked 
+                isBlockedByMe 
                   ? 'border-orange-500 bg-orange-50 text-orange-600 hover:bg-orange-100 focus:ring-orange-500 dark:bg-orange-900/20 dark:hover:bg-orange-900/30'
                   : 'border-red-500 bg-red-50 text-red-600 hover:bg-red-100 focus:ring-red-500 dark:bg-red-900/20 dark:hover:bg-red-900/30'
               } ${isBlockingUser ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -354,18 +346,18 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
               {isBlockingUser ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                  {isBlocked ? 'Đang bỏ chặn...' : 'Đang chặn...'}
+                  {isBlockedByMe ? 'Đang bỏ chặn...' : 'Đang chặn...'}
                 </>
               ) : (
                 <>
                   <FaBan className="h-4 w-4" />
-                  {isBlocked ? 'Bỏ chặn' : 'Chặn người dùng'}
+                  {isBlockedByMe ? 'Bỏ chặn' : 'Chặn người dùng'}
                 </>
               )}
             </button>
 
             {/* Blocked User Message */}
-            {isBlocked && (
+            {isBlockedByMe && (
               <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center dark:bg-red-900/20 dark:border-red-800">
                 <p className="text-sm text-red-600 dark:text-red-400">
                   Bạn đã chặn người dùng này. Họ không thể gửi tin nhắn cho bạn.

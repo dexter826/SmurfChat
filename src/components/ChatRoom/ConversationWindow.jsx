@@ -6,7 +6,6 @@ import {
   setTypingStatus,
   areUsersFriends,
   markMessageAsRead,
-  isUserBlocked,
 } from "../../firebase/services";
 import useFirestore from "../../hooks/useFirestore";
 import Message from "./Message";
@@ -16,12 +15,16 @@ import VoiceRecording from "../FileUpload/VoiceRecording";
 import EmojiPickerComponent from "./EmojiPicker";
 import { QuickReactions } from "./EmojiText";
 import { useMessageHandler } from "../../hooks/useMessageHandler";
+import { useBlockStatus } from "../../hooks/useBlockStatus";
 
 export default function ConversationWindow() {
   const { selectedConversation } = useContext(AppContext);
   const {
     user: { uid },
   } = useContext(AuthContext);
+  
+  // Get other user ID from conversation
+  const otherUserId = selectedConversation?.participants?.find(id => id !== uid);
   
   // Use the new message handler hook
   const {
@@ -36,13 +39,18 @@ export default function ConversationWindow() {
     toggleQuickReactions,
   } = useMessageHandler('direct', selectedConversation);
   
+  // Use the new block status hook
+  const {
+    isBlockedByMe,
+    isBlockingMe,
+    canSendMessage,
+  } = useBlockStatus(otherUserId);
+  
   const messageListRef = useRef();
   const [canChat, setCanChat] = useState(true);
-  const [isBlocked, setIsBlocked] = useState(false);
-  const [isBlockedByOther, setIsBlockedByOther] = useState(false);
 
   // Computed value: can chat if friends AND not blocked
-  const canActuallyChat = canChat && !isBlocked && !isBlockedByOther;
+  const canActuallyChat = canChat && canSendMessage();
 
   // Online status component
   const OnlineStatus = ({ userId }) => {
@@ -92,14 +100,11 @@ export default function ConversationWindow() {
   useEffect(() => {
     const check = async () => {
       try {
-        const otherId = (selectedConversation.participants || []).find(
-          (id) => id !== uid
-        );
-        if (!otherId) {
+        if (!otherUserId) {
           setCanChat(true);
           return;
         }
-        const ok = await areUsersFriends(uid, otherId);
+        const ok = await areUsersFriends(uid, otherUserId);
         setCanChat(!!ok);
       } catch {
         setCanChat(true);
@@ -108,39 +113,7 @@ export default function ConversationWindow() {
     if (selectedConversation && selectedConversation.participants) {
       check();
     }
-  }, [selectedConversation, uid]);
-
-  // Check block status to show appropriate UI
-  useEffect(() => {
-    const checkBlockStatus = async () => {
-      try {
-        const otherId = (selectedConversation.participants || []).find(
-          (id) => id !== uid
-        );
-        if (!otherId) {
-          setIsBlocked(false);
-          setIsBlockedByOther(false);
-          return;
-        }
-
-        // Check if current user blocked the other user
-        const userBlockedOther = await isUserBlocked(uid, otherId);
-        // Check if other user blocked current user
-        const otherBlockedUser = await isUserBlocked(otherId, uid);
-
-        setIsBlocked(userBlockedOther);
-        setIsBlockedByOther(otherBlockedUser);
-      } catch (error) {
-        console.error("Error checking block status:", error);
-        setIsBlocked(false);
-        setIsBlockedByOther(false);
-      }
-    };
-
-    if (selectedConversation && selectedConversation.participants) {
-      checkBlockStatus();
-    }
-  }, [selectedConversation, uid]);
+  }, [selectedConversation, uid, otherUserId]);
 
   // Mark conversation as read when messages change and this conversation is open
   useEffect(() => {
@@ -294,13 +267,13 @@ export default function ConversationWindow() {
             )}
 
             {/* Block Status Messages */}
-            {isBlocked && (
+            {isBlockedByMe && (
               <div className="my-2 rounded border border-red-300 bg-red-50 p-2 text-xs text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300">
                 Bạn đã chặn người này. Bỏ chặn để có thể nhắn tin.
               </div>
             )}
 
-            {isBlockedByOther && (
+            {isBlockingMe && (
               <div className="my-2 rounded border border-gray-300 bg-gray-50 p-2 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900/20 dark:text-gray-300">
                 👤 Người này hiện không có mặt
               </div>
