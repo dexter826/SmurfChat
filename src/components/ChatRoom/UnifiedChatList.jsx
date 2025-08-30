@@ -9,6 +9,9 @@ import {
   togglePinChat,
   dissolveRoom,
   updateLastSeen,
+  blockUser,
+  unblockUser,
+  isUserBlocked,
 } from "../../firebase/services";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
@@ -39,6 +42,13 @@ const GroupIcon = () => (
   </svg>
 );
 
+const BlockIcon = () => (
+  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L5.636 5.636" />
+    <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+  </svg>
+);
+
 const OnlineStatusIndicator = ({ userId }) => {
   const { isOnline } = useUserOnlineStatus(userId);
   
@@ -63,6 +73,7 @@ export default function UnifiedChatList() {
   const { user } = useContext(AuthContext);
   const { success, error, confirm } = useAlert();
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [blockStatus, setBlockStatus] = useState({}); // Track block status for each conversation
 
   // Get all users for conversation lookup
   const allUsersCondition = React.useMemo(
@@ -75,6 +86,49 @@ export default function UnifiedChatList() {
   );
 
   const allUsers = useFirestore("users", allUsersCondition);
+
+  // Check block status for a conversation participant
+  const checkBlockStatus = React.useCallback(async (conversationId, otherUserId) => {
+    try {
+      const blocked = await isUserBlocked(user.uid, otherUserId);
+      setBlockStatus(prev => ({
+        ...prev,
+        [conversationId]: blocked
+      }));
+      return blocked;
+    } catch (err) {
+      console.error("Error checking block status:", err);
+      return false;
+    }
+  }, [user.uid]);
+
+  // Check block status for all conversations when component mounts or conversations change
+  React.useEffect(() => {
+    const checkAllBlockStatuses = async () => {
+      if (!user?.uid || !conversations.length || !allUsers.length) return;
+
+      const statusChecks = conversations.map(async (conversation) => {
+        const otherUserId = conversation.participants.find(uid => uid !== user.uid);
+        if (otherUserId) {
+          const blocked = await checkBlockStatus(conversation.id, otherUserId);
+          return { conversationId: conversation.id, blocked };
+        }
+        return null;
+      });
+
+      const results = await Promise.all(statusChecks);
+      const newBlockStatus = {};
+      results.forEach(result => {
+        if (result) {
+          newBlockStatus[result.conversationId] = result.blocked;
+        }
+      });
+      
+      setBlockStatus(newBlockStatus);
+    };
+
+    checkAllBlockStatuses();
+  }, [conversations, allUsers, user?.uid, checkBlockStatus]);
 
   const handleRoomClick = async (roomId) => {
     selectRoom(roomId);
@@ -148,6 +202,39 @@ export default function UnifiedChatList() {
     }
   };
 
+  // Handle block/unblock user in conversation
+  const handleToggleBlock = async (conversation, otherUser) => {
+    const isBlocked = blockStatus[conversation.id];
+    const actionText = isBlocked ? 'bỏ chặn' : 'chặn';
+    
+    const confirmed = await confirm(
+      `Bạn có chắc muốn ${actionText} ${otherUser.displayName}?`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      if (isBlocked) {
+        await unblockUser(user.uid, otherUser.uid);
+        setBlockStatus(prev => ({
+          ...prev,
+          [conversation.id]: false
+        }));
+        success(`Đã bỏ chặn ${otherUser.displayName}`);
+      } else {
+        await blockUser(user.uid, otherUser.uid);
+        setBlockStatus(prev => ({
+          ...prev,
+          [conversation.id]: true
+        }));
+        success(`Đã chặn ${otherUser.displayName}`);
+      }
+    } catch (err) {
+      console.error('Error toggling block:', err);
+      error(err.message || `Không thể ${actionText} người dùng`);
+    }
+  };
+
   // Combine rooms and conversations into a single list
   const allChats = React.useMemo(() => {
     const getOtherParticipant = (conversation) => {
@@ -186,9 +273,14 @@ export default function UnifiedChatList() {
       isPinned: room.pinned || false,
     }));
 
-    const conversationItems = conversations.map((conversation) => {
-      const otherUser = getOtherParticipant(conversation);
-      return {
+    const conversationItems = conversations
+      .filter((conversation) => {
+        // Filter out conversations with blocked users
+        return !blockStatus[conversation.id]; // Hide if the other user is blocked
+      })
+      .map((conversation) => {
+        const otherUser = getOtherParticipant(conversation);
+        return {
         ...conversation,
         type: "conversation",
         displayName: otherUser.displayName,
@@ -234,6 +326,7 @@ export default function UnifiedChatList() {
     selectedConversationId,
     allUsers,
     user.uid,
+    blockStatus,
   ]);
 
   return (
@@ -411,6 +504,26 @@ export default function UnifiedChatList() {
                         <MuteIcon />
                         {chat.isMuted ? "Bật thông báo" : "Tắt thông báo"}
                       </button>
+                      
+                      {/* Block/Unblock option - only for direct conversations */}
+                      {chat.type === "conversation" && (
+                        <button
+                          className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 transition-colors duration-150"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(null);
+                            const otherUser = allUsers.find(u => 
+                              chat.participants.includes(u.uid) && u.uid !== user.uid
+                            );
+                            if (otherUser) {
+                              handleToggleBlock(chat, otherUser);
+                            }
+                          }}
+                        >
+                          <BlockIcon />
+                          {blockStatus[chat.id] ? "Bỏ chặn" : "Chặn người dùng"}
+                        </button>
+                      )}
                       
                       <div className="border-t border-slate-200 dark:border-slate-600 my-1"></div>
                       

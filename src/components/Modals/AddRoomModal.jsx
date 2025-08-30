@@ -1,6 +1,6 @@
 import React, { useContext, useState } from "react";
 import { AppContext } from "../../Context/AppProvider";
-import { addDocument } from "../../firebase/services";
+import { addDocument, isUserBlocked } from "../../firebase/services";
 import { AuthContext } from "../../Context/AuthProvider";
 import { useAlert } from "../../Context/AlertProvider";
 import { debounce } from "lodash";
@@ -114,11 +114,23 @@ async function fetchFriendsList(search, currentUserId) {
   const friendsSnapshot = await getDocs(friendsQuery);
   const friendIds = [];
 
-  friendsSnapshot.docs.forEach((doc) => {
+  // Filter out blocked users
+  for (const doc of friendsSnapshot.docs) {
     const participants = doc.data().participants || [];
     const friendId = participants.find((id) => id !== currentUserId);
-    if (friendId) friendIds.push(friendId);
-  });
+    if (friendId) {
+      try {
+        const isBlocked = await isUserBlocked(currentUserId, friendId);
+        if (!isBlocked) {
+          friendIds.push(friendId);
+        }
+      } catch (err) {
+        console.error('Error checking block status:', err);
+        // Include if can't check (default behavior)
+        friendIds.push(friendId);
+      }
+    }
+  }
 
   if (friendIds.length === 0) return [];
 

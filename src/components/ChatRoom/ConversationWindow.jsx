@@ -2,12 +2,12 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
 import {
-  addDocument,
   updateConversationLastMessage,
   updateLastSeen,
   setTypingStatus,
   areUsersFriends,
   markMessageAsRead,
+  sendMessage,
 } from "../../firebase/services";
 import useFirestore from "../../hooks/useFirestore";
 import Message from "./Message";
@@ -43,36 +43,41 @@ export default function ConversationWindow() {
   const handleOnSubmit = async () => {
     if (!inputValue.trim() || !selectedConversation.id) return;
 
-    addDocument("directMessages", {
-      text: inputValue,
-      uid,
-      photoURL,
-      conversationId: selectedConversation.id,
-      displayName,
-      messageType: "text",
-    });
+    try {
+      const messageData = {
+        text: inputValue,
+        uid,
+        photoURL,
+        conversationId: selectedConversation.id,
+        displayName,
+        messageType: "text",
+      };
 
-    // Update conversation's last message
-    if (selectedConversation.id) {
-      try {
+      await sendMessage(messageData, selectedConversation.id);
+
+      // Update conversation's last message
+      if (selectedConversation.id) {
         await updateConversationLastMessage(
           selectedConversation.id,
           inputValue,
           uid
         );
-      } catch (error) {
-        console.error("Error updating conversation:", error);
       }
-    }
 
-    // reset
-    setInputValue("");
+      // reset
+      setInputValue("");
 
-    // focus to input again after submit
-    if (inputRef?.current) {
-      setTimeout(() => {
-        inputRef.current.focus();
-      });
+      // focus to input again after submit
+      if (inputRef?.current) {
+        setTimeout(() => {
+          inputRef.current.focus();
+        });
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      if (error.message === 'Cannot send message to blocked user') {
+        alert('Không thể gửi tin nhắn. Bạn đã bị chặn hoặc đã chặn người này.');
+      }
     }
   };
 
@@ -96,20 +101,20 @@ export default function ConversationWindow() {
   const handleFileUploaded = async (fileData) => {
     if (!selectedConversation.id) return;
 
-    const messageData = {
-      uid,
-      photoURL,
-      displayName,
-      messageType: fileData.messageType,
-      fileData: fileData,
-      text: "", // Empty text for file messages
-      conversationId: selectedConversation.id,
-    };
-
-    addDocument("directMessages", messageData);
-
-    // Update conversation's last message
     try {
+      const messageData = {
+        uid,
+        photoURL,
+        displayName,
+        messageType: fileData.messageType,
+        fileData: fileData,
+        text: "", // Empty text for file messages
+        conversationId: selectedConversation.id,
+      };
+
+      await sendMessage(messageData, selectedConversation.id);
+
+      // Update conversation's last message
       const lastMessageText =
         fileData.messageType === "voice"
           ? "🎤 Tin nhắn thoại"
@@ -122,7 +127,10 @@ export default function ConversationWindow() {
         uid
       );
     } catch (error) {
-      console.error("Error updating conversation:", error);
+      console.error("Error sending file message:", error);
+      if (error.message === 'Cannot send message to blocked user') {
+        alert('Không thể gửi tin nhắn. Bạn đã bị chặn hoặc đã chặn người này.');
+      }
     }
   };
 
@@ -130,27 +138,30 @@ export default function ConversationWindow() {
   const handleLocationShared = async (locationData) => {
     if (!selectedConversation.id) return;
 
-    const messageData = {
-      uid,
-      photoURL,
-      displayName,
-      messageType: "location",
-      locationData: locationData,
-      text: "", // Empty text for location messages
-      conversationId: selectedConversation.id,
-    };
-
-    addDocument("directMessages", messageData);
-
-    // Update conversation's last message
     try {
+      const messageData = {
+        uid,
+        photoURL,
+        displayName,
+        messageType: "location",
+        locationData: locationData,
+        text: "", // Empty text for location messages
+        conversationId: selectedConversation.id,
+      };
+
+      await sendMessage(messageData, selectedConversation.id);
+
+      // Update conversation's last message
       await updateConversationLastMessage(
         selectedConversation.id,
         "📍 Vị trí được chia sẻ",
         uid
       );
     } catch (error) {
-      console.error("Error updating conversation:", error);
+      console.error("Error sending location message:", error);
+      if (error.message === 'Cannot send message to blocked user') {
+        alert('Không thể gửi tin nhắn. Bạn đã bị chặn hoặc đã chặn người này.');
+      }
     }
   };
 

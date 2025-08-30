@@ -2,19 +2,21 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
 import { useAlert } from '../../Context/AlertProvider';
-import { uploadImage, sendFriendRequest, createOrUpdateConversation } from '../../firebase/services';
+import { uploadImage, sendFriendRequest, createOrUpdateConversation, blockUser, unblockUser, isUserBlocked } from '../../firebase/services';
 import { updateProfile } from 'firebase/auth';
 import { auth } from '../../firebase/config';
-import { FaCamera, FaTimes, FaEnvelope, FaCalendarAlt, FaCircle } from 'react-icons/fa';
+import { FaCamera, FaTimes, FaEnvelope, FaCalendarAlt, FaCircle, FaBan } from 'react-icons/fa';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import useFirestore from '../../hooks/useFirestore';
 
 function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile = false }) {
   const { user: currentUser } = useContext(AuthContext);
-  const { setIsNewMessageVisible, selectConversation, setChatType } = useContext(AppContext);
-  const { success, error } = useAlert();
+  const { selectConversation, setChatType } = useContext(AppContext);
+  const { success, error, confirm } = useAlert();
   const [isUploading, setIsUploading] = useState(false);
   const [isAddingFriend, setIsAddingFriend] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isBlockingUser, setIsBlockingUser] = useState(false);
   const { isOnline } = useOnlineStatus(targetUser?.uid);
 
   // Check if users are friends
@@ -34,6 +36,24 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
   }), [currentUser?.uid]);
   
   const outgoingRequests = useFirestore('friend_requests', outgoingReqsCondition);
+
+  // Kiểm tra trạng thái block khi modal mở
+  React.useEffect(() => {
+    const checkBlockStatus = async () => {
+      if (currentUser?.uid && targetUser?.uid && !isOwnProfile && visible) {
+        try {
+          const blocked = await isUserBlocked(currentUser.uid, targetUser.uid);
+          setIsBlocked(blocked);
+        } catch (err) {
+          console.error('Error checking block status:', err);
+        }
+      }
+    };
+
+    if (visible) {
+      checkBlockStatus();
+    }
+  }, [visible, currentUser?.uid, targetUser?.uid, isOwnProfile]);
 
   // Nếu không có targetUser, không hiển thị modal
   if (!visible || !targetUser) return null;
@@ -113,6 +133,35 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
     if (!timestamp) return 'Chưa rõ';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleDateString('vi-VN');
+  };
+
+  // Xử lý chặn/bỏ chặn người dùng
+  const handleToggleBlock = async () => {
+    const actionText = isBlocked ? 'bỏ chặn' : 'chặn';
+    const confirmed = await confirm(
+      `Bạn có chắc muốn ${actionText} ${targetUser.displayName}?`
+    );
+    
+    if (!confirmed) return;
+
+    setIsBlockingUser(true);
+    try {
+      if (isBlocked) {
+        await unblockUser(currentUser.uid, targetUser.uid);
+        setIsBlocked(false);
+        success(`Đã bỏ chặn ${targetUser.displayName}`);
+      } else {
+        await blockUser(currentUser.uid, targetUser.uid);
+        setIsBlocked(true);
+        success(`Đã chặn ${targetUser.displayName}`);
+        onClose(); // Đóng modal sau khi chặn
+      }
+    } catch (err) {
+      console.error('Error toggling block:', err);
+      error(err.message || `Không thể ${actionText} người dùng`);
+    } finally {
+      setIsBlockingUser(false);
+    }
   };
 
   return (
@@ -218,39 +267,74 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
 
         {/* Action Buttons */}
         {!isOwnProfile && (
-          <div className="flex gap-3">
-            {/* Send Message Button */}
-            {isFriend && (
-              <button
-                onClick={handleSendMessage}
-                className="flex-1 rounded-lg bg-skybrand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-skybrand-700 focus:outline-none focus:ring-2 focus:ring-skybrand-500 focus:ring-offset-1"
-              >
-                Gửi tin nhắn
-              </button>
-            )}
+          <div className="flex flex-col gap-3">
+            {/* Primary Action Buttons */}
+            <div className="flex gap-3">
+              {/* Send Message Button */}
+              {isFriend && !isBlocked && (
+                <button
+                  onClick={handleSendMessage}
+                  className="flex-1 rounded-lg bg-skybrand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-skybrand-700 focus:outline-none focus:ring-2 focus:ring-skybrand-500 focus:ring-offset-1"
+                >
+                  Gửi tin nhắn
+                </button>
+              )}
 
-            {/* Add Friend Button */}
-            {!isFriend && (
-              <button
-                onClick={handleAddFriend}
-                disabled={isAddingFriend}
-                className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-skybrand-500 focus:ring-offset-1 ${
-                  hasPendingRequest 
-                    ? 'border-yellow-500 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20' 
-                    : 'border-skybrand-600 text-skybrand-600 hover:bg-skybrand-50 dark:hover:bg-skybrand-900/20'
-                } ${isAddingFriend ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {isAddingFriend ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                    Đang gửi...
-                  </div>
-                ) : hasPendingRequest ? (
-                  'Đã gửi lời mời'
-                ) : (
-                  'Kết bạn'
-                )}
-              </button>
+              {/* Add Friend Button */}
+              {!isFriend && !isBlocked && (
+                <button
+                  onClick={handleAddFriend}
+                  disabled={isAddingFriend}
+                  className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-skybrand-500 focus:ring-offset-1 ${
+                    hasPendingRequest 
+                      ? 'border-yellow-500 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20' 
+                      : 'border-skybrand-600 text-skybrand-600 hover:bg-skybrand-50 dark:hover:bg-skybrand-900/20'
+                  } ${isAddingFriend ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isAddingFriend ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                      Đang gửi...
+                    </div>
+                  ) : hasPendingRequest ? (
+                    'Đã gửi lời mời'
+                  ) : (
+                    'Kết bạn'
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Block/Unblock Button */}
+            <button
+              onClick={handleToggleBlock}
+              disabled={isBlockingUser}
+              className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                isBlocked 
+                  ? 'border-orange-500 bg-orange-50 text-orange-600 hover:bg-orange-100 focus:ring-orange-500 dark:bg-orange-900/20 dark:hover:bg-orange-900/30'
+                  : 'border-red-500 bg-red-50 text-red-600 hover:bg-red-100 focus:ring-red-500 dark:bg-red-900/20 dark:hover:bg-red-900/30'
+              } ${isBlockingUser ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {isBlockingUser ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                  {isBlocked ? 'Đang bỏ chặn...' : 'Đang chặn...'}
+                </>
+              ) : (
+                <>
+                  <FaBan className="h-4 w-4" />
+                  {isBlocked ? 'Bỏ chặn' : 'Chặn người dùng'}
+                </>
+              )}
+            </button>
+
+            {/* Blocked User Message */}
+            {isBlocked && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center dark:bg-red-900/20 dark:border-red-800">
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  Bạn đã chặn người dùng này. Họ không thể gửi tin nhắn cho bạn.
+                </p>
+              </div>
             )}
           </div>
         )}

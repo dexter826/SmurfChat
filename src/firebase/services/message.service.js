@@ -1,5 +1,6 @@
-import { doc, updateDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, deleteDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config';
+import { areMutuallyBlocked } from './block.service';
 
 // Delete message (hard delete)
 export const deleteMessage = async (messageId, collectionName = 'messages') => {
@@ -125,6 +126,51 @@ export const markMessageAsRead = async (messageId, userId, collectionName = 'mes
     }
   } catch (error) {
     console.error('Error marking message as read:', error);
+    throw error;
+  }
+};
+
+// Send message with block check
+export const sendMessage = async (collectionName, messageData) => {
+  try {
+    // Check for blocks in direct messages
+    if (collectionName === 'directMessages' && messageData.conversationId) {
+      // Extract participant IDs from conversation ID (format: uid1_uid2)
+      const participantIds = messageData.conversationId.split('_');
+      
+      if (participantIds.length === 2) {
+        const [userA, userB] = participantIds;
+        const senderId = messageData.uid;
+        const recipientId = participantIds.find(id => id !== senderId);
+        
+        if (recipientId) {
+          const blockStatus = await areMutuallyBlocked(senderId, recipientId);
+          
+          if (blockStatus.isBlocked) {
+            if (blockStatus.aBlockedB && senderId === userA) {
+              throw new Error('Không thể gửi tin nhắn - bạn đã chặn người dùng này');
+            } else if (blockStatus.bBlockedA && senderId === userB) {
+              throw new Error('Không thể gửi tin nhắn - bạn đã chặn người dùng này');
+            } else if (blockStatus.aBlockedB && senderId === userB) {
+              throw new Error('Không thể gửi tin nhắn - người dùng này đã chặn bạn');
+            } else if (blockStatus.bBlockedA && senderId === userA) {
+              throw new Error('Không thể gửi tin nhắn - người dùng này đã chặn bạn');
+            }
+          }
+        }
+      }
+    }
+
+    // Send the message
+    const docRef = collection(db, collectionName);
+    const result = await addDoc(docRef, {
+      ...messageData,
+      createdAt: serverTimestamp(),
+    });
+    
+    return result.id;
+  } catch (error) {
+    console.error('Error sending message:', error);
     throw error;
   }
 };

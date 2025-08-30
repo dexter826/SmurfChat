@@ -1,7 +1,7 @@
 import React, { useState, useContext } from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
-import { sendFriendRequest } from "../../firebase/services";
+import { sendFriendRequest, isUserBlocked } from "../../firebase/services";
 import useFirestore from "../../hooks/useFirestore";
 
 const SearchIcon = () => (
@@ -24,6 +24,7 @@ export default function AddFriendModal() {
   const { isAddFriendVisible, setIsAddFriendVisible } = useContext(AppContext);
   const { user } = useContext(AuthContext);
   const [publicSearchTerm, setPublicSearchTerm] = useState("");
+  const [blockedUsers, setBlockedUsers] = useState(new Set());
 
   // Incoming friend requests for current user
   const incomingReqsCondition = React.useMemo(
@@ -75,11 +76,41 @@ export default function AddFriendModal() {
   );
   const allUsers = useFirestore("users", allUsersCondition);
 
+  // Load blocked users when modal opens
+  React.useEffect(() => {
+    const loadBlockedUsers = async () => {
+      if (!user?.uid || !isAddFriendVisible) return;
+
+      const blocked = new Set();
+      const checkPromises = allUsers.map(async (otherUser) => {
+        try {
+          const isBlocked = await isUserBlocked(user.uid, otherUser.uid);
+          if (isBlocked) {
+            blocked.add(otherUser.uid);
+          }
+        } catch (err) {
+          console.error('Error checking block status:', err);
+        }
+      });
+
+      await Promise.all(checkPromises);
+      setBlockedUsers(blocked);
+    };
+
+    loadBlockedUsers();
+  }, [user?.uid, isAddFriendVisible, allUsers]);
+
   // Filter users for public search
   const publicUsers = allUsers.filter(
-    (u) =>
-      u.displayName?.toLowerCase().includes(publicSearchTerm.toLowerCase()) ||
-      u.email?.toLowerCase().includes(publicSearchTerm.toLowerCase())
+    (u) => {
+      // Filter out blocked users
+      if (blockedUsers.has(u.uid)) {
+        return false;
+      }
+      
+      return u.displayName?.toLowerCase().includes(publicSearchTerm.toLowerCase()) ||
+             u.email?.toLowerCase().includes(publicSearchTerm.toLowerCase());
+    }
   );
 
   const ActionButton = ({

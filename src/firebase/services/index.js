@@ -25,6 +25,9 @@ export * from './friend.service';
 // User services
 export * from './user.service';
 
+// Block services
+export * from './block.service';
+
 /**
  * Services Architecture:
  * 
@@ -44,4 +47,5 @@ export * from './user.service';
  * - vote.service: Voting system functionality
  * - friend.service: Friend system and requests
  * - user.service: User settings and utility functions
+ * - block.service: User blocking and unblocking functionality
  */

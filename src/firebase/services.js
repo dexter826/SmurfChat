@@ -30,7 +30,7 @@ import {
 export { registerWithEmailAndPassword, loginWithEmailAndPassword, logoutUser } from './services/auth.service';
 
 // Re-export message services for backward compatibility
-export { deleteMessage, recallMessage, canRecallMessage, markMessageAsRead } from './services/message.service';
+export { deleteMessage, recallMessage, canRecallMessage, markMessageAsRead, sendMessage } from './services/message.service';
 
 // Re-export conversation services for backward compatibility
 export { 
@@ -82,6 +82,16 @@ export {
   updateLastSeen, 
   setTypingStatus 
 } from './services/user.service';
+
+// Re-export block services for backward compatibility
+export { 
+  blockUser, 
+  unblockUser, 
+  isUserBlocked, 
+  getBlockedUsers, 
+  getUsersWhoBlockedMe, 
+  areMutuallyBlocked 
+} from './services/block.service';
 
 export const addDocument = (collectionName, data) => {
   const docRef = collection(db, collectionName);

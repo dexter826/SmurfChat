@@ -2,7 +2,7 @@ import { FaCalendar, FaChartBar } from 'react-icons/fa';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
-import { addDocument, updateRoomLastMessage, updateLastSeen, setTypingStatus, markMessageAsRead } from '../../firebase/services';
+import { addDocument, updateRoomLastMessage, updateLastSeen, setTypingStatus, markMessageAsRead, sendMessage } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
 import Message from './Message';
 import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
@@ -67,11 +67,12 @@ export default function ChatWindow() {
       try {
         await updateRoomLastMessage(selectedRoom.id, inputValue, uid);
       } catch (error) {
-        console.error('Error updating room last message:', error);
-      }
-    } else if (chatType === 'direct' && selectedConversation.id) {
-      // Handle direct message
-      addDocument('directMessages', {
+      console.error('Error updating room last message:', error);
+    }
+  } else if (chatType === 'direct' && selectedConversation.id) {
+    // Handle direct message
+    try {
+      await sendMessage('directMessages', {
         text: inputValue,
         uid,
         photoURL,
@@ -79,8 +80,11 @@ export default function ChatWindow() {
         displayName,
         messageType: 'text',
       });
-
-      // Update conversation's last message
+    } catch (error) {
+      console.error('Error sending direct message:', error);
+      alert(error.message || 'Không thể gửi tin nhắn');
+      return; // Don't proceed if message sending failed
+    }      // Update conversation's last message
       try {
         const { updateConversationLastMessage } = await import('../../firebase/services');
         await updateConversationLastMessage(selectedConversation.id, inputValue, uid);
@@ -143,20 +147,25 @@ export default function ChatWindow() {
         console.error('Error updating room last message:', error);
       }
     } else if (chatType === 'direct' && selectedConversation.id) {
-      addDocument('directMessages', {
-        ...messageData,
-        conversationId: selectedConversation.id,
-      });
-
-      // Update conversation's last message
       try {
+        const fileMessage = {
+          ...messageData,
+          conversationId: selectedConversation.id,
+        };
+        
+        await sendMessage(fileMessage, selectedConversation.id);
+        
+        // Update conversation's last message
         const { updateConversationLastMessage } = await import('../../firebase/services');
         const lastMessageText = fileData.messageType === 'voice' ? '🎤 Tin nhắn thoại' : 
                                fileData.category === 'image' ? '🖼️ Hình ảnh' : 
                                `📎 ${fileData.name}`;
         await updateConversationLastMessage(selectedConversation.id, lastMessageText, uid);
       } catch (error) {
-        console.error('Error updating conversation:', error);
+        console.error('Error sending file message:', error);
+        if (error.message === 'Cannot send message to blocked user') {
+          alert('Không thể gửi tin nhắn. Bạn đã bị chặn hoặc đã chặn người này.');
+        }
       }
     }
   };
@@ -185,10 +194,16 @@ export default function ChatWindow() {
         console.error('Error updating room last message:', error);
       }
     } else if (chatType === 'direct' && selectedConversation.id) {
-      addDocument('directMessages', {
-        ...messageData,
-        conversationId: selectedConversation.id,
-      });
+      try {
+        await sendMessage('directMessages', {
+          ...messageData,
+          conversationId: selectedConversation.id,
+        });
+      } catch (error) {
+        console.error('Error sending direct message:', error);
+        alert(error.message || 'Không thể gửi tin nhắn');
+        return; // Don't proceed if message sending failed
+      }
 
       // Update conversation's last message
       try {

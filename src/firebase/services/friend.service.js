@@ -1,11 +1,25 @@
 import { collection, addDoc, serverTimestamp, doc, setDoc, updateDoc, getDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
 import { db } from '../config';
+import { isUserBlocked } from './block.service';
 
 // Friends system services
 
 // Send a friend request (if not existing)
 export const sendFriendRequest = async (fromUserId, toUserId) => {
   if (fromUserId === toUserId) throw new Error('Không thể kết bạn với chính mình');
+  
+  // Check if either user has blocked the other
+  const fromBlockedTo = await isUserBlocked(fromUserId, toUserId);
+  const toBlockedFrom = await isUserBlocked(toUserId, fromUserId);
+  
+  if (fromBlockedTo) {
+    throw new Error('Bạn đã chặn người dùng này');
+  }
+  
+  if (toBlockedFrom) {
+    throw new Error('Không thể gửi lời mời kết bạn đến người dùng này');
+  }
+  
   const requestsRef = collection(db, 'friend_requests');
 
   // Check existing pending or accepted

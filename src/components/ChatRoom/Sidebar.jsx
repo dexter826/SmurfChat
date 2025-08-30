@@ -5,7 +5,7 @@ import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
 import { useAlert } from '../../Context/AlertProvider';
 import useFirestore from '../../hooks/useFirestore';
-import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation, logoutUser } from '../../firebase/services';
+import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation, logoutUser, isUserBlocked } from '../../firebase/services';
 
 // Icon components
 const ChevronDownIcon = () => (
@@ -66,6 +66,7 @@ export default function Sidebar() {
   // Tab state
   const [activeTab, setActiveTab] = useState('conversations');
   const [friendSearchTerm, setFriendSearchTerm] = useState('');
+  const [blockedUsers, setBlockedUsers] = useState(new Set()); // Track blocked users
   
   // Collapsible sections state
   const [sectionsCollapsed, setSectionsCollapsed] = useState({
@@ -107,6 +108,33 @@ export default function Sidebar() {
   const allUsers = useFirestore('users', allUsersCondition);
   
   const getUserById = (uid) => allUsers.find(u => u.uid === uid);
+
+  // Load blocked users list
+  React.useEffect(() => {
+    const loadBlockedUsers = async () => {
+      if (!user?.uid || !friendEdges.length) return;
+
+      const blocked = new Set();
+      const checkPromises = friendEdges.map(async (edge) => {
+        const otherId = edge.participants.find(id => id !== user.uid);
+        if (otherId) {
+          try {
+            const isBlocked = await isUserBlocked(user.uid, otherId);
+            if (isBlocked) {
+              blocked.add(otherId);
+            }
+          } catch (err) {
+            console.error('Error checking block status:', err);
+          }
+        }
+      });
+
+      await Promise.all(checkPromises);
+      setBlockedUsers(blocked);
+    };
+
+    loadBlockedUsers();
+  }, [user?.uid, friendEdges]);
   
   // Handler to open user profile
   const handleUserClick = (targetUser) => {
@@ -120,6 +148,12 @@ export default function Sidebar() {
   const filteredFriends = friendEdges.filter(edge => {
     const otherId = (edge.participants || []).find(id => id !== user.uid);
     const other = getUserById(otherId) || {};
+    
+    // Filter out blocked users
+    if (blockedUsers.has(otherId)) {
+      return false;
+    }
+    
     return other.displayName?.toLowerCase().includes(friendSearchTerm.toLowerCase()) ||
            other.email?.toLowerCase().includes(friendSearchTerm.toLowerCase());
   });
