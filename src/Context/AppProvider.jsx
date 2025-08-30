@@ -242,7 +242,7 @@ export default function AppProvider({ children }) {
     
     // Count unread conversations (excluding currently open conversation)
     conversations.forEach((conv) => {
-      if (!conv || conv.deleted) return;
+      if (!conv) return;
       
       // Skip currently selected conversation
       if (chatType === 'direct' && selectedConversationId === conv.id) return;
@@ -294,7 +294,7 @@ export default function AppProvider({ children }) {
           
           // Count unread conversations (excluding currently open conversation)
           conversations.forEach((conv) => {
-            if (!conv || conv.deleted) return;
+            if (!conv) return;
             if (chatType === 'direct' && selectedConversationId === conv.id) return;
             
             const lastAt = conv.lastMessageAt;
@@ -336,7 +336,7 @@ export default function AppProvider({ children }) {
     if (!Array.isArray(conversations) || isInitialLoadRef.current) return; // Skip notifications during initial load
     
     conversations.forEach((conv) => {
-      if (!conv || conv.deleted) return;
+      if (!conv) return;
       const lastAt = conv.lastMessageAt;
       const updatedBy = conv.updatedBy;
       const lastSeen = conv.lastSeen?.[uid];

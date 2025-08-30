@@ -57,6 +57,8 @@ export default function UnifiedChatList() {
     selectedConversationId,
     selectRoom,
     selectConversation,
+    setSelectedRoomId,
+    setSelectedConversationId,
   } = useContext(AppContext);
   const { user } = useContext(AuthContext);
   const { success, error, confirm } = useAlert();
@@ -107,9 +109,17 @@ export default function UnifiedChatList() {
   const handleDeleteChat = async (chatId, isConversation) => {
     try {
       if (isConversation) {
+        // Clear selected conversation if it's the one being deleted
+        if (selectedConversationId === chatId) {
+          setSelectedConversationId('');
+        }
         await deleteConversation(chatId);
         success("Đã xóa cuộc trò chuyện");
       } else {
+        // Clear selected room if it's the one being deleted
+        if (selectedRoomId === chatId) {
+          setSelectedRoomId('');
+        }
         await dissolveRoom(chatId);
         success("Đã xóa phòng chat");
       }

@@ -578,11 +578,20 @@ export const markMessageAsRead = async (messageId, userId, collectionName = 'mes
 // Delete conversation
 export const deleteConversation = async (conversationId) => {
   try {
+    // Delete all messages in this conversation first
+    const messagesQuery = query(
+      collection(db, 'directMessages'),
+      where('conversationId', '==', conversationId)
+    );
+    const messagesSnapshot = await getDocs(messagesQuery);
+    
+    // Delete all messages in batches
+    const deletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
+    
+    // Then delete the conversation itself
     const conversationRef = doc(db, 'conversations', conversationId);
-    await updateDoc(conversationRef, {
-      deleted: true,
-      deletedAt: serverTimestamp(),
-    });
+    await deleteDoc(conversationRef);
   } catch (error) {
     console.error('Error deleting conversation:', error);
     throw error;
