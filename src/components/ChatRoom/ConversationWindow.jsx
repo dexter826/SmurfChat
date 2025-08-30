@@ -2,12 +2,10 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
 import {
-  updateConversationLastMessage,
   updateLastSeen,
   setTypingStatus,
   areUsersFriends,
   markMessageAsRead,
-  sendMessage,
   isUserBlocked,
 } from "../../firebase/services";
 import useFirestore from "../../hooks/useFirestore";
@@ -17,19 +15,29 @@ import FileUpload from "../FileUpload/FileUpload";
 import VoiceRecording from "../FileUpload/VoiceRecording";
 import EmojiPickerComponent from "./EmojiPicker";
 import { QuickReactions } from "./EmojiText";
-import { useEmoji } from "../../hooks/useEmoji";
+import { useMessageHandler } from "../../hooks/useMessageHandler";
 
 export default function ConversationWindow() {
   const { selectedConversation } = useContext(AppContext);
   const {
-    user: { uid, photoURL, displayName },
+    user: { uid },
   } = useContext(AuthContext);
-  const { addToRecent } = useEmoji();
-  const [inputValue, setInputValue] = useState("");
+  
+  // Use the new message handler hook
+  const {
+    inputValue,
+    setInputValue,
+    showQuickReactions,
+    inputRef,
+    handleTextMessage,
+    handleFileMessage,
+    handleLocationMessage,
+    handleEmojiClick,
+    toggleQuickReactions,
+  } = useMessageHandler('direct', selectedConversation);
+  
   const messageListRef = useRef();
-  const inputRef = useRef();
   const [canChat, setCanChat] = useState(true);
-  const [showQuickReactions, setShowQuickReactions] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isBlockedByOther, setIsBlockedByOther] = useState(false);
 
@@ -47,128 +55,18 @@ export default function ConversationWindow() {
   };
 
   const handleOnSubmit = async () => {
-    if (!inputValue.trim() || !selectedConversation.id) return;
-
-    try {
-      const messageData = {
-        text: inputValue,
-        uid,
-        photoURL,
-        conversationId: selectedConversation.id,
-        displayName,
-        messageType: "text",
-      };
-
-      await sendMessage("directMessages", messageData);
-
-      // Update conversation's last message
-      if (selectedConversation.id) {
-        await updateConversationLastMessage(
-          selectedConversation.id,
-          inputValue,
-          uid
-        );
-      }
-
-      // reset
-      setInputValue("");
-
-      // focus to input again after submit
-      if (inputRef?.current) {
-        setTimeout(() => {
-          inputRef.current.focus();
-        });
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      if (error.message === 'Cannot send message to blocked user') {
-        alert('Không thể gửi tin nhắn. Bạn đã bị chặn hoặc đã chặn người này.');
-      }
-    }
-  };
-
-  // Handle emoji click
-  const handleEmojiClick = (emoji) => {
-    setInputValue((prev) => prev + emoji);
-    addToRecent(emoji);
-
-    // Focus back to input
-    if (inputRef?.current) {
-      inputRef.current.focus();
-    }
+    await handleTextMessage();
   };
 
   // Toggle quick reactions
-  const toggleQuickReactions = () => {
-    setShowQuickReactions(!showQuickReactions);
-  };
-
   // Handle file upload
   const handleFileUploaded = async (fileData) => {
-    if (!selectedConversation.id) return;
-
-    try {
-      const messageData = {
-        uid,
-        photoURL,
-        displayName,
-        messageType: fileData.messageType,
-        fileData: fileData,
-        text: "", // Empty text for file messages
-        conversationId: selectedConversation.id,
-      };
-
-      await sendMessage("directMessages", messageData);
-
-      // Update conversation's last message
-      const lastMessageText =
-        fileData.messageType === "voice"
-          ? "🎤 Tin nhắn thoại"
-          : fileData.category === "image"
-          ? "🖼️ Hình ảnh"
-          : `📎 ${fileData.name}`;
-      await updateConversationLastMessage(
-        selectedConversation.id,
-        lastMessageText,
-        uid
-      );
-    } catch (error) {
-      console.error("Error sending file message:", error);
-      if (error.message === 'Cannot send message to blocked user') {
-        alert('Không thể gửi tin nhắn. Bạn đã bị chặn hoặc đã chặn người này.');
-      }
-    }
+    await handleFileMessage(fileData);
   };
 
   // Handle location sharing
   const handleLocationShared = async (locationData) => {
-    if (!selectedConversation.id) return;
-
-    try {
-      const messageData = {
-        uid,
-        photoURL,
-        displayName,
-        messageType: "location",
-        locationData: locationData,
-        text: "", // Empty text for location messages
-        conversationId: selectedConversation.id,
-      };
-
-      await sendMessage("directMessages", messageData);
-
-      // Update conversation's last message
-      await updateConversationLastMessage(
-        selectedConversation.id,
-        "📍 Vị trí được chia sẻ",
-        uid
-      );
-    } catch (error) {
-      console.error("Error sending location message:", error);
-      if (error.message === 'Cannot send message to blocked user') {
-        alert('Không thể gửi tin nhắn. Bạn đã bị chặn hoặc đã chặn người này.');
-      }
-    }
+    await handleLocationMessage(locationData);
   };
 
   const condition = React.useMemo(
