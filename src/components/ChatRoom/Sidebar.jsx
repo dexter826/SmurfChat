@@ -53,7 +53,14 @@ const LogOutIcon = () => (
 
 export default function Sidebar() {
   const { user } = useContext(AuthContext);
-  const { selectConversation, setChatType, clearState, setIsAddFriendVisible } = useContext(AppContext);
+  const { 
+    selectConversation, 
+    setChatType, 
+    clearState, 
+    setIsAddFriendVisible,
+    setIsUserProfileVisible,
+    setSelectedUser 
+  } = useContext(AppContext);
   const { confirm } = useAlert();
   
   // Tab state
@@ -100,6 +107,14 @@ export default function Sidebar() {
   const allUsers = useFirestore('users', allUsersCondition);
   
   const getUserById = (uid) => allUsers.find(u => u.uid === uid);
+  
+  // Handler to open user profile
+  const handleUserClick = (targetUser) => {
+    if (targetUser && targetUser.uid !== user.uid) {
+      setSelectedUser(targetUser);
+      setIsUserProfileVisible(true);
+    }
+  };
   
   // Filter friends for friend search
   const filteredFriends = friendEdges.filter(edge => {
@@ -184,14 +199,23 @@ export default function Sidebar() {
     );
   };
 
-  const UserCard = ({ user, description, actions, className = '', onClick }) => (
+  const UserCard = ({ user, description, actions, className = '', onClick, onAvatarClick }) => (
     <div 
       className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/30 ${className}`}
       onClick={onClick}
     >
-      <div className="relative">
+      <div 
+        className="relative cursor-pointer" 
+        onClick={(e) => {
+          if (onAvatarClick) {
+            e.stopPropagation(); // Prevent triggering the card's onClick
+            onAvatarClick(user);
+          }
+        }}
+        title="Xem hồ sơ"
+      >
         <img
-          className="h-10 w-10 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-700"
+          className="h-10 w-10 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-700 hover:ring-skybrand-400 transition-all duration-200"
           src={user?.photoURL || ''}
           alt="avatar"
           onError={(e) => {
@@ -200,7 +224,7 @@ export default function Sidebar() {
           }}
         />
         <div 
-          className="hidden h-10 w-10 items-center justify-center rounded-full bg-skybrand-500 text-white ring-2 ring-slate-200 dark:ring-slate-700"
+          className="hidden h-10 w-10 items-center justify-center rounded-full bg-skybrand-500 text-white ring-2 ring-slate-200 dark:ring-slate-700 hover:ring-skybrand-400 transition-all duration-200"
           style={{ display: 'none' }}
         >
           {user?.displayName?.charAt(0)?.toUpperCase() || '?'}
@@ -303,6 +327,7 @@ export default function Sidebar() {
                           user={fromUser}
                           description="đã gửi lời mời kết bạn"
                           className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"
+                          onAvatarClick={handleUserClick}
                           actions={
                             <>
                               <ActionButton
@@ -363,6 +388,7 @@ export default function Sidebar() {
                           key={req.id}
                           user={toUser}
                           description="đang chờ chấp nhận"
+                          onAvatarClick={handleUserClick}
                           actions={
                             <ActionButton
                               variant="secondary"
@@ -402,6 +428,7 @@ export default function Sidebar() {
                         user={other}
                         description="Bạn bè"
                         className="hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg transition-colors duration-200 cursor-pointer"
+                        onAvatarClick={handleUserClick}
                         onClick={async () => {
                           // Open chat with friend
                           const conversationId = [user.uid, otherId].sort().join('_');

@@ -12,6 +12,7 @@ import CalendarModal from "./components/Modals/CalendarModal.jsx";
 import VoteModal from "./components/Modals/VoteModal.jsx";
 import NewMessageModal from "./components/Modals/NewMessageModal.jsx";
 import AddFriendModal from "./components/Modals/AddFriendModal.jsx";
+import UserProfileModal from "./components/Modals/UserProfileModal.jsx";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
                 <VoteModal />
                 <NewMessageModal />
                 <AddFriendModal />
+                <UserProfileModal />
               </AppProvider>
             </AuthProvider>
           </div>

@@ -16,6 +16,8 @@ export default function AppProvider({ children }) {
   const [isVoteModalVisible, setIsVoteModalVisible] = useState(false);
   const [isNewMessageVisible, setIsNewMessageVisible] = useState(false);
   const [isAddFriendVisible, setIsAddFriendVisible] = useState(false);
+  const [isUserProfileVisible, setIsUserProfileVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   const {
     user: { uid },
@@ -324,6 +326,8 @@ export default function AppProvider({ children }) {
     setSelectedConversationId('');
     setIsAddRoomVisible(false);
     setIsInviteMemberVisible(false);
+    setIsUserProfileVisible(false);
+    setSelectedUser(null);
     setChatType('room');
   };
 
@@ -366,6 +370,10 @@ export default function AppProvider({ children }) {
         setIsNewMessageVisible,
         isAddFriendVisible,
         setIsAddFriendVisible,
+        isUserProfileVisible,
+        setIsUserProfileVisible,
+        selectedUser,
+        setSelectedUser,
         userEvents,
         allUsers,
         clearState,

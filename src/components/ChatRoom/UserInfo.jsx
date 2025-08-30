@@ -28,7 +28,7 @@ export default function UserInfo() {
   const {
     user: { displayName, photoURL, uid },
   } = React.useContext(AuthContext);
-  const { setIsAddRoomVisible, setIsNewMessageVisible } = React.useContext(AppContext);
+  const { setIsAddRoomVisible, setIsNewMessageVisible, setIsUserProfileVisible, setSelectedUser } = React.useContext(AppContext);
   const { isDarkMode, toggleTheme } = useTheme();
   const { isOnline } = useOnlineStatus(uid);
 
@@ -38,6 +38,11 @@ export default function UserInfo() {
   
   const handleNewMessage = () => {
     setIsNewMessageVisible(true);
+  };
+
+  const handleOpenProfile = () => {
+    setSelectedUser({ displayName, photoURL, uid });
+    setIsUserProfileVisible(true);
   };
 
   const QuickActionButton = ({ onClick, title, children, variant = 'default' }) => {
@@ -61,10 +66,10 @@ export default function UserInfo() {
     <div className="p-4">
       {/* User Profile Section */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="relative">
+        <div className="relative cursor-pointer" onClick={handleOpenProfile} title="Xem hồ sơ của tôi">
           {photoURL ? (
             <img 
-              className="h-12 w-12 rounded-full object-cover ring-2 ring-skybrand-400/50" 
+              className="h-12 w-12 rounded-full object-cover ring-2 ring-skybrand-400/50 hover:ring-skybrand-500 transition-all duration-200 hover:scale-105" 
               src={photoURL} 
               alt="avatar"
               onError={(e) => {
@@ -74,7 +79,7 @@ export default function UserInfo() {
             />
           ) : null}
           <div 
-            className={`${photoURL ? 'hidden' : 'flex'} h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-skybrand-500 to-skybrand-600 text-white ring-2 ring-skybrand-400/50 font-semibold text-lg`}
+            className={`${photoURL ? 'hidden' : 'flex'} h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-skybrand-500 to-skybrand-600 text-white ring-2 ring-skybrand-400/50 font-semibold text-lg hover:ring-skybrand-500 transition-all duration-200 hover:scale-105`}
           >
             {displayName?.charAt(0)?.toUpperCase() || '?'}
           </div>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { formatRelative } from "date-fns/esm";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
+import { AppContext } from "../../Context/AppProvider.jsx";
 import { useAlert } from "../../Context/AlertProvider";
 import { recallMessage, canRecallMessage } from "../../firebase/services";
 import FilePreview from "../FileUpload/FilePreview";
@@ -37,10 +38,19 @@ export default function Message({
   chatType, // 'room' or 'direct'
 }) {
   const { user } = React.useContext(AuthContext);
+  const { setSelectedUser, setIsUserProfileVisible } = React.useContext(AppContext);
   const { success, error } = useAlert();
   const { hasEmoji, parseEmojiText } = useEmoji();
   const [isRecalling, setIsRecalling] = useState(false);
   const isOwn = uid === user?.uid;
+
+  // Handler to open user profile
+  const handleAvatarClick = () => {
+    if (!isOwn && uid && displayName) { // Don't open profile for own messages
+      setSelectedUser({ uid, displayName, photoURL });
+      setIsUserProfileVisible(true);
+    }
+  };
 
   // Handle recall message
   const handleRecallMessage = async () => {
@@ -198,15 +208,19 @@ export default function Message({
 
   return (
     <div className={`mb-2 flex items-start message-group ${isOwn ? "flex-row-reverse" : ""}`}>
-      <div className="h-8 w-8 flex-shrink-0">
+      <div 
+        className={`h-8 w-8 flex-shrink-0 ${!isOwn ? 'cursor-pointer' : ''}`}
+        onClick={handleAvatarClick}
+        title={!isOwn ? `Xem hồ sơ của ${displayName}` : ''}
+      >
         {photoURL ? (
           <img
-            className="h-8 w-8 rounded-full object-cover"
+            className={`h-8 w-8 rounded-full object-cover ${!isOwn ? 'hover:ring-2 hover:ring-skybrand-400 transition-all duration-200' : ''}`}
             src={photoURL}
             alt="avatar"
           />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-skybrand-600 text-xs font-semibold text-white">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-skybrand-600 text-xs font-semibold text-white ${!isOwn ? 'hover:ring-2 hover:ring-skybrand-400 transition-all duration-200' : ''}`}>
             {displayName?.charAt(0)?.toUpperCase()}
           </div>
         )}
