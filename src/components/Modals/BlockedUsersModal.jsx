@@ -52,7 +52,7 @@ function BlockedUsersModalComponent() {
     return {
       ...blockedUser,
       userDetails: userDetails || {
-        displayName: 'Người dùng không xác định',
+        displayName: userDetails?.email || 'Người dùng không xác định',
         email: '',
         photoURL: ''
       }

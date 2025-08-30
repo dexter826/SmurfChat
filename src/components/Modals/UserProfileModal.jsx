@@ -226,7 +226,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
 
           {/* User Name */}
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-            {targetUser.displayName || 'Người dùng không xác định'}
+            {targetUser.displayName || targetUser.email || 'Người dùng không xác định'}
           </h2>
         </div>
 

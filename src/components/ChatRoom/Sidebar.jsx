@@ -266,7 +266,7 @@ export default function Sidebar() {
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-          {user?.displayName || 'Người dùng không xác định'}
+          {user?.displayName || user?.email || 'Người dùng không xác định'}
         </div>
         <div className="truncate text-xs text-slate-500 dark:text-slate-400">{description}</div>
       </div>
