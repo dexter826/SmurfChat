@@ -268,6 +268,7 @@ export default function ConversationWindow() {
                   fileData={mes.fileData}
                   locationData={mes.locationData}
                   recalled={mes.recalled}
+                  readBy={mes.readBy || []}
                   chatType="direct"
                 />
               ))}

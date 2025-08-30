@@ -235,11 +235,18 @@ export default function AppProvider({ children }) {
 
   // Calculate total unread count
   useEffect(() => {
+    // Skip during initial load to prevent showing notification badges on reload
+    if (isInitialLoadRef.current) return;
+    
     let totalUnread = 0;
     
-    // Count unread conversations
+    // Count unread conversations (excluding currently open conversation)
     conversations.forEach((conv) => {
       if (!conv || conv.deleted) return;
+      
+      // Skip currently selected conversation
+      if (chatType === 'direct' && selectedConversationId === conv.id) return;
+      
       const lastAt = conv.lastMessageAt;
       const lastSeen = conv.lastSeen?.[uid];
       const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
@@ -248,9 +255,13 @@ export default function AppProvider({ children }) {
       if (isUnread) totalUnread++;
     });
     
-    // Count unread rooms
+    // Count unread rooms (excluding currently open room)
     rooms.forEach((room) => {
       if (!room || room.deleted) return;
+      
+      // Skip currently selected room
+      if (chatType === 'room' && selectedRoomId === room.id) return;
+      
       const lastAt = room.lastMessageAt;
       const lastSeen = room.lastSeen?.[uid];
       const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
@@ -261,7 +272,7 @@ export default function AppProvider({ children }) {
     
     setUnreadCount(totalUnread);
     updateTabTitle(totalUnread);
-  }, [conversations, rooms, uid, updateTabTitle]);
+  }, [conversations, rooms, uid, updateTabTitle, chatType, selectedConversationId, selectedRoomId]);
 
   // Clean up title interval on unmount
   useEffect(() => {
@@ -272,6 +283,53 @@ export default function AppProvider({ children }) {
       document.title = originalTitleRef.current;
     };
   }, []);
+
+  // Reset tab title when user focuses back to the tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // When user comes back to tab, recalculate unread count to reset title appropriately
+        setTimeout(() => {
+          let totalUnread = 0;
+          
+          // Count unread conversations (excluding currently open conversation)
+          conversations.forEach((conv) => {
+            if (!conv || conv.deleted) return;
+            if (chatType === 'direct' && selectedConversationId === conv.id) return;
+            
+            const lastAt = conv.lastMessageAt;
+            const lastSeen = conv.lastSeen?.[uid];
+            const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
+            const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
+            const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
+            if (isUnread) totalUnread++;
+          });
+          
+          // Count unread rooms (excluding currently open room)
+          rooms.forEach((room) => {
+            if (!room || room.deleted) return;
+            if (chatType === 'room' && selectedRoomId === room.id) return;
+            
+            const lastAt = room.lastMessageAt;
+            const lastSeen = room.lastSeen?.[uid];
+            const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
+            const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
+            const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
+            if (isUnread) totalUnread++;
+          });
+          
+          setUnreadCount(totalUnread);
+          updateTabTitle(totalUnread);
+        }, 100);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [conversations, rooms, uid, updateTabTitle, chatType, selectedConversationId, selectedRoomId]);
 
   // Notify for direct messages (any conversation, not only selected)
   useEffect(() => {
