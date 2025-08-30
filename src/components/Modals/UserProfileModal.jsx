@@ -4,10 +4,26 @@ import { AppContext } from '../../Context/AppProvider';
 import { useAlert } from '../../Context/AlertProvider';
 import { uploadImage, sendFriendRequest, createOrUpdateConversation, blockUser, unblockUser, isUserBlocked } from '../../firebase/services';
 import { updateProfile } from 'firebase/auth';
-import { auth } from '../../firebase/config';
+import { auth, db } from '../../firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 import { FaCamera, FaTimes, FaEnvelope, FaCalendarAlt, FaCircle, FaBan } from 'react-icons/fa';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import useFirestore from '../../hooks/useFirestore';
+
+// Helper function để format join date
+const formatJoinDate = (date) => {
+  if (!date) return 'Không xác định';
+  try {
+    return new Intl.DateTimeFormat('vi-VN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(new Date(date));
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Không xác định';
+  }
+};
 
 function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile = false }) {
   const { user: currentUser } = useContext(AuthContext);
@@ -17,6 +33,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
   const [isAddingFriend, setIsAddingFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isBlockingUser, setIsBlockingUser] = useState(false);
+  const [fullUserData, setFullUserData] = useState(null);
   const { isOnline } = useOnlineStatus(targetUser?.uid);
 
   // Check if users are friends
@@ -55,8 +72,42 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
     }
   }, [visible, currentUser?.uid, targetUser?.uid, isOwnProfile]);
 
+  // Lấy thông tin user đầy đủ từ database nếu cần
+  React.useEffect(() => {
+    const fetchUserData = async () => {
+      if (!visible || !targetUser?.uid || isOwnProfile) return;
+      
+      // Nếu đã có email thì không cần fetch lại
+      if (targetUser.email) {
+        setFullUserData(targetUser);
+        return;
+      }
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', targetUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setFullUserData({
+            ...targetUser,
+            ...userData
+          });
+        } else {
+          setFullUserData(targetUser);
+        }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        setFullUserData(targetUser);
+      }
+    };
+
+    fetchUserData();
+  }, [visible, targetUser, isOwnProfile]);
+
   // Nếu không có targetUser, không hiển thị modal
   if (!visible || !targetUser) return null;
+
+  // Xác định dữ liệu user để hiển thị
+  const displayUser = isOwnProfile ? currentUser : (fullUserData || targetUser);
   
   const isFriend = friendEdges.some(edge => 
     edge.participants?.includes(targetUser.uid) && 
@@ -187,15 +238,15 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
         {/* Avatar Section */}
         <div className="mb-6 flex flex-col items-center">
           <div className="relative mb-4">
-            {targetUser.photoURL ? (
+            {displayUser.photoURL ? (
               <img
                 className="h-24 w-24 rounded-full object-cover ring-4 ring-skybrand-400/30"
-                src={targetUser.photoURL}
+                src={displayUser.photoURL}
                 alt="avatar"
               />
             ) : (
               <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-skybrand-500 to-skybrand-600 text-white ring-4 ring-skybrand-400/30 text-2xl font-semibold">
-                {targetUser.displayName?.charAt(0)?.toUpperCase() || '?'}
+                {displayUser.displayName?.charAt(0)?.toUpperCase() || '?'}
               </div>
             )}
             
@@ -226,7 +277,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
 
           {/* User Name */}
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-            {targetUser.displayName || targetUser.email || 'Người dùng không xác định'}
+            {displayUser.displayName || displayUser.email || 'Người dùng không xác định'}
           </h2>
         </div>
 
@@ -236,7 +287,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
           <div className="flex items-center gap-3 text-sm">
             <FaEnvelope className="h-4 w-4 text-slate-500" />
             <span className="text-slate-600 dark:text-slate-400">
-              {targetUser.email || 'Email không có sẵn'}
+              {displayUser.email || 'Email không có sẵn'}
             </span>
           </div>
 
@@ -249,16 +300,16 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
           </div>
 
           {/* Join Date */}
-          {(targetUser.metadata?.creationTime || targetUser.createdAt) && (
+          {(displayUser.metadata?.creationTime || displayUser.createdAt) && (
             <div className="flex items-center gap-3 text-sm">
               <FaCalendarAlt className="h-4 w-4 text-slate-500" />
               <span className="text-slate-600 dark:text-slate-400">
                 Tham gia: {formatJoinDate(
-                  targetUser.metadata?.creationTime 
-                    ? new Date(targetUser.metadata.creationTime)
-                    : targetUser.createdAt?.toDate 
-                      ? targetUser.createdAt.toDate()
-                      : new Date(targetUser.createdAt)
+                  displayUser.metadata?.creationTime 
+                    ? new Date(displayUser.metadata.creationTime)
+                    : displayUser.createdAt?.toDate 
+                      ? displayUser.createdAt.toDate()
+                      : new Date(displayUser.createdAt)
                 )}
               </span>
             </div>

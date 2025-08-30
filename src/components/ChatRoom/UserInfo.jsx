@@ -32,7 +32,7 @@ const BlockIcon = () => (
 
 export default function UserInfo() {
   const {
-    user: { displayName, photoURL, uid },
+    user: { displayName, photoURL, uid, email },
   } = React.useContext(AuthContext);
   const { setIsAddRoomVisible, setIsNewMessageVisible, setIsUserProfileVisible, setSelectedUser, setIsBlockedUsersVisible } = React.useContext(AppContext);
   const { isDarkMode, toggleTheme } = useTheme();
@@ -47,7 +47,7 @@ export default function UserInfo() {
   };
 
   const handleOpenProfile = () => {
-    setSelectedUser({ displayName, photoURL, uid });
+    setSelectedUser({ displayName, photoURL, uid, email });
     setIsUserProfileVisible(true);
   };
 
