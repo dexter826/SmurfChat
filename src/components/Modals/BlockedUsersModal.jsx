@@ -3,7 +3,7 @@ import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
 import { useAlert } from '../../Context/AlertProvider';
 import { getBlockedUsers, unblockUser } from '../../firebase/services';
-import useFirestore from '../../hooks/useFirestore';
+import { useUserSearch } from '../../hooks/useUserSearch';
 import { FaTimes, FaBan, FaSearch, FaUserSlash } from 'react-icons/fa';
 
 function BlockedUsersModalComponent() {
@@ -12,20 +12,17 @@ function BlockedUsersModalComponent() {
     useContext(AppContext);
   const { success, error, confirm } = useAlert();
   const [blockedUsersList, setBlockedUsersList] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [unblockingUsers, setUnblockingUsers] = useState(new Set());
 
-  // Get all users to resolve user details
-  const allUsersCondition = React.useMemo(
-    () => ({
-      fieldName: "uid",
-      operator: "!=",
-      compareValue: user?.uid,
-    }),
-    [user?.uid]
-  );
-  const allUsers = useFirestore("users", allUsersCondition);
+  // Use useUserSearch hook for search functionality
+  const {
+    searchTerm,
+    handleSearchChange,
+    clearSearch,
+    filterUsersBySearch,
+    allUsers
+  } = useUserSearch({ excludeCurrentUser: true });
 
   // Load blocked users list
   useEffect(() => {
@@ -60,17 +57,13 @@ function BlockedUsersModalComponent() {
     };
   });
 
-  // Filter blocked users based on search term
-  const filteredBlockedUsers = blockedUsersWithDetails.filter((blockedUser) => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      blockedUser.userDetails.displayName
-        ?.toLowerCase()
-        .includes(searchLower) ||
-      blockedUser.userDetails.email?.toLowerCase().includes(searchLower)
-    );
-  });
+  // Filter blocked users based on search term using hook utility
+  const filteredBlockedUsers = searchTerm 
+    ? filterUsersBySearch(blockedUsersWithDetails.map(bu => ({
+        ...bu.userDetails,
+        originalData: bu // Keep original blocked user data
+      })), searchTerm).map(filtered => filtered.originalData)
+    : blockedUsersWithDetails;
 
   // Handle unblock user
   const handleUnblockUser = async (blockedUser) => {
@@ -107,6 +100,7 @@ function BlockedUsersModalComponent() {
 
   const handleClose = () => {
     setIsBlockedUsersVisible(false);
+    clearSearch();
   };
 
   return (
@@ -143,7 +137,7 @@ function BlockedUsersModalComponent() {
               type="text"
               placeholder="Tìm kiếm người bị chặn..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-skybrand-500 focus:border-skybrand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
             />
           </div>
