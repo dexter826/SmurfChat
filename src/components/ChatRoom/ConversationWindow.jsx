@@ -1,15 +1,22 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
-import { AppContext } from '../../Context/AppProvider';
-import { AuthContext } from '../../Context/AuthProvider';
-import { addDocument, updateConversationLastMessage, updateLastSeen, setTypingStatus, areUsersFriends, markMessageAsRead } from '../../firebase/services';
-import useFirestore from '../../hooks/useFirestore';
-import Message from './Message';
-import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
-import FileUpload from '../FileUpload/FileUpload';
-import VoiceRecording from '../FileUpload/VoiceRecording';
-import EmojiPickerComponent from './EmojiPicker';
-import { QuickReactions } from './EmojiText';
-import { useEmoji } from '../../hooks/useEmoji';
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { AppContext } from "../../Context/AppProvider";
+import { AuthContext } from "../../Context/AuthProvider";
+import {
+  addDocument,
+  updateConversationLastMessage,
+  updateLastSeen,
+  setTypingStatus,
+  areUsersFriends,
+  markMessageAsRead,
+} from "../../firebase/services";
+import useFirestore from "../../hooks/useFirestore";
+import Message from "./Message";
+import { useUserOnlineStatus } from "../../hooks/useOnlineStatus";
+import FileUpload from "../FileUpload/FileUpload";
+import VoiceRecording from "../FileUpload/VoiceRecording";
+import EmojiPickerComponent from "./EmojiPicker";
+import { QuickReactions } from "./EmojiText";
+import { useEmoji } from "../../hooks/useEmoji";
 
 export default function ConversationWindow() {
   const { selectedConversation } = useContext(AppContext);
@@ -17,7 +24,7 @@ export default function ConversationWindow() {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
   const { addToRecent } = useEmoji();
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   const messageListRef = useRef();
   const inputRef = useRef();
   const [canChat, setCanChat] = useState(true);
@@ -27,36 +34,39 @@ export default function ConversationWindow() {
   const OnlineStatus = ({ userId }) => {
     const { isOnline } = useUserOnlineStatus(userId);
     return (
-      <p className='m-0 text-xs text-slate-500'>
-        {isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+      <p className="m-0 text-xs text-slate-500">
+        {isOnline ? "Đang hoạt động" : "Không hoạt động"}
       </p>
     );
   };
 
-
   const handleOnSubmit = async () => {
     if (!inputValue.trim() || !selectedConversation.id) return;
 
-    addDocument('directMessages', {
+    addDocument("directMessages", {
       text: inputValue,
       uid,
       photoURL,
       conversationId: selectedConversation.id,
       displayName,
-      messageType: 'text',
+      messageType: "text",
     });
 
     // Update conversation's last message
     if (selectedConversation.id) {
       try {
-        await updateConversationLastMessage(selectedConversation.id, inputValue, uid);
+        await updateConversationLastMessage(
+          selectedConversation.id,
+          inputValue,
+          uid
+        );
       } catch (error) {
-        console.error('Error updating conversation:', error);
+        console.error("Error updating conversation:", error);
       }
     }
 
     // reset
-    setInputValue('');
+    setInputValue("");
 
     // focus to input again after submit
     if (inputRef?.current) {
@@ -68,9 +78,9 @@ export default function ConversationWindow() {
 
   // Handle emoji click
   const handleEmojiClick = (emoji) => {
-    setInputValue(prev => prev + emoji);
+    setInputValue((prev) => prev + emoji);
     addToRecent(emoji);
-    
+
     // Focus back to input
     if (inputRef?.current) {
       inputRef.current.focus();
@@ -92,20 +102,27 @@ export default function ConversationWindow() {
       displayName,
       messageType: fileData.messageType,
       fileData: fileData,
-      text: '', // Empty text for file messages
+      text: "", // Empty text for file messages
       conversationId: selectedConversation.id,
     };
 
-    addDocument('directMessages', messageData);
+    addDocument("directMessages", messageData);
 
     // Update conversation's last message
     try {
-      const lastMessageText = fileData.messageType === 'voice' ? '🎤 Tin nhắn thoại' : 
-                             fileData.category === 'image' ? '🖼️ Hình ảnh' : 
-                             `📎 ${fileData.name}`;
-      await updateConversationLastMessage(selectedConversation.id, lastMessageText, uid);
+      const lastMessageText =
+        fileData.messageType === "voice"
+          ? "🎤 Tin nhắn thoại"
+          : fileData.category === "image"
+          ? "🖼️ Hình ảnh"
+          : `📎 ${fileData.name}`;
+      await updateConversationLastMessage(
+        selectedConversation.id,
+        lastMessageText,
+        uid
+      );
     } catch (error) {
-      console.error('Error updating conversation:', error);
+      console.error("Error updating conversation:", error);
     }
   };
 
@@ -117,32 +134,36 @@ export default function ConversationWindow() {
       uid,
       photoURL,
       displayName,
-      messageType: 'location',
+      messageType: "location",
       locationData: locationData,
-      text: '', // Empty text for location messages
+      text: "", // Empty text for location messages
       conversationId: selectedConversation.id,
     };
 
-    addDocument('directMessages', messageData);
+    addDocument("directMessages", messageData);
 
     // Update conversation's last message
     try {
-      await updateConversationLastMessage(selectedConversation.id, '📍 Vị trí được chia sẻ', uid);
+      await updateConversationLastMessage(
+        selectedConversation.id,
+        "📍 Vị trí được chia sẻ",
+        uid
+      );
     } catch (error) {
-      console.error('Error updating conversation:', error);
+      console.error("Error updating conversation:", error);
     }
   };
 
   const condition = React.useMemo(
     () => ({
-      fieldName: 'conversationId',
-      operator: '==',
+      fieldName: "conversationId",
+      operator: "==",
       compareValue: selectedConversation.id,
     }),
     [selectedConversation.id]
   );
 
-  const messages = useFirestore('directMessages', condition);
+  const messages = useFirestore("directMessages", condition);
 
   useEffect(() => {
     // scroll to bottom after message changed
@@ -156,11 +177,18 @@ export default function ConversationWindow() {
   useEffect(() => {
     const check = async () => {
       try {
-        const otherId = (selectedConversation.participants || []).find(id => id !== uid);
-        if (!otherId) { setCanChat(true); return; }
+        const otherId = (selectedConversation.participants || []).find(
+          (id) => id !== uid
+        );
+        if (!otherId) {
+          setCanChat(true);
+          return;
+        }
         const ok = await areUsersFriends(uid, otherId);
         setCanChat(!!ok);
-      } catch { setCanChat(true); }
+      } catch {
+        setCanChat(true);
+      }
     };
     if (selectedConversation && selectedConversation.participants) {
       check();
@@ -175,7 +203,7 @@ export default function ConversationWindow() {
           await updateLastSeen(selectedConversation.id, uid, true);
         }
       } catch (e) {
-        console.error('Error updating last seen:', e);
+        console.error("Error updating last seen:", e);
       }
     };
     if (selectedConversation.id) {
@@ -189,16 +217,17 @@ export default function ConversationWindow() {
       try {
         if (messages && messages.length > 0 && selectedConversation.id && uid) {
           // Mark all unread messages in this conversation as read
-          const unreadMessages = messages.filter(msg => 
-            msg.senderId !== uid && (!msg.readBy || !msg.readBy.includes(uid))
+          const unreadMessages = messages.filter(
+            (msg) =>
+              msg.senderId !== uid && (!msg.readBy || !msg.readBy.includes(uid))
           );
-          
+
           for (const message of unreadMessages) {
-            await markMessageAsRead(message.id, uid, 'directMessages');
+            await markMessageAsRead(message.id, uid, "directMessages");
           }
         }
       } catch (e) {
-        console.error('Error marking messages as read:', e);
+        console.error("Error marking messages as read:", e);
       }
     };
 
@@ -217,13 +246,13 @@ export default function ConversationWindow() {
       try {
         await setTypingStatus(chatId, uid, isTyping, true);
       } catch (e) {
-        console.error('Error setting typing status:', e);
+        console.error("Error setting typing status:", e);
       }
     };
 
     updateTyping();
     const t = setTimeout(() => {
-      setTypingStatus(chatId, uid, false, true).catch(() => { });
+      setTypingStatus(chatId, uid, false, true).catch(() => {});
     }, 3000);
     return () => clearTimeout(t);
   }, [inputValue, selectedConversation.id, uid]);
@@ -231,7 +260,12 @@ export default function ConversationWindow() {
   // Get other participant info
   const otherParticipant = React.useMemo(() => {
     if (!selectedConversation.participants) return null;
-    return selectedConversation.otherUser || { displayName: 'Unknown User', photoURL: '' };
+    return (
+      selectedConversation.otherUser || {
+        displayName: "Unknown User",
+        photoURL: "",
+      }
+    );
   }, [selectedConversation]);
 
   return (
@@ -239,26 +273,35 @@ export default function ConversationWindow() {
       {selectedConversation.id ? (
         <>
           <div className="flex h-14 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
-            <div className='flex items-center'>
+            <div className="flex items-center">
               {otherParticipant?.photoURL ? (
-                <img className="h-8 w-8 rounded-full" src={otherParticipant?.photoURL} alt="avatar" />
+                <img
+                  className="h-8 w-8 rounded-full"
+                  src={otherParticipant?.photoURL}
+                  alt="avatar"
+                />
               ) : (
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-skybrand-600 text-white">
                   {otherParticipant?.displayName?.charAt(0)?.toUpperCase()}
                 </div>
               )}
               <div className="ml-3">
-                <p className='m-0 text-base font-semibold'>{otherParticipant?.displayName}</p>
+                <p className="m-0 text-base font-semibold">
+                  {otherParticipant?.displayName}
+                </p>
                 <OnlineStatus userId={otherParticipant?.uid} />
               </div>
             </div>
           </div>
           <div className="flex h-[calc(100%_-_56px)] flex-col justify-end p-3">
-            <div ref={messageListRef} className="thin-scrollbar max-h-full overflow-y-auto">
+            <div
+              ref={messageListRef}
+              className="thin-scrollbar max-h-full overflow-y-auto"
+            >
               {messages.map((mes, index) => {
                 // Only the very last message in conversation should show read status
                 const isLatestFromSender = index === messages.length - 1;
-                  
+
                 return (
                   <Message
                     key={mes.id}
@@ -268,7 +311,7 @@ export default function ConversationWindow() {
                     displayName={mes.displayName}
                     createdAt={mes.createdAt}
                     uid={mes.uid}
-                    messageType={mes.messageType || 'text'}
+                    messageType={mes.messageType || "text"}
                     fileData={mes.fileData}
                     locationData={mes.locationData}
                     recalled={mes.recalled}
@@ -283,7 +326,9 @@ export default function ConversationWindow() {
             </div>
             {(() => {
               const typingMap = selectedConversation?.typingStatus;
-              const isOtherTyping = typingMap && Object.entries(typingMap).some(([k, v]) => k !== uid && v);
+              const isOtherTyping =
+                typingMap &&
+                Object.entries(typingMap).some(([k, v]) => k !== uid && v);
               return isOtherTyping ? (
                 <div className="mt-1 mb-2 flex h-6 items-center text-xs text-slate-500 dark:text-slate-400">
                   Đang nhập
@@ -304,7 +349,7 @@ export default function ConversationWindow() {
             {/* Quick Reactions */}
             {showQuickReactions && canChat && (
               <div className="mb-2">
-                <QuickReactions 
+                <QuickReactions
                   onEmojiClick={handleEmojiClick}
                   disabled={!canChat}
                 />
@@ -318,7 +363,7 @@ export default function ConversationWindow() {
                 onLocationShared={handleLocationShared}
                 disabled={!canChat}
               />
-              
+
               {/* Emoji Picker */}
               <EmojiPickerComponent
                 onEmojiClick={handleEmojiClick}
@@ -331,35 +376,50 @@ export default function ConversationWindow() {
                 onClick={toggleQuickReactions}
                 disabled={!canChat}
                 className={`flex items-center justify-center p-2 rounded-lg transition-colors duration-200 ${
-                  !canChat 
-                    ? 'text-slate-300 cursor-not-allowed dark:text-slate-600' 
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-skybrand-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-skybrand-400'
+                  !canChat
+                    ? "text-slate-300 cursor-not-allowed dark:text-slate-600"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-skybrand-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-skybrand-400"
                 }`}
-                title={!canChat ? "Không thể sử dụng" : (showQuickReactions ? "Ẩn emoji nhanh" : "Hiện emoji nhanh")}
+                title={
+                  !canChat
+                    ? "Không thể sử dụng"
+                    : showQuickReactions
+                    ? "Ẩn emoji nhanh"
+                    : "Hiện emoji nhanh"
+                }
               >
                 <span className="text-sm">⚡</span>
               </button>
-              
+
               {/* Text Input */}
               <input
                 ref={inputRef}
                 className="flex-1 bg-transparent px-2 py-1 outline-none placeholder:text-slate-400"
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleOnSubmit(); } }}
-                placeholder='Nhập tin nhắn...'
-                autoComplete='off'
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleOnSubmit();
+                  }
+                }}
+                placeholder="Nhập tin nhắn..."
+                autoComplete="off"
                 value={inputValue}
                 disabled={!canChat}
               />
-              
+
               {/* Voice Recording Button */}
               <VoiceRecording
                 onVoiceUploaded={handleFileUploaded}
                 disabled={!canChat}
               />
-              
+
               <button
-                className={`rounded px-3 py-1 text-sm font-medium text-white ${canChat ? 'bg-skybrand-600 hover:bg-skybrand-700' : 'bg-slate-400'}`}
+                className={`rounded px-3 py-1 text-sm font-medium text-white ${
+                  canChat
+                    ? "bg-skybrand-600 hover:bg-skybrand-700"
+                    : "bg-slate-400"
+                }`}
                 onClick={handleOnSubmit}
                 disabled={!canChat}
               >

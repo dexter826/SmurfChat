@@ -279,9 +279,7 @@ export default function ChatWindow() {
   }), [selectedRoom?.id]);
 
   const allVotes = useFirestore('votes', votesCondition);
-  const votes = React.useMemo(() => {
-    return (allVotes || []).filter(vote => !vote.deleted);
-  }, [allVotes]);
+  const votes = allVotes;
 
   // Combine messages and events, then sort by timestamp (only for room chats)
   const combinedMessages = React.useMemo(() => {

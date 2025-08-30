@@ -24,9 +24,8 @@ export default function EventList() {
 
   const events = useFirestore('events', eventsCondition);
 
-  // Filter and sort events
+  // Sort events by date
   const activeEvents = events
-    .filter(event => !event.deleted)
     .sort((a, b) => {
       const timeA = a.datetime.toDate();
       const timeB = b.datetime.toDate();

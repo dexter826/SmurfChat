@@ -39,12 +39,7 @@ export default function AppProvider({ children }) {
     };
   }, [uid]);
 
-  const allRooms = useFirestore('rooms', roomsCondition);
-
-  // Filter out dissolved rooms
-  const rooms = React.useMemo(() => {
-    return allRooms.filter(room => !room.dissolved);
-  }, [allRooms]);
+  const rooms = useFirestore('rooms', roomsCondition);
 
   const selectedRoom = React.useMemo(
     () => rooms.find((room) => room.id === selectedRoomId) || {},

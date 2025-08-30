@@ -183,33 +183,43 @@ export const updateEvent = async (eventId, eventData) => {
   }
 };
 
+// Delete event (hard delete)
 export const deleteEvent = async (eventId) => {
   const eventRef = doc(db, 'events', eventId);
 
   try {
-    await updateDoc(eventRef, {
-      deleted: true,
-      deletedAt: serverTimestamp(),
-    });
+    await deleteDoc(eventRef);
   } catch (error) {
     console.error('Error deleting event:', error);
     throw error;
   }
 };
 
-// Dissolve room (quản trị viên only)
+// Dissolve room (hard delete with cleanup)
 export const dissolveRoom = async (roomId) => {
-  const roomRef = doc(db, 'rooms', roomId);
-
   try {
-    await updateDoc(roomRef, {
-      dissolved: true,
-      dissolvedAt: serverTimestamp(),
-      members: [],
-    });
+    // Delete all messages in the room first
+    const messagesQuery = query(collection(db, 'messages'), where('roomId', '==', roomId));
+    const messagesSnapshot = await getDocs(messagesQuery);
+    const messageDeletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(messageDeletePromises);
 
-    // Also mark all messages in the room as archived
-    // Note: In a real app, you might want to use Cloud Functions for this
+    // Delete all events in the room
+    const eventsQuery = query(collection(db, 'events'), where('roomId', '==', roomId));
+    const eventsSnapshot = await getDocs(eventsQuery);
+    const eventDeletePromises = eventsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(eventDeletePromises);
+
+    // Delete all votes in the room
+    const votesQuery = query(collection(db, 'votes'), where('roomId', '==', roomId));
+    const votesSnapshot = await getDocs(votesQuery);
+    const voteDeletePromises = votesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(voteDeletePromises);
+
+    // Finally delete the room itself
+    const roomRef = doc(db, 'rooms', roomId);
+    await deleteDoc(roomRef);
+
     return true;
   } catch (error) {
     console.error('Error dissolving room:', error);
@@ -275,10 +285,7 @@ export const deleteVote = async (voteId) => {
   const voteRef = doc(db, 'votes', voteId);
 
   try {
-    await updateDoc(voteRef, {
-      deleted: true,
-      deletedAt: serverTimestamp(),
-    });
+    await deleteDoc(voteRef);
   } catch (error) {
     console.error('Error deleting vote:', error);
     throw error;
@@ -448,14 +455,11 @@ export const updateRoomAvatar = async (roomId, avatarUrl) => {
   }
 };
 
-// Delete message
+// Delete message (hard delete)
 export const deleteMessage = async (messageId, collectionName = 'messages') => {
   try {
     const messageRef = doc(db, collectionName, messageId);
-    await updateDoc(messageRef, {
-      deleted: true,
-      deletedAt: serverTimestamp(),
-    });
+    await deleteDoc(messageRef);
   } catch (error) {
     console.error('Error deleting message:', error);
     throw error;

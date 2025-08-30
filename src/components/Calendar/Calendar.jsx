@@ -29,11 +29,8 @@ export default function Calendar() {
 
   const events = useFirestore("events", eventsCondition);
 
-  // Filter active events
-  const activeEvents = events.filter((event) => !event.deleted);
-
   const getEventsForDate = (date) => {
-    return activeEvents.filter((event) => {
+    return events.filter((event) => {
       const eventDate = event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime);
       return isSameDay(eventDate, date);
     });
