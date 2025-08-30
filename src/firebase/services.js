@@ -556,10 +556,15 @@ export const markMessageAsRead = async (messageId, userId, collectionName = 'mes
     if (messageDoc.exists()) {
       const messageData = messageDoc.data();
       const readBy = messageData.readBy || [];
+      const readByDetails = messageData.readByDetails || {};
 
       if (!readBy.includes(userId)) {
         await updateDoc(messageRef, {
           readBy: [...readBy, userId],
+          readByDetails: {
+            ...readByDetails,
+            [userId]: serverTimestamp()
+          },
           lastReadAt: serverTimestamp(),
         });
       }

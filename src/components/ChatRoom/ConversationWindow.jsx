@@ -256,9 +256,8 @@ export default function ConversationWindow() {
           <div className="flex h-[calc(100%_-_56px)] flex-col justify-end p-3">
             <div ref={messageListRef} className="thin-scrollbar max-h-full overflow-y-auto">
               {messages.map((mes, index) => {
-                // Check if this is the latest message from the sender
-                const isLatestFromSender = index === messages.length - 1 || 
-                  (index < messages.length - 1 && messages[index + 1].uid !== mes.uid);
+                // Only the very last message in conversation should show read status
+                const isLatestFromSender = index === messages.length - 1;
                   
                 return (
                   <Message
@@ -274,6 +273,7 @@ export default function ConversationWindow() {
                     locationData={mes.locationData}
                     recalled={mes.recalled}
                     readBy={mes.readBy || []}
+                    readByDetails={mes.readByDetails || {}}
                     chatType="direct"
                     isLatestFromSender={isLatestFromSender}
                     otherParticipant={otherParticipant} // Pass other participant info for read status display

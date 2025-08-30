@@ -23,7 +23,8 @@ export default function ChatWindow() {
     chatType,
     setIsInviteMemberVisible,
     setIsCalendarVisible,
-    setIsVoteModalVisible
+    setIsVoteModalVisible,
+    members
   } = useContext(AppContext);
   const {
     user: { uid, photoURL, displayName },
@@ -485,13 +486,11 @@ export default function ChatWindow() {
                       locationData={item.locationData}
                       messageStatus={item.messageStatus || 'sent'}
                       readBy={item.readBy || []}
+                      readByDetails={item.readByDetails || {}}
                       recalled={item.recalled}
                       chatType={chatType}
-                      isLatestFromSender={
-                        index === combinedMessages.length - 1 || 
-                        (index < combinedMessages.length - 1 && combinedMessages[index + 1].uid !== item.uid)
-                      }
-                      members={selectedRoom?.members || []} // Pass room members for avatar display
+                      isLatestFromSender={index === combinedMessages.length - 1} // Only the very last message
+                      members={members || []} // Pass room members with full user info for avatar display
                     />
                   );
                 }

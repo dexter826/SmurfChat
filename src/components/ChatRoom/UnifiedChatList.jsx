@@ -156,7 +156,7 @@ export default function UnifiedChatList() {
       ...room,
       type: "room",
       displayName: room.name,
-      description: room.description,
+      description: room.lastMessage || "Chưa có tin nhắn",
       avatar: room.avatar,
       isSelected: selectedRoomId === room.id,
       isMuted: !!(room.mutedBy && room.mutedBy[user.uid]),

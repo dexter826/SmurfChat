@@ -8,6 +8,7 @@ import FilePreview from "../FileUpload/FilePreview";
 import LocationPreview from "../FileUpload/LocationPreview";
 import EmojiText, { EmojiOnlyMessage } from "./EmojiText";
 import { useEmoji } from "../../hooks/useEmoji";
+import SeenByModal from "./SeenByModal";
 
 function formatDate(seconds) {
   let formattedDate = "";
@@ -39,12 +40,15 @@ export default function Message({
   isLatestFromSender = false, // New prop to identify if this is the latest message from sender
   members = [], // For room chat to get user info
   otherParticipant = null, // For direct chat to get other user info
+  readByDetails = {}, // Details about when each user read the message
 }) {
   const { user } = React.useContext(AuthContext);
   const { setSelectedUser, setIsUserProfileVisible } = React.useContext(AppContext);
   const { success, error } = useAlert();
   const { hasEmoji, parseEmojiText } = useEmoji();
   const [isRecalling, setIsRecalling] = useState(false);
+  const [showSeenByModal, setShowSeenByModal] = useState(false);
+  const [seenByUsers, setSeenByUsers] = useState([]);
   const isOwn = uid === user?.uid;
 
   // Handler to open user profile
@@ -82,18 +86,14 @@ export default function Message({
 
   // Render message status for own messages
   const renderMessageStatus = () => {
-    if (!isOwn || !isLatestFromSender) return null; // Only show for own latest messages
+    // Only show status for own messages that are the latest in the entire conversation
+    if (!isOwn || !isLatestFromSender) return null;
 
-    // Determine status based on readBy array
-    let currentStatus = messageStatus;
+    // Get users who have read this specific message
     const readByOthers = readBy ? readBy.filter(userId => userId !== user?.uid) : [];
-    
-    if (readByOthers.length > 0) {
-      currentStatus = 'read';
-    }
 
     const getStatusIcon = () => {
-      switch (currentStatus) {
+      switch (messageStatus) {
         case 'sending':
           return <span className="text-gray-400 text-xs">⏳</span>;
         case 'sent':
@@ -107,78 +107,103 @@ export default function Message({
       }
     };
 
-    const getStatusText = () => {
-      switch (currentStatus) {
-        case 'sending':
-          return 'Đang gửi...';
-        case 'sent':
-          return 'Đã gửi';
-        case 'delivered':
-          return 'Đã nhận';
-        case 'failed':
-          return 'Gửi thất bại';
-        default:
-          return 'Đã gửi';
-      }
-    };
-
-    // If message is read, show reader avatars
-    if (currentStatus === 'read' && readByOthers.length > 0) {
-      return (
-        <div className="flex items-center justify-end mt-1 space-x-1">
-          <div className="flex -space-x-1">
-            {readByOthers.slice(0, 3).map((userId) => {
-              // Find user info from members (for room) or from conversation participants
-              let userInfo = null;
-              
-              if (chatType === 'room' && members) {
-                userInfo = members.find(member => member.uid === userId);
-              } else if (chatType === 'direct' && otherParticipant) {
-                // For direct messages, use otherParticipant info
-                userInfo = otherParticipant;
-              }
-              
-              if (!userInfo) return null;
-              
-              return (
-                <div key={userId} className="relative">
-                  {userInfo.photoURL ? (
-                    <img
-                      className="h-3 w-3 rounded-full object-cover border border-white"
-                      src={userInfo.photoURL}
-                      alt=""
-                      title={`Đã xem bởi ${userInfo.displayName || 'Unknown'}`}
-                    />
-                  ) : (
-                    <div 
-                      className="flex h-3 w-3 items-center justify-center rounded-full bg-skybrand-600 text-[8px] font-semibold text-white border border-white"
-                      title={`Đã xem bởi ${userInfo.displayName || 'Unknown'}`}
-                    >
-                      {(userInfo.displayName || '?').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {readByOthers.length > 3 && (
-              <div className="flex h-3 w-3 items-center justify-center rounded-full bg-gray-500 text-[6px] font-semibold text-white border border-white">
-                +{readByOthers.length - 3}
+    // Handle different display logic for direct vs group chat
+    if (chatType === 'direct') {
+      // Direct Chat: Show avatar when seen, icons otherwise
+      if (readByOthers.length > 0 && otherParticipant) {
+        // Get read time from readByDetails for the other participant
+        const otherUserId = readByOthers[0]; // In direct chat, there's only one other user
+        const readTime = readByDetails[otherUserId];
+        const seenAtText = readTime 
+          ? `Đã xem lúc ${(readTime.toDate ? readTime.toDate() : new Date(readTime)).toLocaleTimeString('vi-VN', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              day: '2-digit',
+              month: '2-digit'
+            })}`
+          : 'Đã xem';
+          
+        return (
+          <div className="flex items-center justify-end mt-1">
+            {otherParticipant.photoURL ? (
+              <img
+                className="h-4 w-4 rounded-full object-cover"
+                src={otherParticipant.photoURL}
+                alt=""
+                title={seenAtText}
+              />
+            ) : (
+              <div 
+                className="flex h-4 w-4 items-center justify-center rounded-full bg-skybrand-600 text-[10px] font-semibold text-white"
+                title={seenAtText}
+              >
+                {(otherParticipant.displayName || '?').charAt(0).toUpperCase()}
               </div>
             )}
           </div>
-        </div>
-      );
+        );
+      } else {
+        // Show regular status icons
+        return (
+          <div className="flex items-center justify-end mt-1 space-x-1">
+            {getStatusIcon()}
+          </div>
+        );
+      }
+    } else if (chatType === 'room') {
+      // Group Chat: Show "Đã xem bởi X người" or status icons
+      if (readByOthers.length > 0) {
+        return (
+          <div className="flex items-center justify-end mt-1">
+            <button
+              className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+              onClick={() => handleShowSeenDetails(readByOthers)}
+              title="Nhấn để xem chi tiết"
+            >
+              Đã xem bởi {readByOthers.length} người
+            </button>
+          </div>
+        );
+      } else {
+        // Show regular status icons
+        return (
+          <div className="flex items-center justify-end mt-1 space-x-1">
+            {getStatusIcon()}
+          </div>
+        );
+      }
     }
 
-    // Show status icon and text for non-read messages
-    return (
-      <div className="flex items-center justify-end mt-1 space-x-1">
-        {getStatusIcon()}
-        <span className="text-[9px] text-gray-500 dark:text-gray-400">
-          {getStatusText()}
-        </span>
-      </div>
-    );
+    return null;
+  };
+
+  // Handle showing seen details for group chat
+  const handleShowSeenDetails = (userIds) => {
+    if (!members || members.length === 0) return;
+    
+    const seenUsers = userIds.map(userId => {
+      const user = members.find(member => member.uid === userId);
+      if (!user) return null;
+      
+      // Get read time from readByDetails
+      const readTime = readByDetails[userId];
+      const seenAt = readTime 
+        ? (readTime.toDate ? readTime.toDate() : new Date(readTime)).toLocaleTimeString('vi-VN', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit'
+          })
+        : 'Không xác định';
+      
+      return {
+        ...user,
+        seenAt
+      };
+    }).filter(Boolean);
+
+    setSeenByUsers(seenUsers);
+    setShowSeenByModal(true);
   };
 
   const renderMessageContent = () => {
@@ -301,6 +326,13 @@ export default function Message({
         {renderMessageContent()}
         {renderMessageStatus()}
       </div>
+      
+      {/* Seen By Modal */}
+      <SeenByModal
+        isVisible={showSeenByModal}
+        onClose={() => setShowSeenByModal(false)}
+        seenUsers={seenByUsers}
+      />
     </div>
   );
 }
