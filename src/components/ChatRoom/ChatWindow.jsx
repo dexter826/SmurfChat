@@ -162,10 +162,11 @@ export default function ChatWindow() {
           await updateLastSeen(selectedRoom.id, uid, false);
           
           // Mark all unread messages in this room as read
-          const unreadMessages = messages.filter(msg => 
-            msg.uid !== uid && // Not sent by current user
-            (!msg.readBy || !msg.readBy.includes(uid)) // Not already read by current user
-          );
+          const unreadMessages = messages.filter(msg => {
+            const readByDetails = msg.readByDetails || {};
+            return msg.uid !== uid && // Not sent by current user
+                   !readByDetails[uid]; // Not already read by current user
+          });
           
           for (const message of unreadMessages) {
             try {
@@ -178,10 +179,11 @@ export default function ChatWindow() {
           await updateLastSeen(selectedConversation.id, uid, true);
           
           // Mark all unread direct messages as read
-          const unreadMessages = messages.filter(msg => 
-            msg.uid !== uid && // Not sent by current user
-            (!msg.readBy || !msg.readBy.includes(uid)) // Not already read by current user
-          );
+          const unreadMessages = messages.filter(msg => {
+            const readByDetails = msg.readByDetails || {};
+            return msg.uid !== uid && // Not sent by current user
+                   !readByDetails[uid]; // Not already read by current user
+          });
           
           for (const message of unreadMessages) {
             try {

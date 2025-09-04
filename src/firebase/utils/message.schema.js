@@ -55,8 +55,7 @@ export const UNIFIED_MESSAGE_SCHEMA = {
   fileData: "object|null", // File information
   locationData: "object|null", // Location information
   
-  // Read status
-  readBy: "array", // Array of user IDs who read the message
+  // Read status (OPTIMIZED: removed redundant readBy field)
   readByDetails: "object", // { userId: timestamp } for detailed read info
   
   // Recall functionality

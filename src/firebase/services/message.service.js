@@ -4,6 +4,15 @@ import { areMutuallyBlocked } from './block.service';
 import { updateRoomLastMessage, updateConversationLastMessage } from '../utils/conversation.utils';
 import { handleServiceError, logSuccess, validateRequired, ErrorTypes, SmurfChatError } from '../utils/error.utils';
 
+/**
+ * Utility function to derive readBy array from readByDetails
+ * @param {Object} readByDetails - Object with userId: timestamp pairs
+ * @returns {Array} Array of user IDs who have read the message
+ */
+export const getReadByFromDetails = (readByDetails = {}) => {
+  return Object.keys(readByDetails);
+};
+
 // Delete message (hard delete)
 export const deleteMessage = async (messageId, collectionName = 'messages', type) => {
   try {
@@ -114,12 +123,11 @@ export const markMessageAsRead = async (messageId, userId, collectionName = 'mes
 
     if (messageDoc.exists()) {
       const messageData = messageDoc.data();
-      const readBy = messageData.readBy || [];
       const readByDetails = messageData.readByDetails || {};
 
-      if (!readBy.includes(userId)) {
+      // Only update if user hasn't read this message yet
+      if (!readByDetails[userId]) {
         await updateDoc(messageRef, {
-          readBy: [...readBy, userId],
           readByDetails: {
             ...readByDetails,
             [userId]: serverTimestamp()

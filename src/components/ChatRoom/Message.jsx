@@ -34,7 +34,6 @@ export default function Message({
   fileData,
   locationData,
   messageStatus = 'sent',
-  readBy = [],
   recalled = false,
   chatType, // 'room' or 'direct'
   isLatestFromSender = false, // New prop to identify if this is the latest message from sender
@@ -88,8 +87,9 @@ export default function Message({
     // Only show status for own messages that are the latest in the entire conversation
     if (!isOwn || !isLatestFromSender) return null;
 
-    // Get users who have read this specific message
-    const readByOthers = readBy ? readBy.filter(userId => userId !== user?.uid) : [];
+    // Derive readBy from readByDetails and get users who have read this specific message
+    const readBy = Object.keys(readByDetails || {});
+    const readByOthers = readBy.filter(userId => userId !== user?.uid);
 
     const getStatusIcon = () => {
       switch (messageStatus) {

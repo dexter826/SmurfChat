@@ -19,7 +19,7 @@ import { db } from '../config';
 // Authentication services
 export * from './auth.service';
 
-// Message services
+// Message services (OPTIMIZED: Removed readBy redundancy - Task 3.2)
 export * from './message.service';
 
 // Conversation services  

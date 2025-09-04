@@ -141,10 +141,10 @@ export default function ConversationWindow() {
       try {
         if (messages && messages.length > 0 && selectedConversation.id && uid) {
           // Mark all unread messages in this conversation as read
-          const unreadMessages = messages.filter(
-            (msg) =>
-              msg.senderId !== uid && (!msg.readBy || !msg.readBy.includes(uid))
-          );
+          const unreadMessages = messages.filter((msg) => {
+            const readByDetails = msg.readByDetails || {};
+            return msg.senderId !== uid && !readByDetails[uid];
+          });
 
           for (const message of unreadMessages) {
             await markMessageAsRead(message.id, uid, "messages", "direct");
@@ -239,7 +239,6 @@ export default function ConversationWindow() {
                     fileData={mes.fileData}
                     locationData={mes.locationData}
                     recalled={mes.recalled}
-                    readBy={mes.readBy || []}
                     readByDetails={mes.readByDetails || {}}
                     chatType="direct"
                     isLatestFromSender={isLatestFromSender}
