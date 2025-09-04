@@ -1,57 +1,47 @@
 // Utility function to generate keywords for search functionality
 // Used for creating searchable keywords from display names and emails
+// Optimized version - generates ~10 keywords instead of 50+
 
 export const generateKeywords = (displayName) => {
-  // Generate all permutations. Example: name = ["David", "Van", "Teo"]
-  // => ["David", "Van", "Teo"], ["David", "Teo", "Van"], ["Teo", "David", "Van"],...
-  const name = displayName.split(' ').filter((word) => word);
-
-  const length = name.length;
-  let flagArray = [];
-  let result = [];
-  let stringArray = [];
-
-  /**
-   * Initialize flag array with false values
-   * Used to mark whether value at this position
-   * has been used or not
-   **/
-  for (let i = 0; i < length; i++) {
-    flagArray[i] = false;
+  if (!displayName || typeof displayName !== 'string') {
+    return [];
   }
 
-  const createKeywords = (name) => {
-    const arrName = [];
-    let curName = '';
-    name.split('').forEach((letter) => {
-      curName += letter;
-      arrName.push(curName);
-    });
-    return arrName;
-  };
+  const normalizedName = displayName.toLowerCase().trim();
+  const words = normalizedName.split(' ').filter(word => word.length > 0);
+  
+  if (words.length === 0) {
+    return [];
+  }
 
-  function findPermutation(k) {
-    for (let i = 0; i < length; i++) {
-      if (!flagArray[i]) {
-        flagArray[i] = true;
-        result[k] = name[i];
-
-        if (k === length - 1) {
-          stringArray.push(result.join(' '));
-        }
-
-        findPermutation(k + 1);
-        flagArray[i] = false;
+  const keywords = new Set();
+  
+  // Add full name
+  keywords.add(normalizedName);
+  
+  // Add individual words
+  words.forEach(word => {
+    keywords.add(word);
+  });
+  
+  // Add prefix keywords for each word (for auto-complete)
+  words.forEach(word => {
+    for (let i = 1; i <= word.length; i++) {
+      const prefix = word.substring(0, i);
+      if (prefix.length >= 2) { // Only add prefixes with 2+ characters
+        keywords.add(prefix);
       }
     }
+  });
+  
+  // Add first name + last name combination (common search pattern)
+  if (words.length >= 2) {
+    keywords.add(`${words[0]} ${words[words.length - 1]}`);
   }
-
-  findPermutation(0);
-
-  const keywords = stringArray.reduce((acc, cur) => {
-    const words = createKeywords(cur);
-    return [...acc, ...words];
-  }, []);
-
-  return keywords;
+  
+  // Convert Set to Array and limit to reasonable number
+  const result = Array.from(keywords);
+  
+  // Limit to 15 keywords maximum to prevent bloat
+  return result.slice(0, 15);
 };
