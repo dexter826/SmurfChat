@@ -76,37 +76,25 @@ export default function ChatWindow() {
     await handleLocationMessage(locationData);
   };
 
-  // Conditions for fetching messages based on chat type
-  const roomCondition = React.useMemo(
-    () => ({
-      fieldName: 'roomId',
-      operator: '==',
-      compareValue: selectedRoom.id,
-    }),
-    [selectedRoom.id]
-  );
+  // Unified messages condition based on chat type
+  const messagesCondition = React.useMemo(() => {
+    if (chatType === 'room' && selectedRoom?.id) {
+      return {
+        fieldName: 'chatId',
+        operator: '==',
+        compareValue: selectedRoom.id,
+      };
+    } else if (chatType === 'direct' && selectedConversation?.id) {
+      return {
+        fieldName: 'chatId',
+        operator: '==',
+        compareValue: selectedConversation.id,
+      };
+    }
+    return null;
+  }, [chatType, selectedRoom?.id, selectedConversation?.id]);
 
-  const conversationCondition = React.useMemo(
-    () => ({
-      fieldName: 'conversationId',
-      operator: '==',
-      compareValue: selectedConversation.id,
-    }),
-    [selectedConversation.id]
-  );
-
-  const roomTypeCondition = React.useMemo(() => ({
-    fieldName: 'type',
-    operator: '==',
-    compareValue: 'room',
-  }), []);
-  const roomMessages = useFirestore('unified', chatType === 'room' ? {
-    ...roomCondition,
-    ...roomTypeCondition,
-  } : null);
-  const directMessages = useFirestore('directMessages', chatType === 'direct' ? conversationCondition : null);
-
-  const messages = chatType === 'room' ? roomMessages : directMessages;
+  const messages = useFirestore('messages', messagesCondition, 'createdAt', 'asc');
 
   // Fetch events for this room
   const eventsCondition = React.useMemo(() => ({
@@ -181,7 +169,7 @@ export default function ChatWindow() {
           
           for (const message of unreadMessages) {
             try {
-              await markMessageAsRead(message.id, uid, 'unified', 'room');
+              await markMessageAsRead(message.id, uid, 'messages', 'room');
             } catch (err) {
               console.error('Error marking message as read:', err);
             }
@@ -197,7 +185,7 @@ export default function ChatWindow() {
           
           for (const message of unreadMessages) {
             try {
-              await markMessageAsRead(message.id, uid, 'directMessages');
+              await markMessageAsRead(message.id, uid, 'messages', 'direct');
             } catch (err) {
               console.error('Error marking direct message as read:', err);
             }

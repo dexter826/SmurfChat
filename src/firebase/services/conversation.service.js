@@ -47,8 +47,9 @@ export const deleteConversation = async (conversationId) => {
   try {
     // Delete all messages in this conversation first
     const messagesQuery = query(
-      collection(db, 'directMessages'),
-      where('conversationId', '==', conversationId)
+      collection(db, 'messages'),
+      where('chatType', '==', 'direct'),
+      where('chatId', '==', conversationId)
     );
     const messagesSnapshot = await getDocs(messagesQuery);
     

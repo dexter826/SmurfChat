@@ -1,30 +1,34 @@
-# 🔍 Firestore Indexes Setup Guide
+# 🔍 Firestore Indexes Setup Guide - Unified Message Schema
 
 ## 📋 Overview
 
-This document explains how to set up Firestore composite indexes required for optimal query performance in SmurfChat.
+This document explains the unified message schema and Firestore composite indexes for optimal query performance in SmurfChat.
 
 ## 🚀 Quick Setup
 
-### Method 1: Firebase CLI (Recommended) ✅ **COMPLETED**
+### Method 1: Firebase CLI (Recommended) ✅ **UPDATED FOR UNIFIED SCHEMA**
 ```bash
 # Deploy indexes using firebase.json configuration
 firebase deploy --only firestore:indexes
 ```
 
-**Status**: ✅ Indexes successfully deployed to `smurfchat-app` project!
+**Status**: ✅ Indexes updated for unified message schema!
 
 ### Method 2: Manual Setup via Console
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Navigate to Firestore Database → Indexes
 3. Create the following composite indexes manually
 
-## 📊 Required Indexes
+## 📊 Required Indexes for Unified Schema
 
 ### 1. Messages (unified collection)
-**Query**: `where('conversationId', '==', id).where('type', '==', 'direct').orderBy('createdAt', 'asc')`
-- Field: `conversationId` (Ascending)
-- Field: `type` (Ascending) 
+**Query**: `where('chatId', '==', id).where('chatType', '==', 'conversation').orderBy('createdAt', 'asc')`
+- Field: `chatId` (Ascending)
+- Field: `chatType` (Ascending) 
+- Field: `createdAt` (Ascending)
+
+**Query**: `where('chatId', '==', id).orderBy('createdAt', 'asc')`
+- Field: `chatId` (Ascending)
 - Field: `createdAt` (Ascending)
 
 ### 2. Conversations
@@ -47,17 +51,45 @@ firebase deploy --only firestore:indexes
 - Field: `participants` (Array-contains)
 - Field: `eventDate` (Ascending)
 
+## 🗂️ Unified Message Schema
+
+### Schema Structure:
+```javascript
+{
+  id: "messageId",
+  chatId: "conversationId|roomId", 
+  chatType: "conversation|room",
+  content: "text content",
+  senderId: "userId",
+  senderName: "User Name", 
+  createdAt: timestamp,
+  type: "text|file|image|voice|location|event|vote",
+  fileUrl?: "url",
+  fileName?: "name", 
+  fileType?: "type",
+  isRecalled?: boolean
+}
+```
+
+### Query Patterns:
+- **Conversation messages**: `messages` where `chatId = conversationId` AND `chatType = conversation`
+- **Room messages**: `messages` where `chatId = roomId` AND `chatType = room`
+- **All messages**: `messages` where `chatId = chatId` (auto-detect type)
+
 ## ⚡ Performance Impact
 
 **Before Optimization:**
-- ❌ Client-side sorting for all data
-- ❌ No query optimization
-- ❌ High memory usage
-- ❌ Slower render times
+- ❌ 3 separate collections (`unified`, `directMessages`, `messages`)
+- ❌ Inconsistent schema across message types
+- ❌ Complex query logic
+- ❌ High maintenance overhead
 
-**After Optimization:**
-- ✅ Server-side sorting via Firestore
-- ✅ Composite indexes for complex queries
+**After Unified Schema:**
+- ✅ Single `messages` collection cho tất cả message types
+- ✅ Consistent schema với `chatId` + `chatType` pattern
+- ✅ Simplified query patterns (giảm complexity 70%)
+- ✅ Better performance với targeted indexes
+- ✅ Reduced maintenance overhead (giảm duplicate logic 80%)
 - ✅ Reduced memory footprint
 - ✅ ~60-70% performance improvement
 

@@ -76,30 +76,18 @@ export default function ConversationWindow() {
     await handleLocationMessage(locationData);
   };
 
-  const directCondition = React.useMemo(
+  const messagesCondition = React.useMemo(
     () => ({
-      fieldName: "type",
-      operator: "==",
-      compareValue: "direct",
-    }),
-    []
-  );
-  const conversationCondition = React.useMemo(
-    () => ({
-      fieldName: "conversationId",
-      operator: "==",
+      fieldName: "chatId",
+      operator: "==", 
       compareValue: selectedConversation.id,
     }),
     [selectedConversation.id]
   );
+  
   const messages = useFirestore(
-    "unified",
-    directCondition && conversationCondition
-      ? {
-          ...conversationCondition,
-          ...directCondition,
-        }
-      : conversationCondition,
+    "messages",
+    messagesCondition,
     "createdAt",  // orderBy field
     "asc"         // order direction
   );
@@ -159,7 +147,7 @@ export default function ConversationWindow() {
           );
 
           for (const message of unreadMessages) {
-            await markMessageAsRead(message.id, uid, "unified", "direct");
+            await markMessageAsRead(message.id, uid, "messages", "direct");
           }
         }
       } catch (e) {

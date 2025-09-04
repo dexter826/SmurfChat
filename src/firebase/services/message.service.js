@@ -4,7 +4,7 @@ import { areMutuallyBlocked } from './block.service';
 import { updateRoomLastMessage, updateConversationLastMessage } from '../utils/conversation.utils';
 
 // Delete message (hard delete)
-export const deleteMessage = async (messageId, collectionName = 'unified', type) => {
+export const deleteMessage = async (messageId, collectionName = 'messages', type) => {
   try {
     const messageRef = doc(db, collectionName, messageId);
     await deleteDoc(messageRef);
@@ -15,7 +15,7 @@ export const deleteMessage = async (messageId, collectionName = 'unified', type)
 };
 
 // Recall message (withdraw message within time limit)
-export const recallMessage = async (messageId, collectionName = 'unified', userId, type) => {
+export const recallMessage = async (messageId, collectionName = 'messages', userId, type) => {
   try {
     const messageRef = doc(db, collectionName, messageId);
     const messageDoc = await getDoc(messageRef);
@@ -98,7 +98,7 @@ export const canRecallMessage = (message, userId) => {
 };
 
 // Mark message as read
-export const markMessageAsRead = async (messageId, userId, collectionName = 'unified', type) => {
+export const markMessageAsRead = async (messageId, userId, collectionName = 'messages', type) => {
   try {
     const messageRef = doc(db, collectionName, messageId);
     const messageDoc = await getDoc(messageRef);
@@ -126,12 +126,12 @@ export const markMessageAsRead = async (messageId, userId, collectionName = 'uni
 };
 
 // Send message with block check
-export const sendMessage = async (collectionName, messageData) => {
+export const sendMessage = async (collectionName = 'messages', messageData) => {
   try {
     // Check for blocks in direct messages
-  if (collectionName === 'unified' && messageData.type === 'direct' && messageData.conversationId) {
-      // Extract participant IDs from conversation ID (format: uid1_uid2)
-      const participantIds = messageData.conversationId.split('_');
+    if (messageData.chatType === 'direct' && messageData.chatId) {
+      // Extract participant IDs from chatId (format: uid1_uid2)
+      const participantIds = messageData.chatId.split('_');
       
       if (participantIds.length === 2) {
         const [userA, userB] = participantIds;

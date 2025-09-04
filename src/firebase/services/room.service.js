@@ -54,7 +54,11 @@ export const updateRoomAvatar = async (roomId, avatarUrl) => {
 export const dissolveRoom = async (roomId) => {
   try {
     // Delete all messages in the room first
-    const messagesQuery = query(collection(db, 'messages'), where('roomId', '==', roomId));
+    const messagesQuery = query(
+      collection(db, 'messages'), 
+      where('chatType', '==', 'room'),
+      where('chatId', '==', roomId)
+    );
     const messagesSnapshot = await getDocs(messagesQuery);
     const messageDeletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(messageDeletePromises);

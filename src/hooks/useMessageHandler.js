@@ -42,20 +42,17 @@ export const useMessageHandler = (chatType, chatData) => {
         messageType: "text",
       });
 
+      const unifiedMessageData = {
+        ...messageData,
+        chatType: chatType, // 'room' or 'direct'
+        chatId: chatData.id, // roomId or conversationId
+      };
+
       if (chatType === 'room') {
-        // Room message
-        await sendMessage('unified', {
-          ...messageData,
-          roomId: chatData.id,
-          type: 'room',
-        });
+        await sendMessage('messages', unifiedMessageData);
         await updateRoomLastMessage(chatData.id, inputValue, uid);
       } else if (chatType === 'direct') {
-        await sendMessage('unified', {
-          ...messageData,
-          conversationId: chatData.id,
-          type: 'direct',
-        });
+        await sendMessage('messages', unifiedMessageData);
         await updateConversationLastMessage(chatData.id, inputValue, uid);
       }
 
@@ -90,20 +87,18 @@ export const useMessageHandler = (chatType, chatData) => {
 
     const lastMessageText = getFileMessageText(fileData);
 
+    const unifiedMessageData = {
+      ...messageData,
+      chatType: chatType,
+      chatId: chatData.id,
+    };
+
     try {
       if (chatType === 'room') {
-        await sendMessage('unified', {
-          ...messageData,
-          roomId: chatData.id,
-          type: 'room',
-        });
+        await sendMessage('messages', unifiedMessageData);
         await updateRoomLastMessage(chatData.id, lastMessageText, uid);
       } else if (chatType === 'direct') {
-        await sendMessage('unified', {
-          ...messageData,
-          conversationId: chatData.id,
-          type: 'direct',
-        });
+        await sendMessage('messages', unifiedMessageData);
         await updateConversationLastMessage(chatData.id, lastMessageText, uid);
       }
     } catch (error) {
@@ -129,20 +124,18 @@ export const useMessageHandler = (chatType, chatData) => {
 
     const lastMessageText = '📍 Vị trí được chia sẻ';
 
+    const unifiedMessageData = {
+      ...messageData,
+      chatType: chatType,
+      chatId: chatData.id,
+    };
+
     try {
       if (chatType === 'room') {
-        await sendMessage('unified', {
-          ...messageData,
-          roomId: chatData.id,
-          type: 'room',
-        });
+        await sendMessage('messages', unifiedMessageData);
         await updateRoomLastMessage(chatData.id, lastMessageText, uid);
       } else if (chatType === 'direct') {
-        await sendMessage('unified', {
-          ...messageData,
-          conversationId: chatData.id,
-          type: 'direct',
-        });
+        await sendMessage('messages', unifiedMessageData);
         await updateConversationLastMessage(chatData.id, lastMessageText, uid);
       }
     } catch (error) {

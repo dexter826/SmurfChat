@@ -65,9 +65,8 @@ export default function Message({
 
     setIsRecalling(true);
     try {
-      // Determine collection based on chat type
-      const collectionName = chatType === 'direct' ? 'directMessages' : 'messages';
-      await recallMessage(id, collectionName, user?.uid);
+      // Use unified messages collection
+      await recallMessage(id, 'messages', user?.uid);
       success('Tin nhắn đã được thu hồi');
     } catch (err) {
       console.error('Error recalling message:', err);
