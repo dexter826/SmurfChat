@@ -2,38 +2,46 @@ import { doc, updateDoc, getDoc, deleteDoc, serverTimestamp, collection, addDoc 
 import { db } from '../config';
 import { areMutuallyBlocked } from './block.service';
 import { updateRoomLastMessage, updateConversationLastMessage } from '../utils/conversation.utils';
+import { handleServiceError, logSuccess, validateRequired, ErrorTypes, SmurfChatError } from '../utils/error.utils';
 
 // Delete message (hard delete)
 export const deleteMessage = async (messageId, collectionName = 'messages', type) => {
   try {
+    validateRequired(messageId, 'Message ID');
+    
     const messageRef = doc(db, collectionName, messageId);
     await deleteDoc(messageRef);
+    
+    logSuccess('deleteMessage', { messageId, collectionName, type });
   } catch (error) {
-    console.error('Error deleting message:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'deleteMessage');
+    throw handledError;
   }
 };
 
 // Recall message (withdraw message within time limit)
 export const recallMessage = async (messageId, collectionName = 'messages', userId, type) => {
   try {
+    validateRequired(messageId, 'Message ID');
+    validateRequired(userId, 'User ID');
+    
     const messageRef = doc(db, collectionName, messageId);
     const messageDoc = await getDoc(messageRef);
 
     if (!messageDoc.exists()) {
-      throw new Error('Tin nhắn không tồn tại');
+      throw new SmurfChatError(ErrorTypes.BUSINESS_NOT_FOUND, 'Tin nhắn không tồn tại');
     }
 
     const messageData = messageDoc.data();
     
     // Check if user is the sender
     if (messageData.uid !== userId) {
-      throw new Error('Chỉ người gửi mới có thể thu hồi tin nhắn');
+      throw new SmurfChatError(ErrorTypes.BUSINESS_PERMISSION_DENIED, 'Chỉ người gửi mới có thể thu hồi tin nhắn');
     }
 
     // Check if message is already recalled
     if (messageData.recalled) {
-      throw new Error('Tin nhắn đã được thu hồi trước đó');
+      throw new SmurfChatError(ErrorTypes.BUSINESS_ALREADY_EXISTS, 'Tin nhắn đã được thu hồi');
     }
 
     // Check time limit (10 minutes = 600 seconds)
@@ -42,7 +50,7 @@ export const recallMessage = async (messageId, collectionName = 'messages', user
     const timeDiff = (now - messageTime) / 1000; // difference in seconds
 
     if (timeDiff > 600) { // 10 minutes
-      throw new Error('Không thể thu hồi tin nhắn sau 10 phút');
+      throw new SmurfChatError(ErrorTypes.BUSINESS_PERMISSION_DENIED, 'Không thể thu hồi tin nhắn sau 10 phút');
     }
 
     // Prepare recall data based on message type
@@ -78,10 +86,11 @@ export const recallMessage = async (messageId, collectionName = 'messages', user
       await updateConversationLastMessage(messageData.conversationId, 'Tin nhắn đã được thu hồi', userId);
     }
 
+    logSuccess('recallMessage', { messageId, userId, type });
     return true;
   } catch (error) {
-    console.error('Error recalling message:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'recallMessage');
+    throw handledError;
   }
 };
 

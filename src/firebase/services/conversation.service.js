@@ -2,6 +2,7 @@ import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, 
 import { db } from '../config';
 import { areMutuallyBlocked } from './block.service';
 import { updateConversationLastMessage, updateRoomLastMessage } from '../utils/conversation.utils';
+import { handleServiceError, logSuccess, validateRequired, SmurfChatError, ErrorTypes } from '../utils/error.utils';
 
 // Re-export utility functions for backward compatibility
 export { updateConversationLastMessage, updateRoomLastMessage };
@@ -17,11 +18,11 @@ export const createOrUpdateConversation = async (conversationData) => {
     
     if (blockStatus.isBlocked) {
       if (blockStatus.aBlockedB && blockStatus.bBlockedA) {
-        throw new Error('Không thể tạo cuộc trò chuyện - cả hai người dùng đã chặn lẫn nhau');
+        throw new SmurfChatError(ErrorTypes.BUSINESS_PERMISSION_DENIED, 'Không thể tạo cuộc trò chuyện - cả hai người dùng đã chặn lẫn nhau');
       } else if (blockStatus.aBlockedB) {
-        throw new Error('Không thể tạo cuộc trò chuyện - bạn đã chặn người dùng này');
+        throw new SmurfChatError(ErrorTypes.BUSINESS_PERMISSION_DENIED, 'Không thể tạo cuộc trò chuyện - bạn đã chặn người dùng này');
       } else {
-        throw new Error('Không thể tạo cuộc trò chuyện - người dùng này đã chặn bạn');
+        throw new SmurfChatError(ErrorTypes.BUSINESS_PERMISSION_DENIED, 'Không thể tạo cuộc trò chuyện - người dùng này đã chặn bạn');
       }
     }
   }
@@ -37,8 +38,8 @@ export const createOrUpdateConversation = async (conversationData) => {
     }, { merge: true });
     return id;
   } catch (error) {
-    console.error('Error creating/updating conversation:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'createOrUpdateConversation');
+    throw handledError;
   }
 };
 
@@ -61,8 +62,8 @@ export const deleteConversation = async (conversationId) => {
     const conversationRef = doc(db, 'conversations', conversationId);
     await deleteDoc(conversationRef);
   } catch (error) {
-    console.error('Error deleting conversation:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'deleteConversation');
+    throw handledError;
   }
 };
 
@@ -75,8 +76,10 @@ export const togglePinChat = async (chatId, isPinned, isConversation = false) =>
       pinned: !isPinned,
       pinnedAt: !isPinned ? serverTimestamp() : null,
     });
+    
+    logSuccess('togglePinChat', { chatId, isPinned, isConversation });
   } catch (error) {
-    console.error('Error toggling pin status:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'togglePinChat');
+    throw handledError;
   }
 };

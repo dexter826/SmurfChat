@@ -1,5 +1,6 @@
 import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config';
+import { handleServiceError, logSuccess, validateRequired } from '../utils/error.utils';
 
 // Event management services
 
@@ -11,10 +12,12 @@ export const createEvent = async (eventData) => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    
+    logSuccess('createEvent', { eventId: docRef.id });
     return docRef.id;
   } catch (error) {
-    console.error('Error creating event:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'createEvent');
+    throw handledError;
   }
 };
 
@@ -27,9 +30,11 @@ export const updateEvent = async (eventId, eventData) => {
       ...eventData,
       updatedAt: serverTimestamp(),
     });
+    
+    logSuccess('updateEvent', { eventId });
   } catch (error) {
-    console.error('Error updating event:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'updateEvent');
+    throw handledError;
   }
 };
 
@@ -39,9 +44,11 @@ export const deleteEvent = async (eventId) => {
 
   try {
     await deleteDoc(eventRef);
+    
+    logSuccess('deleteEvent', { eventId });
   } catch (error) {
-    console.error('Error deleting event:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'deleteEvent');
+    throw handledError;
   }
 };
 

@@ -1,49 +1,61 @@
 import { collection, addDoc, serverTimestamp, doc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../config';
+import { handleServiceError, logSuccess, validateUserAction, ErrorTypes, SmurfChatError } from '../utils/error.utils';
 
 // Block user services
 
 // Block a user
 export const blockUser = async (blockerUserId, blockedUserId) => {
-  if (blockerUserId === blockedUserId) {
-    throw new Error('Không thể chặn chính mình');
+  try {
+    validateUserAction(blockerUserId, blockedUserId, 'chặn');
+
+    // Check if already blocked
+    const isBlocked = await isUserBlocked(blockerUserId, blockedUserId);
+    if (isBlocked) {
+      throw new SmurfChatError(ErrorTypes.BUSINESS_ALREADY_EXISTS, 'Người dùng đã bị chặn');
+    }
+
+    const blockedUsersRef = collection(db, 'blocked_users');
+    
+    const docRef = await addDoc(blockedUsersRef, {
+      blocker: blockerUserId,
+      blocked: blockedUserId,
+      createdAt: serverTimestamp(),
+    });
+
+    logSuccess('blockUser', { blocker: blockerUserId, blocked: blockedUserId, docId: docRef.id });
+    return docRef.id;
+  } catch (error) {
+    const handledError = handleServiceError(error, 'blockUser');
+    throw handledError;
   }
-
-  // Check if already blocked
-  const isBlocked = await isUserBlocked(blockerUserId, blockedUserId);
-  if (isBlocked) {
-    throw new Error('Người dùng đã bị chặn');
-  }
-
-  const blockedUsersRef = collection(db, 'blocked_users');
-  
-  const docRef = await addDoc(blockedUsersRef, {
-    blocker: blockerUserId,
-    blocked: blockedUserId,
-    createdAt: serverTimestamp(),
-  });
-
-  return docRef.id;
 };
 
 // Unblock a user
 export const unblockUser = async (blockerUserId, blockedUserId) => {
-  const blockedUsersRef = collection(db, 'blocked_users');
-  const q = query(
-    blockedUsersRef,
-    where('blocker', '==', blockerUserId),
-    where('blocked', '==', blockedUserId)
-  );
+  try {
+    const blockedUsersRef = collection(db, 'blocked_users');
+    const q = query(
+      blockedUsersRef,
+      where('blocker', '==', blockerUserId),
+      where('blocked', '==', blockedUserId)
+    );
 
-  const snapshot = await getDocs(q);
-  
-  if (snapshot.empty) {
-    throw new Error('Người dùng không bị chặn');
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      throw new SmurfChatError(ErrorTypes.BUSINESS_NOT_FOUND, 'Người dùng không bị chặn');
+    }
+
+    // Delete the block record
+    const blockDoc = snapshot.docs[0];
+    await deleteDoc(doc(db, 'blocked_users', blockDoc.id));
+    
+    logSuccess('unblockUser', { blocker: blockerUserId, blocked: blockedUserId });
+  } catch (error) {
+    const handledError = handleServiceError(error, 'unblockUser');
+    throw handledError;
   }
-
-  // Delete the block record
-  const blockDoc = snapshot.docs[0];
-  await deleteDoc(doc(db, 'blocked_users', blockDoc.id));
 };
 
 // Check if a user is blocked

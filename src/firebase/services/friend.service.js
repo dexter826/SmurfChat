@@ -1,47 +1,54 @@
 import { collection, addDoc, serverTimestamp, doc, setDoc, updateDoc, getDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
 import { db } from '../config';
 import { isUserBlocked } from './block.service';
+import { handleServiceError, SmurfChatError, ErrorTypes } from '../utils/error.utils';
 
 // Friends system services
 
 // Send a friend request (if not existing)
 export const sendFriendRequest = async (fromUserId, toUserId) => {
-  if (fromUserId === toUserId) throw new Error('Không thể kết bạn với chính mình');
+  try {
+    if (fromUserId === toUserId) {
+      throw new SmurfChatError('Không thể kết bạn với chính mình', ErrorTypes.VALIDATION_ERROR);
+    }
+    
+    // Check if either user has blocked the other
+    const fromBlockedTo = await isUserBlocked(fromUserId, toUserId);
+    const toBlockedFrom = await isUserBlocked(toUserId, fromUserId);
+    
+    if (fromBlockedTo) {
+      throw new SmurfChatError('Bạn đã chặn người dùng này', ErrorTypes.PERMISSION_ERROR);
+    }
+    
+    if (toBlockedFrom) {
+      throw new SmurfChatError('Không thể gửi lời mời kết bạn đến người dùng này', ErrorTypes.PERMISSION_ERROR);
+    }
   
-  // Check if either user has blocked the other
-  const fromBlockedTo = await isUserBlocked(fromUserId, toUserId);
-  const toBlockedFrom = await isUserBlocked(toUserId, fromUserId);
-  
-  if (fromBlockedTo) {
-    throw new Error('Bạn đã chặn người dùng này');
-  }
-  
-  if (toBlockedFrom) {
-    throw new Error('Không thể gửi lời mời kết bạn đến người dùng này');
-  }
-  
-  const requestsRef = collection(db, 'friend_requests');
+    const requestsRef = collection(db, 'friend_requests');
 
-  // Check existing pending or accepted
-  const q = query(
-    requestsRef,
-    where('participants', 'in', [
-      [fromUserId, toUserId].sort().join('_'),
-    ])
-  );
-  const snapshot = await getDocs(q);
-  const exists = snapshot.docs.find(d => !d.data().deleted && d.data().status !== 'declined');
-  if (exists) return exists.id;
+    // Check existing pending or accepted
+    const q = query(
+      requestsRef,
+      where('participants', 'in', [
+        [fromUserId, toUserId].sort().join('_'),
+      ])
+    );
+    const snapshot = await getDocs(q);
+    const exists = snapshot.docs.find(d => !d.data().deleted && d.data().status !== 'declined');
+    if (exists) return exists.id;
 
-  const docRef = await addDoc(requestsRef, {
-    from: fromUserId,
-    to: toUserId,
-    participants: [fromUserId, toUserId].sort().join('_'),
-    status: 'pending',
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  return docRef.id;
+    const docRef = await addDoc(requestsRef, {
+      from: fromUserId,
+      to: toUserId,
+      participants: [fromUserId, toUserId].sort().join('_'),
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return docRef.id;
+  } catch (error) {
+    throw handleServiceError(error, 'sendFriendRequest');
+  }
 };
 
 // Cancel a friend request

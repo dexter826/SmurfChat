@@ -1,5 +1,6 @@
 import { collection, serverTimestamp, doc, updateDoc, getDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
 import { db } from '../config';
+import { handleServiceError, logSuccess, validateRequired } from '../utils/error.utils';
 
 // Room management services
 
@@ -18,8 +19,8 @@ export const leaveRoom = async (roomId, userId) => {
       });
     }
   } catch (error) {
-    console.error('Error leaving room:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'leaveRoom');
+    throw handledError;
   }
 };
 
@@ -31,8 +32,8 @@ export const transferRoomAdmin = async (roomId, newAdminId) => {
       admin: newAdminId,
     });
   } catch (error) {
-    console.error('Error transferring room admin:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'transferRoomAdmin');
+    throw handledError;
   }
 };
 
@@ -45,8 +46,8 @@ export const updateRoomAvatar = async (roomId, avatarUrl) => {
       updatedAt: serverTimestamp()
     });
   } catch (error) {
-    console.error('Lỗi khi cập nhật avatar phòng:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'updateRoomAvatar');
+    throw handledError;
   }
 };
 
@@ -81,7 +82,7 @@ export const dissolveRoom = async (roomId) => {
 
     return true;
   } catch (error) {
-    console.error('Error dissolving room:', error);
-    throw error;
+    const handledError = handleServiceError(error, 'dissolveRoom');
+    throw handledError;
   }
 };
