@@ -3,8 +3,9 @@
  * 
  * This file defines the standardized schema for all message types in the application.
  * All messages (room messages, direct messages, etc.) will use this unified structure.
+ * Single collection 'messages' for all message types.
  * 
- * Migration: Unifying collections: 'unified', 'directMessages' -> 'messages'
+ * Migration: Legacy collections 'unified', 'directMessages' have been migrated to 'messages'
  * Created: September 4, 2025
  */
 
@@ -73,12 +74,11 @@ export const UNIFIED_MESSAGE_SCHEMA = {
 /**
  * Migration Notes:
  * 
- * OLD STRUCTURE:
+ * LEGACY STRUCTURE (REMOVED):
  * - unified: { roomId?, conversationId?, type: 'room'|'direct', ... }
- * - messages: { roomId, ... }  
  * - directMessages: { conversationId, ... }
  * 
- * NEW STRUCTURE:
+ * CURRENT STRUCTURE:
  * - messages: { chatType: 'room'|'direct', chatId: roomId|conversationId, ... }
  * 
  * Benefits:
