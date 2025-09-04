@@ -175,7 +175,7 @@ export const handleServiceError = (error, operation, metadata = {}) => {
 
 // Success logger for consistency
 export const logSuccess = (operation, metadata = {}) => {
-  console.log(`✅ [${operation}] Success:`, metadata);
+  // Silent success logging in production
 };
 
 // Validation helpers

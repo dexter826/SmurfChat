@@ -86,8 +86,6 @@ class ListenerManager {
       // Dynamic import để avoid bundle bloat
       const { onSnapshot } = await import('firebase/firestore');
       
-      console.log(`🔥 Creating listener: ${key}`);
-      
       const unsubscribe = onSnapshot(
         query,
         (snapshot) => {

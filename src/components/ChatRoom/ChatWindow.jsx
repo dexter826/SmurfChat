@@ -347,6 +347,7 @@ export default function ChatWindow() {
                       messageStatus={item.messageStatus || 'sent'}
                       readBy={item.readBy || []}
                       readByDetails={item.readByDetails || {}}
+                      reactions={item.reactions || {}}
                       recalled={item.recalled}
                       chatType={chatType}
                       isLatestFromSender={index === combinedMessages.length - 1} // Only the very last message

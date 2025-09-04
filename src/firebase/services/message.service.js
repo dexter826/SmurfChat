@@ -220,3 +220,138 @@ export const sendMessage = async (collectionName = 'messages', messageData) => {
     throw error;
   }
 };
+
+/**
+ * Add reaction to message
+ * 
+ * @param {MessageId} messageId - The ID of the message to react to
+ * @param {UserId} userId - The ID of the user adding the reaction
+ * @param {string} emoji - The emoji to add as reaction
+ * @param {string} [collectionName='messages'] - The collection name
+ * @returns {Promise<void>}
+ */
+export const addReaction = async (messageId, userId, emoji, collectionName = 'messages') => {
+  try {
+    validateRequired(messageId, 'Message ID');
+    validateRequired(userId, 'User ID');
+    validateRequired(emoji, 'Emoji');
+    
+    const messageRef = doc(db, collectionName, messageId);
+    const messageDoc = await getDoc(messageRef);
+
+    if (!messageDoc.exists()) {
+      throw new SmurfChatError(ErrorTypes.BUSINESS_NOT_FOUND, 'Tin nhắn không tồn tại');
+    }
+
+    const messageData = messageDoc.data();
+    const reactions = messageData.reactions || {};
+    
+    // Get current users for this emoji
+    const currentUsers = reactions[emoji] || [];
+    
+    // Check if user already reacted with this emoji
+    if (currentUsers.includes(userId)) {
+      return; // User already reacted with this emoji
+    }
+    
+    // Add user to emoji reactions
+    reactions[emoji] = [...currentUsers, userId];
+
+    await updateDoc(messageRef, {
+      reactions,
+      updatedAt: serverTimestamp(),
+    });
+
+    logSuccess('addReaction', { messageId, userId, emoji });
+  } catch (error) {
+    const handledError = handleServiceError(error, 'addReaction');
+    throw handledError;
+  }
+};
+
+/**
+ * Remove reaction from message
+ * 
+ * @param {MessageId} messageId - The ID of the message to remove reaction from
+ * @param {UserId} userId - The ID of the user removing the reaction
+ * @param {string} emoji - The emoji to remove
+ * @param {string} [collectionName='messages'] - The collection name
+ * @returns {Promise<void>}
+ */
+export const removeReaction = async (messageId, userId, emoji, collectionName = 'messages') => {
+  try {
+    validateRequired(messageId, 'Message ID');
+    validateRequired(userId, 'User ID');
+    validateRequired(emoji, 'Emoji');
+    
+    const messageRef = doc(db, collectionName, messageId);
+    const messageDoc = await getDoc(messageRef);
+
+    if (!messageDoc.exists()) {
+      throw new SmurfChatError(ErrorTypes.BUSINESS_NOT_FOUND, 'Tin nhắn không tồn tại');
+    }
+
+    const messageData = messageDoc.data();
+    const reactions = messageData.reactions || {};
+    
+    if (!reactions[emoji]) {
+      return; // No reactions with this emoji
+    }
+    
+    // Remove user from emoji reactions
+    reactions[emoji] = reactions[emoji].filter(id => id !== userId);
+    
+    // If no users left with this emoji, remove the emoji entirely
+    if (reactions[emoji].length === 0) {
+      delete reactions[emoji];
+    }
+
+    await updateDoc(messageRef, {
+      reactions,
+      updatedAt: serverTimestamp(),
+    });
+
+    logSuccess('removeReaction', { messageId, userId, emoji });
+  } catch (error) {
+    const handledError = handleServiceError(error, 'removeReaction');
+    throw handledError;
+  }
+};
+
+/**
+ * Toggle reaction on message (add if not present, remove if present)
+ * 
+ * @param {MessageId} messageId - The ID of the message to toggle reaction on
+ * @param {UserId} userId - The ID of the user toggling the reaction
+ * @param {string} emoji - The emoji to toggle
+ * @param {string} [collectionName='messages'] - The collection name
+ * @returns {Promise<boolean>} - Returns true if reaction was added, false if removed
+ */
+export const toggleReaction = async (messageId, userId, emoji, collectionName = 'messages') => {
+  try {
+    const messageRef = doc(db, collectionName, messageId);
+    const messageDoc = await getDoc(messageRef);
+
+    if (!messageDoc.exists()) {
+      throw new SmurfChatError(ErrorTypes.BUSINESS_NOT_FOUND, 'Tin nhắn không tồn tại');
+    }
+
+    const messageData = messageDoc.data();
+    const reactions = messageData.reactions || {};
+    const currentUsers = reactions[emoji] || [];
+    
+    // Check if user already reacted
+    const hasReacted = currentUsers.includes(userId);
+    
+    if (hasReacted) {
+      await removeReaction(messageId, userId, emoji, collectionName);
+      return false; // Reaction removed
+    } else {
+      await addReaction(messageId, userId, emoji, collectionName);
+      return true; // Reaction added
+    }
+  } catch (error) {
+    const handledError = handleServiceError(error, 'toggleReaction');
+    throw handledError;
+  }
+};

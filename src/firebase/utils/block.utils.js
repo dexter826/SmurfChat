@@ -8,7 +8,7 @@
  * Task: 3.3 - Optimize Block Checking Logic
  */
 
-import { collection, getDocs, query, where, or } from 'firebase/firestore';
+import { collection, getDocs, query, where, or, and } from 'firebase/firestore';
 import { db } from '../config';
 
 // In-memory cache cho block status
@@ -109,14 +109,12 @@ export const getMutualBlockStatus = async (userA, userB) => {
       blockedUsersRef,
       or(
         // userA blocked userB
-        query(
-          blockedUsersRef,
+        and(
           where('blocker', '==', userA),
           where('blocked', '==', userB)
         ),
         // userB blocked userA  
-        query(
-          blockedUsersRef,
+        and(
           where('blocker', '==', userB),
           where('blocked', '==', userA)
         )

@@ -9,6 +9,7 @@ import LocationPreview from "../FileUpload/LocationPreview";
 import EmojiText, { EmojiOnlyMessage } from "./EmojiText";
 import { useEmoji } from "../../hooks/useEmoji";
 import SeenByModal from "./SeenByModal";
+import MessageReactions from "./MessageReactions";
 
 function formatDate(seconds) {
   let formattedDate = "";
@@ -40,6 +41,7 @@ export default function Message({
   members = [], // For room chat to get user info
   otherParticipant = null, // For direct chat to get other user info
   readByDetails = {}, // Details about when each user read the message
+  reactions = {}, // Message reactions
 }) {
   const { user } = React.useContext(AuthContext);
   const { setSelectedUser, setIsUserProfileVisible } = React.useContext(AppContext);
@@ -323,6 +325,17 @@ export default function Message({
           </span>
         </div>
         {renderMessageContent()}
+        
+        {/* Message Reactions */}
+        {!recalled && (
+          <MessageReactions 
+            messageId={id}
+            reactions={reactions}
+            chatType={chatType}
+            disabled={false}
+          />
+        )}
+        
         {renderMessageStatus()}
       </div>
       

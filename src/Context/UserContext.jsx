@@ -16,19 +16,9 @@ export const useUsers = () => {
 export function UserProvider({ children }) {
   const { user: currentUser } = useContext(AuthContext);
 
-  // Single source of truth cho tất cả users
-  const allUsersCondition = useMemo(() => 
-    currentUser?.uid ? {
-      fieldName: 'displayName',
-      operator: '>=',
-      compareValue: '',
-    } : null,
-    [currentUser?.uid]
-  );
-
+  // Single source of truth cho tất cả users - fetch all without condition
   const { documents: allUsers } = useOptimizedFirestore(
-    currentUser?.uid ? 'users' : null, // Only fetch if user is authenticated
-    allUsersCondition
+    currentUser?.uid ? 'users' : null // Only fetch if user is authenticated
   );
 
   // Filter out current user from the result
@@ -99,15 +89,14 @@ export function UserProvider({ children }) {
     
     // Performance stats
     totalUsers: filteredUsers.length,
-    isLoading: !allUsersCondition && filteredUsers.length === 0
+    isLoading: filteredUsers.length === 0
   }), [
     filteredUsers,
     usersMap, 
     getUserById,
     getUsersByIds,
     getOtherParticipant,
-    batchGetUsers,
-    allUsersCondition
+    batchGetUsers
   ]);
 
   return (

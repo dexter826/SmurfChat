@@ -257,6 +257,7 @@ export default function ConversationWindow() {
                       locationData={mes.locationData}
                       recalled={mes.recalled}
                       readByDetails={mes.readByDetails || {}}
+                      reactions={mes.reactions || {}}
                       chatType="direct"
                       isLatestFromSender={isLatestFromSender}
                       otherParticipant={otherParticipant} // Pass other participant info for read status display
