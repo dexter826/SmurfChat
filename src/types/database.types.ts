@@ -31,6 +31,8 @@ export type ConversationId = string;
 export type MessageId = string;
 export type EventId = string;
 
+export type VoteId = string;
+
 export enum ChatType {
   ROOM = 'room',
   DIRECT = 'direct'
@@ -41,9 +43,7 @@ export enum MessageType {
   IMAGE = 'image',
   FILE = 'file',
   VOICE = 'voice',
-  LOCATION = 'location',
-  EVENT = 'event',
-  VOTE = 'vote'
+  LOCATION = 'location'
 }
 
 export enum EventStatus {
@@ -58,44 +58,20 @@ export enum FriendStatus {
   REJECTED = 'rejected'
 }
 
-export enum OnlineStatus {
-  ONLINE = 'online',
-  OFFLINE = 'offline',
-  AWAY = 'away'
-}
-
 // ================================
 // USER COLLECTION
 // ================================
 
 export interface User {
-  id: UserId;
+  uid: UserId; // Fix: actual field name in database is 'uid' not 'id'
   email: string;
   displayName: string;
   photoURL?: string;
-  bio?: string;
-  phone?: string;
-  searchKeywords: string[];
-  onlineStatus: OnlineStatus;
+  keywords: string[]; // Fix: actual field name used in code
+  isOnline: boolean; // Fix: actual field type used in code  
   lastSeen: FirestoreTimestamp;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
-  isActive: boolean;
-  
-  // Privacy settings
-  privacy?: {
-    showPhone: boolean;
-    showEmail: boolean;
-    allowFriendRequests: boolean;
-  };
-  
-  // Notification preferences
-  notifications?: {
-    messages: boolean;
-    friendRequests: boolean;
-    events: boolean;
-    mentions: boolean;
-  };
 }
 
 // ================================
@@ -114,20 +90,6 @@ export interface BaseMessage {
   // Read tracking
   readByDetails: Record<UserId, FirestoreTimestamp>;
   
-  // Edit tracking
-  isEdited: boolean;
-  editHistory?: Array<{
-    content: string;
-    editedAt: FirestoreTimestamp;
-  }>;
-  
-  // Reply system
-  replyTo?: {
-    messageId: MessageId;
-    senderId: UserId;
-    content: string; // Preview of original message
-  };
-  
   // Reactions
   reactions?: Record<string, UserId[]>; // emoji -> user IDs
 }
@@ -135,81 +97,14 @@ export interface BaseMessage {
 export interface RoomMessage extends BaseMessage {
   chatType: ChatType.ROOM;
   roomId: RoomId;
-  
-  // Room-specific features
-  mentions?: UserId[];
-  isPinned?: boolean;
-  pinnedAt?: FirestoreTimestamp;
-  pinnedBy?: UserId;
 }
 
 export interface DirectMessage extends BaseMessage {
   chatType: ChatType.DIRECT;
   conversationId: ConversationId;
-  
-  // Direct message specific
-  isDelivered: boolean;
-  deliveredAt?: FirestoreTimestamp;
 }
 
 export type Message = RoomMessage | DirectMessage;
-
-// ================================
-// MESSAGE ATTACHMENTS
-// ================================
-
-export interface ImageAttachment {
-  messageType: MessageType.IMAGE;
-  imageUrl: string;
-  thumbnailUrl?: string;
-  width?: number;
-  height?: number;
-  size: number; // bytes
-  fileName: string;
-}
-
-export interface FileAttachment {
-  messageType: MessageType.FILE;
-  fileUrl: string;
-  fileName: string;
-  fileType: string; // MIME type
-  size: number; // bytes
-}
-
-export interface VoiceAttachment {
-  messageType: MessageType.VOICE;
-  voiceUrl: string;
-  duration: number; // seconds
-  size: number; // bytes
-}
-
-export interface LocationAttachment {
-  messageType: MessageType.LOCATION;
-  latitude: number;
-  longitude: number;
-  address?: string;
-  locationName?: string;
-}
-
-export interface EventAttachment {
-  messageType: MessageType.EVENT;
-  eventId: EventId;
-  eventTitle: string;
-  eventDate: FirestoreTimestamp;
-}
-
-export interface VoteAttachment {
-  messageType: MessageType.VOTE;
-  question: string;
-  options: Array<{
-    id: string;
-    text: string;
-    votes: UserId[];
-  }>;
-  allowMultiple: boolean;
-  expiresAt?: FirestoreTimestamp;
-  isActive: boolean;
-}
 
 // ================================
 // ROOM COLLECTION
@@ -218,8 +113,6 @@ export interface VoteAttachment {
 export interface Room {
   id: RoomId;
   name: string;
-  description?: string;
-  imageUrl?: string;
   createdBy: UserId;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
@@ -227,11 +120,6 @@ export interface Room {
   // Member management
   members: UserId[];
   admins: UserId[];
-  
-  // Room settings
-  isPrivate: boolean;
-  isArchived: boolean;
-  maxMembers?: number;
   
   // Last activity
   lastMessage?: {
@@ -242,14 +130,6 @@ export interface Room {
   };
   
   lastActivity: FirestoreTimestamp;
-  
-  // Room features
-  features?: {
-    allowFileUpload: boolean;
-    allowVoiceMessages: boolean;
-    allowPolls: boolean;
-    allowEvents: boolean;
-  };
 }
 
 // ================================
@@ -272,10 +152,6 @@ export interface Conversation {
   
   lastActivity: FirestoreTimestamp;
   
-  // Conversation state
-  isArchived: boolean;
-  isDeleted: boolean;
-  
   // Read status per participant
   readStatus: Record<UserId, {
     lastReadAt: FirestoreTimestamp;
@@ -297,11 +173,9 @@ export interface Event {
   
   // Event timing
   startDate: FirestoreTimestamp;
-  endDate?: FirestoreTimestamp;
   isAllDay: boolean;
   
   // Event details
-  location?: string;
   status: EventStatus;
   
   // Participants
@@ -320,14 +194,6 @@ export interface Event {
   // Associated chat
   roomId?: RoomId;
   conversationId?: ConversationId;
-  
-  // Recurrence
-  recurrence?: {
-    type: 'daily' | 'weekly' | 'monthly' | 'yearly';
-    interval: number; // every X days/weeks/etc
-    endDate?: FirestoreTimestamp;
-    exceptions?: FirestoreTimestamp[]; // specific dates to skip
-  };
 }
 
 // ================================
@@ -339,16 +205,6 @@ export interface Block {
   blockerId: UserId; // User who initiated the block
   blockedId: UserId; // User being blocked
   createdAt: FirestoreTimestamp;
-  reason?: string;
-  
-  // Block type
-  isTemporary?: boolean;
-  expiresAt?: FirestoreTimestamp;
-  
-  // Block scope
-  blockMessages: boolean;
-  blockCalls: boolean;
-  blockProfile: boolean;
 }
 
 // ================================
@@ -362,16 +218,43 @@ export interface Friend {
   status: FriendStatus;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
+}
+
+// ================================
+// FRIEND REQUEST COLLECTION
+// ================================
+
+export interface FriendRequest {
+  id: string;
+  fromUserId: UserId;
+  toUserId: UserId;
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: FirestoreTimestamp;
+  updatedAt: FirestoreTimestamp;
+}
+
+// ================================
+// VOTE COLLECTION
+// ================================
+
+export interface Vote {
+  id: VoteId;
+  title: string;
+  description?: string;
+  createdBy: UserId;
+  createdAt: FirestoreTimestamp;
+  updatedAt: FirestoreTimestamp;
   
-  // Additional data
-  message?: string; // Optional message with friend request
+  // Vote options
+  options: string[];
   
-  // Response data
-  respondedAt?: FirestoreTimestamp;
+  // Vote data
+  votes: Record<UserId, number>; // userId -> optionIndex
+  voteCounts: number[]; // count for each option
   
-  // Relationship metadata
-  closeFriend?: boolean; // For priority notifications
-  nickname?: string; // Custom name for this friend
+  // Associated chat
+  roomId?: RoomId;
+  conversationId?: ConversationId;
 }
 
 // ================================
@@ -392,21 +275,6 @@ export interface PaginatedResult<T> {
   hasMore: boolean;
   cursor?: any;
   total?: number;
-}
-
-// For search results
-export interface SearchResult<T> {
-  results: T[];
-  totalCount: number;
-  searchQuery: string;
-  searchTime: number; // ms
-}
-
-// For real-time updates
-export interface RealtimeUpdate<T> {
-  type: 'added' | 'modified' | 'removed';
-  document: T;
-  oldDocument?: T; // For modified events
 }
 
 // For file uploads
@@ -457,14 +325,10 @@ export interface CreateUserData {
   email: string;
   displayName: string;
   photoURL?: string;
-  phone?: string;
 }
 
 export interface CreateRoomData {
   name: string;
-  description?: string;
-  isPrivate: boolean;
-  maxMembers?: number;
 }
 
 export interface CreateMessageData {
@@ -473,17 +337,31 @@ export interface CreateMessageData {
   chatType: ChatType;
   roomId?: RoomId;
   conversationId?: ConversationId;
-  replyTo?: MessageId;
 }
 
 export interface CreateEventData {
   title: string;
   description?: string;
   startDate: Date;
-  endDate?: Date;
   isAllDay: boolean;
-  location?: string;
   participants: UserId[];
+}
+
+export interface CreateVoteData {
+  title: string;
+  description?: string;
+  options: string[];
+}
+
+// ================================
+// BLOCKED USER COLLECTION  
+// ================================
+
+export interface BlockedUser {
+  id: string;
+  blockerUserId: UserId;
+  blockedUserId: UserId;
+  createdAt: FirestoreTimestamp;
 }
 
 // ================================

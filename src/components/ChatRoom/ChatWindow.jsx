@@ -255,12 +255,7 @@ export default function ChatWindow() {
           <div className="flex h-14 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
             <div className='flex flex-col justify-center'>
               {chatType === 'room' ? (
-                <>
-                  <p className='m-0 text-base font-semibold'>{selectedRoom.name}</p>
-                  <span className='text-xs text-slate-500 dark:text-slate-400'>
-                    {selectedRoom.description}
-                  </span>
-                </>
+                <p className='m-0 text-base font-semibold'>{selectedRoom.name}</p>
               ) : (
                 <>
                   {selectedConversation.otherUser?.photoURL ? (

@@ -1,7 +1,12 @@
 /**
  * SmurfChat TypeScript Definitions - Index
  * 
- * Central export file for all TypeScript definitions
+ * Cen  // Creation data interfaces
+  CreateUserData,
+  CreateRoomData,
+  CreateMessageData,
+  CreateEventData,
+  CreateVoteDataexport file for all TypeScript definitions
  * Simplifies imports across the application
  * 
  * Created: September 4, 2025
@@ -35,6 +40,7 @@ export type {
   ConversationId,
   MessageId,
   EventId,
+  VoteId,
   
   // Main entities
   User,
@@ -45,22 +51,13 @@ export type {
   Room,
   Conversation,
   Event,
+  Vote,
   Block,
   Friend,
-  
-  // Attachment types
-  ImageAttachment,
-  FileAttachment,
-  VoiceAttachment,
-  LocationAttachment,
-  EventAttachment,
-  VoteAttachment,
   
   // Utility types
   ApiResponse,
   PaginatedResult,
-  SearchResult,
-  RealtimeUpdate,
   FileUpload,
   UploadProgress,
   FirestoreCondition,
@@ -79,8 +76,7 @@ export {
   ChatType,
   MessageType,
   EventStatus,
-  FriendStatus,
-  OnlineStatus
+  FriendStatus
 } from './database.types';
 
 // ================================
@@ -98,8 +94,6 @@ export type {
   FriendService,
   BlockService,
   FileUploadService,
-  NotificationService,
-  UtilityService,
   
   // Composite interfaces
   DatabaseServices,
@@ -107,12 +101,7 @@ export type {
   // Context types
   AuthContextType,
   UserContextType,
-  ThemeContextType,
-  
-  // Component props
-  MessageProps,
-  ChatWindowProps,
-  UserListProps
+  ThemeContextType
 } from './service.types';
 
 // ================================
@@ -139,20 +128,6 @@ export type {
   UseBlockStatusResult,
   UseBlockStatusOptions,
   
-  // File upload hooks
-  UseFileUploadResult,
-  UseFileUploadOptions,
-  
-  // Notification hooks
-  UseNotificationsResult,
-  Notification,
-  
-  // Utility hooks
-  UseDebounceResult,
-  UseLocalStorageResult,
-  UseInfiniteScrollResult,
-  UseInfiniteScrollOptions,
-  
   // Emoji hooks
   UseEmojiResult,
   EmojiCategory
@@ -177,14 +152,9 @@ export {
   
   // Helper functions
   isValidEmail,
-  isValidPhone,
   sanitizeString,
   isStringTooLong,
-  isStringTooShort,
-  hasRequiredFields,
-  deepClone,
-  pick,
-  omit
+  isStringTooShort
 } from './validation.utils';
 
 // Export default validation utilities object
@@ -200,11 +170,6 @@ export { default as ValidationUtils } from './validation.utils';
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
-
-/**
- * Make specified properties of T required
- */
-export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 
 /**
  * Extract function parameter types

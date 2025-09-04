@@ -28,11 +28,6 @@ const MessageReactions = ({
   const [showQuickPicker, setShowQuickPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Check if current user has reacted with specific emoji
-  const hasUserReacted = (emoji) => {
-    return reactions[emoji]?.includes(user?.uid) || false;
-  };
-
   // Get current user's reaction emoji (if any)
   const getUserCurrentReaction = () => {
     for (const [emoji, users] of Object.entries(reactions)) {
@@ -89,7 +84,6 @@ const MessageReactions = ({
       {/* Existing Reactions */}
       {reactionEntries.map(([emoji, users]) => {
         const count = users.length;
-        const hasReacted = hasUserReacted(emoji);
         const isCurrentUserReaction = getUserCurrentReaction() === emoji;
         
         return (

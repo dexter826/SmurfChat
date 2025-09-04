@@ -120,10 +120,6 @@ export interface UseUserSearchResult {
   search: (searchQuery: string) => Promise<void>;
   /** Clear search results */
   clear: () => void;
-  /** Search history */
-  searchHistory: string[];
-  /** Add query to search history */
-  addToHistory: (query: string) => void;
 }
 
 /**
@@ -168,8 +164,6 @@ export interface UseOnlineStatusResult {
 export interface UseMessageHandlerResult {
   /** Send a new message */
   sendMessage: (content: string, type?: string, attachments?: any[]) => Promise<void>;
-  /** Edit existing message */
-  editMessage: (messageId: string, newContent: string) => Promise<void>;
   /** Delete message */
   deleteMessage: (messageId: string) => Promise<void>;
   /** Mark message as read */
@@ -178,12 +172,9 @@ export interface UseMessageHandlerResult {
   reactToMessage: (messageId: string, emoji: string) => Promise<void>;
   /** Remove reaction from message */
   removeReaction: (messageId: string, emoji: string) => Promise<void>;
-  /** Reply to message */
-  replyToMessage: (originalMessageId: string, content: string) => Promise<void>;
   /** Current loading states */
   loading: {
     sending: boolean;
-    editing: boolean;
     deleting: boolean;
     reacting: boolean;
   };
@@ -247,180 +238,30 @@ export interface UseBlockStatusOptions {
   cacheTimeout?: number;
 }
 
-// ================================
-// FILE UPLOAD HOOKS
-// ================================
 
-/**
- * useFileUpload hook return type
- */
-export interface UseFileUploadResult {
-  /** Upload single file */
-  uploadFile: (file: File, path?: string) => Promise<string>;
-  /** Upload multiple files */
-  uploadFiles: (files: File[], basePath?: string) => Promise<string[]>;
-  /** Upload progress for each file */
-  progress: Record<string, number>;
-  /** Upload states */
-  uploading: Record<string, boolean>;
-  /** Upload errors */
-  errors: Record<string, Error | null>;
-  /** Cancel specific upload */
-  cancelUpload: (fileName: string) => void;
-  /** Cancel all uploads */
-  cancelAll: () => void;
-  /** Clear completed uploads */
-  clearCompleted: () => void;
-}
-
-/**
- * useFileUpload hook parameters
- */
-export interface UseFileUploadOptions {
-  /** Maximum file size in bytes */
-  maxFileSize?: number;
-  /** Allowed file types */
-  allowedTypes?: string[];
-  /** Auto-upload on file selection */
-  autoUpload?: boolean;
-  /** Callback when upload completes */
-  onUploadComplete?: (fileName: string, url: string) => void;
-  /** Callback when upload fails */
-  onUploadError?: (fileName: string, error: Error) => void;
-  /** Callback for upload progress */
-  onProgress?: (fileName: string, progress: number) => void;
-}
 
 // ================================
-// NOTIFICATION HOOKS
-// ================================
-
-/**
- * useNotifications hook return type
- */
-export interface UseNotificationsResult {
-  /** Array of current notifications */
-  notifications: Notification[];
-  /** Unread notification count */
-  unreadCount: number;
-  /** Loading state */
-  loading: boolean;
-  /** Error state */
-  error: Error | null;
-  /** Mark notification as read */
-  markAsRead: (notificationId: string) => Promise<void>;
-  /** Mark all as read */
-  markAllAsRead: () => Promise<void>;
-  /** Delete notification */
-  deleteNotification: (notificationId: string) => Promise<void>;
-  /** Clear all notifications */
-  clearAll: () => Promise<void>;
-  /** Refresh notifications */
-  refresh: () => Promise<void>;
-}
-
-/**
- * Custom notification type
- */
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  type: 'message' | 'friend_request' | 'event' | 'mention' | 'system';
-  isRead: boolean;
-  createdAt: Date;
-  data?: Record<string, any>;
-}
-
-// ================================
-// UTILITY HOOKS
-// ================================
-
-/**
- * useDebounce hook return type
- */
-export interface UseDebounceResult<T> {
-  /** Debounced value */
-  debouncedValue: T;
-  /** Whether debounce is pending */
-  isPending: boolean;
-  /** Cancel pending debounce */
-  cancel: () => void;
-  /** Flush debounce immediately */
-  flush: () => void;
-}
-
-/**
- * useLocalStorage hook return type
- */
-export interface UseLocalStorageResult<T> {
-  /** Current stored value */
-  value: T;
-  /** Set new value */
-  setValue: (value: T | ((prev: T) => T)) => void;
-  /** Remove value from storage */
-  removeValue: () => void;
-  /** Loading state for initial load */
-  loading: boolean;
-  /** Error if storage operation failed */
-  error: Error | null;
-}
-
-/**
- * useInfiniteScroll hook return type
- */
-export interface UseInfiniteScrollResult {
-  /** Whether currently at bottom */
-  isAtBottom: boolean;
-  /** Whether currently at top */
-  isAtTop: boolean;
-  /** Scroll to bottom */
-  scrollToBottom: (smooth?: boolean) => void;
-  /** Scroll to top */
-  scrollToTop: (smooth?: boolean) => void;
-  /** Scroll to specific element */
-  scrollToElement: (elementId: string, smooth?: boolean) => void;
-}
-
-/**
- * useInfiniteScroll hook parameters
- */
-export interface UseInfiniteScrollOptions {
-  /** Container element ref */
-  containerRef: React.RefObject<HTMLElement>;
-  /** Threshold for triggering load more (in pixels) */
-  threshold?: number;
-  /** Callback when reaching bottom */
-  onLoadMore?: () => void;
-  /** Callback when reaching top */
-  onLoadPrevious?: () => void;
-  /** Reverse scroll direction (for chat messages) */
-  reverse?: boolean;
-  /** Debounce scroll events */
-  debounceMs?: number;
-}
-
-// ================================
-// EMOJI HOOKS
+// EMOJI HOOKS (IMPLEMENTED)
 // ================================
 
 /**
  * useEmoji hook return type
  */
 export interface UseEmojiResult {
-  /** Available emoji categories */
-  categories: EmojiCategory[];
   /** Recently used emojis */
   recentEmojis: string[];
-  /** Search emojis by query */
-  searchEmojis: (query: string) => string[];
   /** Add emoji to recent list */
   addToRecent: (emoji: string) => void;
-  /** Clear recent emojis */
-  clearRecent: () => void;
-  /** Convert text with emoji codes to emojis */
-  parseEmojis: (text: string) => string;
+  /** Check if text contains emoji */
+  hasEmoji: (text: string) => boolean;
+  /** Extract emojis from text */
+  extractEmojis: (text: string) => string[];
+  /** Parse text with emoji codes to parts */
+  parseEmojiText: (text: string) => Array<{type: 'text' | 'emoji', content: string}>;
+  /** Quick reaction emojis */
+  QUICK_REACTIONS: string[];
+  /** Available emoji categories */
+  EMOJI_CATEGORIES: EmojiCategory[];
 }
 
 /**

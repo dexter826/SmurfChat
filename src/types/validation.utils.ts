@@ -45,11 +45,7 @@ export function validateCreateUser(data: Partial<CreateUserData>): ValidationRes
   } else if (data.displayName.length > 50) {
     errors.push('Tên hiển thị không được vượt quá 50 ký tự');
   }
-  
-  if (data.phone && !isValidPhone(data.phone)) {
-    errors.push('Số điện thoại không hợp lệ');
-  }
-  
+
   return {
     isValid: errors.length === 0,
     errors
@@ -68,14 +64,6 @@ export function validateCreateRoom(data: Partial<CreateRoomData>): ValidationRes
     errors.push('Tên phòng phải có ít nhất 3 ký tự');
   } else if (data.name.length > 100) {
     errors.push('Tên phòng không được vượt quá 100 ký tự');
-  }
-  
-  if (data.description && data.description.length > 500) {
-    errors.push('Mô tả không được vượt quá 500 ký tự');
-  }
-  
-  if (data.maxMembers && (data.maxMembers < 2 || data.maxMembers > 1000)) {
-    errors.push('Số thành viên tối đa phải từ 2 đến 1000');
   }
   
   return {
@@ -147,10 +135,6 @@ export function validateCreateEvent(data: Partial<CreateEventData>): ValidationR
     errors.push('Ngày bắt đầu không thể ở quá khứ');
   }
   
-  if (data.endDate && data.startDate && data.endDate <= data.startDate) {
-    errors.push('Ngày kết thúc phải sau ngày bắt đầu');
-  }
-  
   if (!data.participants || data.participants.length === 0) {
     errors.push('Sự kiện phải có ít nhất 1 người tham gia');
   }
@@ -170,10 +154,10 @@ export function validateCreateEvent(data: Partial<CreateEventData>): ValidationR
  */
 export function isUser(obj: any): obj is User {
   return obj && 
-    typeof obj.id === 'string' &&
+    typeof obj.uid === 'string' &&
     typeof obj.email === 'string' &&
     typeof obj.displayName === 'string' &&
-    Array.isArray(obj.searchKeywords) &&
+    Array.isArray(obj.keywords) &&
     obj.createdAt &&
     obj.lastSeen;
 }
@@ -188,7 +172,6 @@ export function isRoom(obj: any): obj is Room {
     typeof obj.createdBy === 'string' &&
     Array.isArray(obj.members) &&
     Array.isArray(obj.admins) &&
-    typeof obj.isPrivate === 'boolean' &&
     obj.createdAt;
 }
 
@@ -232,14 +215,6 @@ export function isValidEmail(email: string): boolean {
 }
 
 /**
- * Check if phone number is valid (Vietnamese format)
- */
-export function isValidPhone(phone: string): boolean {
-  const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
-  return phoneRegex.test(phone);
-}
-
-/**
  * Sanitize string input
  */
 export function sanitizeString(str: string): string {
@@ -258,44 +233,6 @@ export function isStringTooLong(str: string, maxLength: number): boolean {
  */
 export function isStringTooShort(str: string, minLength: number): boolean {
   return str.length < minLength;
-}
-
-/**
- * Validate object has required fields
- */
-export function hasRequiredFields<T>(obj: Partial<T>, fields: (keyof T)[]): obj is T {
-  return fields.every(field => obj[field] !== undefined && obj[field] !== null);
-}
-
-/**
- * Deep clone object with type safety
- */
-export function deepClone<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
-}
-
-/**
- * Pick specific fields from object
- */
-export function pick<T extends Record<string, any>, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
-  const result = {} as Pick<T, K>;
-  keys.forEach(key => {
-    if (key in obj) {
-      result[key] = obj[key];
-    }
-  });
-  return result;
-}
-
-/**
- * Omit specific fields from object
- */
-export function omit<T, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
-  const result = { ...obj };
-  keys.forEach(key => {
-    delete result[key];
-  });
-  return result;
 }
 
 // ================================
@@ -317,14 +254,9 @@ const validationUtils = {
   
   // Helper functions
   isValidEmail,
-  isValidPhone,
   sanitizeString,
   isStringTooLong,
-  isStringTooShort,
-  hasRequiredFields,
-  deepClone,
-  pick,
-  omit
+  isStringTooShort
 };
 
 export default validationUtils;
