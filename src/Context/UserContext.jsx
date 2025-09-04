@@ -19,19 +19,25 @@ export function UserProvider({ children }) {
   // Single source of truth cho tất cả users
   const allUsersCondition = useMemo(() => 
     currentUser?.uid ? {
-      fieldName: 'uid',
-      operator: '!=',
-      compareValue: currentUser.uid,
+      fieldName: 'displayName',
+      operator: '>=',
+      compareValue: '',
     } : null,
     [currentUser?.uid]
   );
 
   const { documents: allUsers } = useOptimizedFirestore('users', allUsersCondition);
 
+  // Filter out current user from the result
+  const filteredUsers = useMemo(() => 
+    allUsers?.filter(user => user.uid !== currentUser?.uid) || [],
+    [allUsers, currentUser?.uid]
+  );
+
   // Optimized user lookup với Map để O(1) performance
   const usersMap = useMemo(() => {
     const map = new Map();
-    allUsers.forEach(user => {
+    filteredUsers.forEach(user => {
       if (user?.uid) {
         map.set(user.uid, user);
       }
@@ -41,7 +47,7 @@ export function UserProvider({ children }) {
       map.set(currentUser.uid, currentUser);
     }
     return map;
-  }, [allUsers, currentUser]);
+  }, [filteredUsers, currentUser]);
 
   // Fast lookup functions
   const getUserById = useMemo(() => (uid) => {
@@ -79,7 +85,7 @@ export function UserProvider({ children }) {
 
   const contextValue = useMemo(() => ({
     // Core data
-    allUsers,
+    allUsers: filteredUsers,
     usersMap,
     
     // Fast lookup functions  
@@ -89,10 +95,10 @@ export function UserProvider({ children }) {
     batchGetUsers,
     
     // Performance stats
-    totalUsers: allUsers.length,
-    isLoading: !allUsersCondition && allUsers.length === 0
+    totalUsers: filteredUsers.length,
+    isLoading: !allUsersCondition && filteredUsers.length === 0
   }), [
-    allUsers,
+    filteredUsers,
     usersMap, 
     getUserById,
     getUsersByIds,

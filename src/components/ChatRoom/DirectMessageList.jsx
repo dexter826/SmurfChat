@@ -26,11 +26,11 @@ export default function DirectMessageList() {
   // Get all users for search functionality
   const allUsersCondition = React.useMemo(
     () => ({
-      fieldName: "uid",
-      operator: "!=",
-      compareValue: user.uid,
+      fieldName: "displayName",
+      operator: ">=",
+      compareValue: ""
     }),
-    [user.uid]
+    []
   );
 
   const { documents: allUsers } = useOptimizedFirestore("users", allUsersCondition);

@@ -44,11 +44,14 @@ const VoteMessage = ({ vote }) => {
   }, [userVote]);
 
   // Get all users for voter information
-  const { documents: allUsers } = useOptimizedFirestore("users", useMemo(() => ({
-    fieldName: 'uid',
+  const { documents: allUsersData } = useOptimizedFirestore("users", useMemo(() => ({
+    fieldName: 'displayName',
     operator: '!=',
-    compareValue: null // Get all users
+    compareValue: ''
   }), []));
+
+  // Filter to get all users excluding current user logic if needed
+  const allUsers = useMemo(() => allUsersData || [], [allUsersData]);
 
   // Calculate vote statistics
   const voteStats = useMemo(() => {
