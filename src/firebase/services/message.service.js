@@ -1,6 +1,7 @@
 import { doc, updateDoc, getDoc, deleteDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config';
 import { areMutuallyBlocked } from './block.service';
+import { updateRoomLastMessage, updateConversationLastMessage } from '../utils/conversation.utils';
 
 // Delete message (hard delete)
 export const deleteMessage = async (messageId, collectionName = 'unified', type) => {
@@ -69,10 +70,6 @@ export const recallMessage = async (messageId, collectionName = 'unified', userI
 
     // Update the message
     await updateDoc(messageRef, recallData);
-
-    // Import the update functions dynamically to avoid circular dependencies
-    const { updateRoomLastMessage } = await import('./conversation.service');
-    const { updateConversationLastMessage } = await import('./conversation.service');
 
     // Update room/conversation lastMessage if this was the latest message
     if (type === 'room' && messageData.roomId) {

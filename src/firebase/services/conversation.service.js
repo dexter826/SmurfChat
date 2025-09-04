@@ -1,6 +1,10 @@
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config';
 import { areMutuallyBlocked } from './block.service';
+import { updateConversationLastMessage, updateRoomLastMessage } from '../utils/conversation.utils';
+
+// Re-export utility functions for backward compatibility
+export { updateConversationLastMessage, updateRoomLastMessage };
 
 // Create or update conversation
 export const createOrUpdateConversation = async (conversationData) => {
@@ -34,38 +38,6 @@ export const createOrUpdateConversation = async (conversationData) => {
     return id;
   } catch (error) {
     console.error('Error creating/updating conversation:', error);
-    throw error;
-  }
-};
-
-// Update conversation last message
-export const updateConversationLastMessage = async (conversationId, message, userId) => {
-  const conversationRef = doc(db, 'conversations', conversationId);
-
-  try {
-    await updateDoc(conversationRef, {
-      lastMessage: message,
-      lastMessageAt: serverTimestamp(),
-      updatedBy: userId,
-    });
-  } catch (error) {
-    console.error('Error updating conversation last message:', error);
-    throw error;
-  }
-};
-
-// Update room last message
-export const updateRoomLastMessage = async (roomId, message, userId) => {
-  const roomRef = doc(db, 'rooms', roomId);
-
-  try {
-    await updateDoc(roomRef, {
-      lastMessage: message,
-      lastMessageAt: serverTimestamp(),
-      updatedBy: userId,
-    });
-  } catch (error) {
-    console.error('Error updating room last message:', error);
     throw error;
   }
 };
