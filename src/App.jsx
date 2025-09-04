@@ -1,4 +1,5 @@
 import "./App.css";
+import React, { useEffect } from "react";
 import Login from "./components/Login/index.jsx";
 import { Route, Switch, BrowserRouter } from "react-router-dom";
 import ChatRoom from "./components/ChatRoom/index.jsx";
@@ -14,8 +15,17 @@ import NewMessageModal from "./components/Modals/NewMessageModal.jsx";
 import AddFriendModal from "./components/Modals/AddFriendModal.jsx";
 import UserProfileModal from "./components/Modals/UserProfileModal.jsx";
 import BlockedUsersModal from "./components/Modals/BlockedUsersModal.jsx";
+import listenerManager from "./firebase/utils/listener.manager";
 
 function App() {
+  // Cleanup all listeners on app unmount
+  useEffect(() => {
+    return () => {
+      console.log('🧹 App unmounting - cleaning up all listeners');
+      listenerManager.cleanupAll();
+    };
+  }, []);
+
   return (
     <BrowserRouter>
       <ThemeProvider>

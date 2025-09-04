@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import useFirestore from '../hooks/useFirestore';
+import useOptimizedFirestore from '../hooks/useOptimizedFirestore';
 import { AuthContext } from './AuthProvider';
 
 // Global User Context để tránh N+1 queries
@@ -26,7 +26,7 @@ export function UserProvider({ children }) {
     [currentUser?.uid]
   );
 
-  const allUsers = useFirestore('users', allUsersCondition);
+  const { documents: allUsers } = useOptimizedFirestore('users', allUsersCondition);
 
   // Optimized user lookup với Map để O(1) performance
   const usersMap = useMemo(() => {

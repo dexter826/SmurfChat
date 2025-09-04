@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import useFirestore from '../hooks/useFirestore';
+import useOptimizedFirestore from '../hooks/useOptimizedFirestore';
 import { AuthContext } from './AuthProvider';
 import { useAlert } from './AlertProvider';
 import { createOrUpdateConversation } from '../firebase/services';
@@ -42,7 +42,7 @@ function AppProviderInner({ children }) {
     };
   }, [uid]);
 
-  const rooms = useFirestore('rooms', roomsCondition, 'lastMessageAt', 'desc');
+  const { documents: rooms } = useOptimizedFirestore('rooms', roomsCondition, 'lastMessageAt', 'desc');
 
   const selectedRoom = React.useMemo(
     () => rooms.find((room) => room.id === selectedRoomId) || {},
@@ -57,7 +57,7 @@ function AppProviderInner({ children }) {
     };
   }, [selectedRoom.members]);
 
-  const members = useFirestore('users', usersCondition);
+  const { documents: members } = useOptimizedFirestore('users', usersCondition);
 
   // Conversations for direct messaging
   const conversationsCondition = React.useMemo(() => {
@@ -68,7 +68,7 @@ function AppProviderInner({ children }) {
     };
   }, [uid]);
 
-  const conversations = useFirestore('conversations', conversationsCondition, 'lastMessageAt', 'desc');
+  const { documents: conversations } = useOptimizedFirestore('conversations', conversationsCondition, 'lastMessageAt', 'desc');
 
   // Events for reminder system
   const eventsCondition = React.useMemo(() => ({
@@ -77,7 +77,7 @@ function AppProviderInner({ children }) {
     compareValue: uid,
   }), [uid]);
 
-  const userEvents = useFirestore('events', eventsCondition, 'eventDate', 'asc');
+  const { documents: userEvents } = useOptimizedFirestore('events', eventsCondition, 'eventDate', 'asc');
 
   // Update reminder service when events change
   useEffect(() => {
