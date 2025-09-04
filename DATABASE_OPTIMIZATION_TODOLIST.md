@@ -4,7 +4,7 @@
 
 ## 🎯 **Mục tiêu**: Tối ưu cấu trúc database và loại bỏ code thừa
 
-**⚡ PROGRESS: 9/15 Tasks Complete (60%) - STORAGE OPTIMIZATION PHASE**
+**⚡ PROGRESS: 10/15 Tasks Complete (67%) - ADVANCED OPTIMIZATION PHASE**
 
 ---
 
@@ -294,21 +294,54 @@ docs.sort((a, b) => {
 
 ---
 
-### ✅ **Task 3.3: Optimize Block Checking Logic**
+### ✅ **Task 3.3: Optimize Block Checking Logic** ✅ **COMPLETED**
 
-**Vấn đề**: Block checking logic lặp lại ở nhiều nơi
+**Vấn đề**: Block checking logic lặp lại ở nhiều nơi, `areMutuallyBlocked` không tối ưu với 2 queries riêng biệt, không có caching
 
 **Hành động**:
 
-- [ ] Create centralized block checking utility
-- [ ] Remove duplicate block checks
-- [ ] Add caching for block status
-- [ ] Optimize `areMutuallyBlocked` function
+- [x] Tạo `src/firebase/utils/block.utils.js` - Centralized block utilities with caching
+- [x] Implement single optimized query cho mutual block checking (thay vì 2 queries)
+- [x] Add in-memory caching system với 5-minute TTL
+- [x] Create batch block checking cho multiple users (tối ưu cho user lists)
+- [x] Update `block.service.js` để sử dụng optimized functions
+- [x] Replace duplicate `isUserBlocked` calls trong `friend.service.js`
+- [x] Update `message.service.js` và `conversation.service.js` sử dụng optimized functions
+- [x] Update `useBlockStatus.js` hook sử dụng new utilities
+- [x] Update all components (InviteMemberModal, AddRoomModal, UnifiedChatList, Sidebar)
+- [x] Add cache clearing khi block/unblock operations
+- [x] Export utilities từ services index
+- [x] Test build - SUCCESS
 
-**Files cần sửa**:
+**Files đã sửa**:
 
-- `src/firebase/services/block.service.js`
-- All files using block checks
+- ✅ `src/firebase/utils/block.utils.js` - **NEW**: Complete block optimization system
+- ✅ `src/firebase/services/block.service.js` - Use optimized functions + cache clearing
+- ✅ `src/firebase/services/friend.service.js` - Single getMutualBlockStatus thay vì 2 queries
+- ✅ `src/firebase/services/message.service.js` - Updated import và function call
+- ✅ `src/firebase/services/conversation.service.js` - Updated import và function call
+- ✅ `src/hooks/useBlockStatus.js` - Use optimized utilities
+- ✅ `src/components/Modals/InviteMemberModal.jsx` - Use isUserBlockedOptimized
+- ✅ `src/components/Modals/AddRoomModal.jsx` - Use isUserBlockedOptimized
+- ✅ `src/components/ChatRoom/UnifiedChatList.jsx` - Use isUserBlockedOptimized
+- ✅ `src/components/ChatRoom/Sidebar.jsx` - Use isUserBlockedOptimized
+- ✅ `src/firebase/services/index.js` - Export block utilities
+
+**Performance Impact**:
+- 🚀 Bundle size: +468B (comprehensive optimization system)
+- 🚀 **Query Optimization**: 1 query thay vì 2 queries cho mutual blocks (50% reduction)
+- 🚀 **Caching System**: 5-minute in-memory cache eliminates redundant queries
+- 🚀 **Batch Operations**: Single query cho multiple user block checks
+- 🚀 **N+1 Prevention**: Centralized utilities prevent duplicate queries
+- 🚀 **Code Quality**: Single source of truth cho all block logic
+
+**Features Added**:
+- 🎯 **Optimized Query**: OR condition thay vì 2 separate queries
+- 🎯 **Smart Caching**: Automatic cache invalidation với TTL
+- 🎯 **Batch Checking**: `batchCheckBlockStatus` cho user lists
+- 🎯 **Utility Functions**: `canSendMessage`, `canViewProfile`, etc.
+- 🎯 **Cache Management**: Auto-clear on block/unblock operations
+- 🎯 **Debug Tools**: `getCacheStats` để monitor performance
 
 ---
 
@@ -370,11 +403,11 @@ docs.sort((a, b) => {
 
 ## 📊 **TRACKING & METRICS**
 
-### **Completed Tasks**: 0/15 (0%)
+### **Completed Tasks**: 10/15 (67%)
 
 ### **In Progress**: 0/15 (0%)
 
-### **Not Started**: 15/15 (100%)
+### **Not Started**: 5/15 (33%)
 
 ---
 

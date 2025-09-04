@@ -6,7 +6,8 @@ import { AppContext } from '../../Context/AppProvider';
 import { useUsers } from '../../Context/UserContext';
 import { useAlert } from '../../Context/AlertProvider';
 import useFirestore from '../../hooks/useFirestore';
-import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation, logoutUser, isUserBlocked } from '../../firebase/services';
+import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation, logoutUser } from '../../firebase/services';
+import { isUserBlockedOptimized } from '../../firebase/utils/block.utils';
 
 // Icon components
 const ChevronDownIcon = () => (
@@ -122,7 +123,7 @@ export default function Sidebar() {
         const otherId = edge.participants.find(id => id !== user.uid);
         if (otherId) {
           try {
-            const isBlocked = await isUserBlocked(user.uid, otherId);
+            const isBlocked = await isUserBlockedOptimized(user.uid, otherId);
             if (isBlocked) {
               blocked.add(otherId);
             }

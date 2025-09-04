@@ -1,6 +1,6 @@
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config';
-import { areMutuallyBlocked } from './block.service';
+import { getMutualBlockStatus } from '../utils/block.utils';
 import { updateConversationLastMessage, updateRoomLastMessage } from '../utils/conversation.utils';
 import { handleServiceError, logSuccess, validateRequired, SmurfChatError, ErrorTypes } from '../utils/error.utils';
 
@@ -14,7 +14,7 @@ export const createOrUpdateConversation = async (conversationData) => {
   // Check if it's a direct conversation (2 participants)
   if (participants && participants.length === 2) {
     const [userA, userB] = participants;
-    const blockStatus = await areMutuallyBlocked(userA, userB);
+    const blockStatus = await getMutualBlockStatus(userA, userB);
     
     if (blockStatus.isBlocked) {
       if (blockStatus.aBlockedB && blockStatus.bBlockedA) {

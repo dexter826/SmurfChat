@@ -1,6 +1,6 @@
 import { doc, updateDoc, getDoc, deleteDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config';
-import { areMutuallyBlocked } from './block.service';
+import { getMutualBlockStatus } from '../utils/block.utils';
 import { updateRoomLastMessage, updateConversationLastMessage } from '../utils/conversation.utils';
 import { handleServiceError, logSuccess, validateRequired, ErrorTypes, SmurfChatError } from '../utils/error.utils';
 
@@ -156,7 +156,7 @@ export const sendMessage = async (collectionName = 'messages', messageData) => {
         const recipientId = participantIds.find(id => id !== senderId);
         
         if (recipientId) {
-          const blockStatus = await areMutuallyBlocked(senderId, recipientId);
+          const blockStatus = await getMutualBlockStatus(senderId, recipientId);
           
           if (blockStatus.isBlocked) {
             if (blockStatus.aBlockedB && senderId === userA) {

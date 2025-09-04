@@ -10,7 +10,7 @@
 
 import { useState, useCallback, useEffect, useContext } from 'react';
 import { AuthContext } from '../Context/AuthProvider';
-import { isUserBlocked, areMutuallyBlocked } from '../firebase/services';
+import { getMutualBlockStatus, isUserBlockedOptimized } from '../firebase/utils/block.utils';
 
 export const useBlockStatus = (targetUserId = null) => {
   const { user } = useContext(AuthContext);
@@ -29,7 +29,7 @@ export const useBlockStatus = (targetUserId = null) => {
         return false;
       }
       
-      return await isUserBlocked(fromUserId, toUserId);
+      return await isUserBlockedOptimized(fromUserId, toUserId);
     } catch (error) {
       console.error('Error checking block status:', error);
       return false;
@@ -47,7 +47,7 @@ export const useBlockStatus = (targetUserId = null) => {
         };
       }
       
-      return await areMutuallyBlocked(userA, userB);
+      return await getMutualBlockStatus(userA, userB);
     } catch (error) {
       console.error('Error checking mutual block status:', error);
       return {

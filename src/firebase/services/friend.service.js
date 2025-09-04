@@ -1,6 +1,6 @@
 import { collection, addDoc, serverTimestamp, doc, setDoc, updateDoc, getDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
 import { db } from '../config';
-import { isUserBlocked } from './block.service';
+import { getMutualBlockStatus } from '../utils/block.utils';
 import { handleServiceError, SmurfChatError, ErrorTypes } from '../utils/error.utils';
 
 // Friends system services
@@ -12,15 +12,14 @@ export const sendFriendRequest = async (fromUserId, toUserId) => {
       throw new SmurfChatError('Không thể kết bạn với chính mình', ErrorTypes.VALIDATION_ERROR);
     }
     
-    // Check if either user has blocked the other
-    const fromBlockedTo = await isUserBlocked(fromUserId, toUserId);
-    const toBlockedFrom = await isUserBlocked(toUserId, fromUserId);
+    // Check if either user has blocked the other (optimized)
+    const blockStatus = await getMutualBlockStatus(fromUserId, toUserId);
     
-    if (fromBlockedTo) {
+    if (blockStatus.aBlockedB) {
       throw new SmurfChatError('Bạn đã chặn người dùng này', ErrorTypes.PERMISSION_ERROR);
     }
     
-    if (toBlockedFrom) {
+    if (blockStatus.bBlockedA) {
       throw new SmurfChatError('Không thể gửi lời mời kết bạn đến người dùng này', ErrorTypes.PERMISSION_ERROR);
     }
   

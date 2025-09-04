@@ -19,6 +19,15 @@ import { db } from '../config';
 // Authentication services
 export * from './auth.service';
 
+// Block utilities (optimized)
+export { 
+  getMutualBlockStatus, 
+  isUserBlockedOptimized, 
+  batchCheckBlockStatus, 
+  blockUtils, 
+  clearBlockCache 
+} from '../utils/block.utils';
+
 // Message services (OPTIMIZED: Removed readBy redundancy - Task 3.2)
 export * from './message.service';
 

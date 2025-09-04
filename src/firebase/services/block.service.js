@@ -1,6 +1,7 @@
 import { collection, addDoc, serverTimestamp, doc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../config';
 import { handleServiceError, logSuccess, validateUserAction, ErrorTypes, SmurfChatError } from '../utils/error.utils';
+import { getMutualBlockStatus, isUserBlockedOptimized, clearBlockCache } from '../utils/block.utils';
 
 // Block user services
 
@@ -9,8 +10,8 @@ export const blockUser = async (blockerUserId, blockedUserId) => {
   try {
     validateUserAction(blockerUserId, blockedUserId, 'chặn');
 
-    // Check if already blocked
-    const isBlocked = await isUserBlocked(blockerUserId, blockedUserId);
+    // Check if already blocked using optimized function
+    const isBlocked = await isUserBlockedOptimized(blockerUserId, blockedUserId);
     if (isBlocked) {
       throw new SmurfChatError(ErrorTypes.BUSINESS_ALREADY_EXISTS, 'Người dùng đã bị chặn');
     }
@@ -22,6 +23,9 @@ export const blockUser = async (blockerUserId, blockedUserId) => {
       blocked: blockedUserId,
       createdAt: serverTimestamp(),
     });
+
+    // Clear cache after blocking
+    clearBlockCache(blockerUserId, blockedUserId);
 
     logSuccess('blockUser', { blocker: blockerUserId, blocked: blockedUserId, docId: docRef.id });
     return docRef.id;
@@ -51,6 +55,9 @@ export const unblockUser = async (blockerUserId, blockedUserId) => {
     const blockDoc = snapshot.docs[0];
     await deleteDoc(doc(db, 'blocked_users', blockDoc.id));
     
+    // Clear cache after unblocking
+    clearBlockCache(blockerUserId, blockedUserId);
+    
     logSuccess('unblockUser', { blocker: blockerUserId, blocked: blockedUserId });
   } catch (error) {
     const handledError = handleServiceError(error, 'unblockUser');
@@ -58,17 +65,9 @@ export const unblockUser = async (blockerUserId, blockedUserId) => {
   }
 };
 
-// Check if a user is blocked
+// Check if a user is blocked (backward compatibility)
 export const isUserBlocked = async (blockerUserId, blockedUserId) => {
-  const blockedUsersRef = collection(db, 'blocked_users');
-  const q = query(
-    blockedUsersRef,
-    where('blocker', '==', blockerUserId),
-    where('blocked', '==', blockedUserId)
-  );
-
-  const snapshot = await getDocs(q);
-  return !snapshot.empty;
+  return await isUserBlockedOptimized(blockerUserId, blockedUserId);
 };
 
 // Get list of users blocked by current user
@@ -101,14 +100,7 @@ export const getUsersWhoBlockedMe = async (userId) => {
   }));
 };
 
-// Check if two users have blocked each other (mutual block check)
+// Check if two users have blocked each other (optimized)
 export const areMutuallyBlocked = async (userA, userB) => {
-  const aBlockedB = await isUserBlocked(userA, userB);
-  const bBlockedA = await isUserBlocked(userB, userA);
-  
-  return {
-    aBlockedB,
-    bBlockedA,
-    isBlocked: aBlockedB || bBlockedA
-  };
+  return await getMutualBlockStatus(userA, userB);
 };

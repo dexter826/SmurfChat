@@ -11,8 +11,8 @@ import {
   updateLastSeen,
   blockUser,
   unblockUser,
-  isUserBlocked,
 } from "../../firebase/services";
+import { isUserBlockedOptimized } from "../../firebase/utils/block.utils";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
 
@@ -90,7 +90,7 @@ export default function UnifiedChatList() {
   // Check block status for a conversation participant
   const checkBlockStatus = React.useCallback(async (conversationId, otherUserId) => {
     try {
-      const blocked = await isUserBlocked(user.uid, otherUserId);
+      const blocked = await isUserBlockedOptimized(user.uid, otherUserId);
       setBlockStatus(prev => ({
         ...prev,
         [conversationId]: blocked

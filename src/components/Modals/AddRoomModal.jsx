@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import { AppContext } from "../../Context/AppProvider";
-import { addDocument, isUserBlocked } from "../../firebase/services";
+import { addDocument } from "../../firebase/services";
+import { isUserBlockedOptimized } from "../../firebase/utils/block.utils";
 import { AuthContext } from "../../Context/AuthProvider";
 import { useAlert } from "../../Context/AlertProvider";
 import { debounce } from "lodash";
@@ -120,7 +121,7 @@ async function fetchFriendsList(search, currentUserId) {
     const friendId = participants.find((id) => id !== currentUserId);
     if (friendId) {
       try {
-        const isBlocked = await isUserBlocked(currentUserId, friendId);
+        const isBlocked = await isUserBlockedOptimized(currentUserId, friendId);
         if (!isBlocked) {
           friendIds.push(friendId);
         }
