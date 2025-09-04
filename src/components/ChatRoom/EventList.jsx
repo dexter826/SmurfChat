@@ -5,7 +5,7 @@ import { AuthContext } from '../../Context/AuthProvider.jsx';
 import { useAlert } from '../../Context/AlertProvider';
 import { deleteEvent } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
-import { format, isToday, isTomorrow, isYesterday, isBefore, isAfter, addHours, compareAsc } from 'date-fns';
+import { format, isToday, isTomorrow, isYesterday, isBefore, isAfter, addHours } from 'date-fns';
 import EventModal from '../Modals/EventModal.jsx';
 
 export default function EventList() {
@@ -22,15 +22,10 @@ export default function EventList() {
     compareValue: selectedRoom.id,
   }), [selectedRoom.id]);
 
-  const events = useFirestore('events', eventsCondition);
+  const events = useFirestore('events', eventsCondition, 'datetime', 'asc');
 
-  // Sort events by date
-  const activeEvents = events
-    .sort((a, b) => {
-      const timeA = a.datetime.toDate();
-      const timeB = b.datetime.toDate();
-      return compareAsc(timeA, timeB);
-    });
+  // Remove client-side sorting - now handled by Firestore
+  const activeEvents = events;
 
   const handleDeleteEvent = async (eventId) => {
     try {

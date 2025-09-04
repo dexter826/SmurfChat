@@ -99,7 +99,9 @@ export default function ConversationWindow() {
           ...conversationCondition,
           ...directCondition,
         }
-      : conversationCondition
+      : conversationCondition,
+    "createdAt",  // orderBy field
+    "asc"         // order direction
   );
 
   useEffect(() => {

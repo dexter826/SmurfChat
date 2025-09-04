@@ -40,7 +40,7 @@ export default function AppProvider({ children }) {
     };
   }, [uid]);
 
-  const rooms = useFirestore('rooms', roomsCondition);
+  const rooms = useFirestore('rooms', roomsCondition, 'lastMessageAt', 'desc');
 
   const selectedRoom = React.useMemo(
     () => rooms.find((room) => room.id === selectedRoomId) || {},
@@ -66,7 +66,7 @@ export default function AppProvider({ children }) {
     };
   }, [uid]);
 
-  const conversations = useFirestore('conversations', conversationsCondition);
+  const conversations = useFirestore('conversations', conversationsCondition, 'lastMessageAt', 'desc');
 
   // Events for reminder system
   const eventsCondition = React.useMemo(() => ({
@@ -75,7 +75,7 @@ export default function AppProvider({ children }) {
     compareValue: uid,
   }), [uid]);
 
-  const userEvents = useFirestore('events', eventsCondition);
+  const userEvents = useFirestore('events', eventsCondition, 'eventDate', 'asc');
 
   // Update reminder service when events change
   useEffect(() => {
