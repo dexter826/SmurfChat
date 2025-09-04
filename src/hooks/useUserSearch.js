@@ -11,7 +11,7 @@
 import { useState, useCallback, useContext, useMemo } from 'react';
 import { AuthContext } from '../Context/AuthProvider';
 import { useUsers } from '../Context/UserContext';
-import useFirestore from './useFirestore';
+import useOptimizedFirestore from './useOptimizedFirestore';
 import { useBlockStatus } from './useBlockStatus';
 import { debounce } from 'lodash';
 
@@ -19,7 +19,6 @@ export const useUserSearch = (options = {}) => {
   const {
     searchType = 'all', // 'all' | 'friends' | 'non-friends'
     excludeBlocked = true,
-    excludeCurrentUser = true,
     debounceMs = 300,
   } = options;
 
@@ -29,17 +28,6 @@ export const useUserSearch = (options = {}) => {
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // REMOVED: Duplicate user loading - now using UserContext
-  // const allUsersCondition = useMemo(
-  //   () => excludeCurrentUser && currentUser?.uid ? {
-  //     fieldName: 'uid',
-  //     operator: '!=',
-  //     compareValue: currentUser.uid,
-  //   } : null,
-  //   [currentUser?.uid, excludeCurrentUser]
-  // );
-  // const allUsers = useFirestore('users', allUsersCondition);
 
   // Get friends data
   const friendsCondition = useMemo(
@@ -51,7 +39,7 @@ export const useUserSearch = (options = {}) => {
     [currentUser?.uid]
   );
 
-  const friendEdges = useFirestore('friends', friendsCondition);
+  const { documents: friendEdges } = useOptimizedFirestore('friends', friendsCondition);
 
   // Friend requests data (always loaded for efficiency)
   const incomingReqsCondition = useMemo(
@@ -72,11 +60,11 @@ export const useUserSearch = (options = {}) => {
     [currentUser?.uid]
   );
 
-  const incomingRequests = useFirestore('friend_requests', incomingReqsCondition)
-    .filter(r => r.status === 'pending');
+  const { documents: incomingRequestsRaw } = useOptimizedFirestore('friend_requests', incomingReqsCondition);
+  const incomingRequests = incomingRequestsRaw.filter(r => r.status === 'pending');
 
-  const outgoingRequests = useFirestore('friend_requests', outgoingReqsCondition)
-    .filter(r => r.status === 'pending');
+  const { documents: outgoingRequestsRaw } = useOptimizedFirestore('friend_requests', outgoingReqsCondition);  
+  const outgoingRequests = outgoingRequestsRaw.filter(r => r.status === 'pending');
 
   // Extract friend IDs
   const friendIds = useMemo(() => {

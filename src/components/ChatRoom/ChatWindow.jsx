@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
 import { updateLastSeen, setTypingStatus, markMessageAsRead } from '../../firebase/services';
-import useFirestore from '../../hooks/useFirestore';
+import useOptimizedFirestore from '../../hooks/useOptimizedFirestore';
 import usePaginatedFirestore from '../../hooks/usePaginatedFirestore';
 import InfiniteScrollContainer from '../Common/InfiniteScrollContainer';
 import Message from './Message';
@@ -101,8 +101,7 @@ export default function ChatWindow() {
     documents: messages,
     loading: messagesLoading,
     hasMore,
-    loadMore,
-    refresh: refreshMessages
+    loadMore
   } = usePaginatedFirestore(
     'messages',
     messagesCondition,
@@ -112,7 +111,6 @@ export default function ChatWindow() {
     true // real-time
   );
 
-  // Still use regular useFirestore for events and votes since they're usually smaller datasets
   // Fetch events for this room
   const eventsCondition = React.useMemo(() => ({
     fieldName: 'roomId',
@@ -120,7 +118,7 @@ export default function ChatWindow() {
     compareValue: selectedRoom?.id,
   }), [selectedRoom?.id]);
 
-  const events = useFirestore('events', eventsCondition);
+  const { documents: events } = useOptimizedFirestore('events', eventsCondition);
 
   // Fetch votes for this room
   const votesCondition = React.useMemo(() => ({
@@ -129,7 +127,7 @@ export default function ChatWindow() {
     compareValue: selectedRoom?.id,
   }), [selectedRoom?.id]);
 
-  const allVotes = useFirestore('votes', votesCondition);
+  const { documents: allVotes } = useOptimizedFirestore('votes', votesCondition);
   const votes = allVotes;
 
   // Combine messages and events, then sort by timestamp (only for room chats)

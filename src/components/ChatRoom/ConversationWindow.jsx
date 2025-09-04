@@ -91,8 +91,7 @@ export default function ConversationWindow() {
     documents: messages,
     loading: messagesLoading,
     hasMore,
-    loadMore,
-    refresh: refreshMessages
+    loadMore
   } = usePaginatedFirestore(
     "messages",
     messagesCondition,

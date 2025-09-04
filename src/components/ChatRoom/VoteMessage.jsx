@@ -10,7 +10,7 @@ import { castVote, deleteVote } from "../../firebase/services";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
 import { AppContext } from "../../Context/AppProvider.jsx";
 import { useAlert } from "../../Context/AlertProvider";
-import useFirestore from "../../hooks/useFirestore";
+import useOptimizedFirestore from "../../hooks/useOptimizedFirestore";
 
 const VoteMessage = ({ vote }) => {
   const { user: { uid } } = useContext(AuthContext);
@@ -22,11 +22,12 @@ const VoteMessage = ({ vote }) => {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(null);
 
   // Real-time vote data with optimized condition
-  const voteData = useFirestore("votes", useMemo(() => ({
+  const { documents: voteDataArray } = useOptimizedFirestore("votes", useMemo(() => ({
     fieldName: "__name__",
     operator: "==",
     compareValue: vote.id,
-  }), [vote.id]))?.[0] || vote;
+  }), [vote.id]));
+  const voteData = voteDataArray?.[0] || vote;
 
   const userVote = voteData.votes?.[uid];
   const hasVoted = userVote !== undefined;
@@ -43,7 +44,7 @@ const VoteMessage = ({ vote }) => {
   }, [userVote]);
 
   // Get all users for voter information
-  const allUsers = useFirestore("users", useMemo(() => ({
+  const { documents: allUsers } = useOptimizedFirestore("users", useMemo(() => ({
     fieldName: 'uid',
     operator: '!=',
     compareValue: null // Get all users

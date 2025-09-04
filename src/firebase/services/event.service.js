@@ -1,6 +1,6 @@
 import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config';
-import { handleServiceError, logSuccess, validateRequired } from '../utils/error.utils';
+import { handleServiceError, logSuccess } from '../utils/error.utils';
 
 // Event management services
 

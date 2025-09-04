@@ -2,7 +2,7 @@ import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, 
 import { db } from '../config';
 import { getMutualBlockStatus } from '../utils/block.utils';
 import { updateConversationLastMessage, updateRoomLastMessage } from '../utils/conversation.utils';
-import { handleServiceError, logSuccess, validateRequired, SmurfChatError, ErrorTypes } from '../utils/error.utils';
+import { handleServiceError, logSuccess, SmurfChatError, ErrorTypes } from '../utils/error.utils';
 
 // Re-export utility functions for backward compatibility
 export { updateConversationLastMessage, updateRoomLastMessage };

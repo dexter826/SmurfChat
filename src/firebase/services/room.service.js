@@ -1,6 +1,6 @@
 import { collection, serverTimestamp, doc, updateDoc, getDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
 import { db } from '../config';
-import { handleServiceError, logSuccess, validateRequired } from '../utils/error.utils';
+import { handleServiceError } from '../utils/error.utils';
 
 // Room management services
 

@@ -1,3 +1,22 @@
+/**
+ * Message Service - Firebase Firestore Operations
+ * 
+ * Handles all message-related operations including CRUD operations,
+ * read status management, and message validation
+ * 
+ * @fileoverview Message service with comprehensive type safety and error handling
+ * @version 2.0.0
+ * @since 2025-09-04
+ * 
+ * @typedef {import('../types/database.types').Message} Message
+ * @typedef {import('../types/database.types').MessageId} MessageId  
+ * @typedef {import('../types/database.types').UserId} UserId
+ * @typedef {import('../types/database.types').RoomId} RoomId
+ * @typedef {import('../types/database.types').ConversationId} ConversationId
+ * @typedef {import('../types/database.types').CreateMessageData} CreateMessageData
+ * @typedef {import('../types/database.types').ApiResponse} ApiResponse
+ */
+
 import { doc, updateDoc, getDoc, deleteDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config';
 import { getMutualBlockStatus } from '../utils/block.utils';
@@ -6,14 +25,29 @@ import { handleServiceError, logSuccess, validateRequired, ErrorTypes, SmurfChat
 
 /**
  * Utility function to derive readBy array from readByDetails
- * @param {Object} readByDetails - Object with userId: timestamp pairs
- * @returns {Array} Array of user IDs who have read the message
+ * 
+ * @param {Object} [readByDetails={}] - Object with userId: timestamp pairs
+ * @returns {string[]} Array of user IDs who have read the message
+ * @example
+ * const readBy = getReadByFromDetails({ 'user1': timestamp, 'user2': timestamp });
+ * // Returns: ['user1', 'user2']
  */
 export const getReadByFromDetails = (readByDetails = {}) => {
   return Object.keys(readByDetails);
 };
 
-// Delete message (hard delete)
+/**
+ * Delete message from Firestore (hard delete)
+ * 
+ * @param {MessageId} messageId - The ID of the message to delete
+ * @param {string} [collectionName='messages'] - The collection name (default: 'messages')
+ * @param {string} [type] - Type for logging purposes
+ * @returns {Promise<ApiResponse<void>>} Success response or error
+ * @throws {SmurfChatError} When messageId is invalid or deletion fails
+ * 
+ * @example
+ * await deleteMessage('msg123', 'messages', 'room');
+ */
 export const deleteMessage = async (messageId, collectionName = 'messages', type) => {
   try {
     validateRequired(messageId, 'Message ID');

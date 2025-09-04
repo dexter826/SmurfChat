@@ -9,7 +9,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { FaCamera, FaTimes, FaEnvelope, FaCalendarAlt, FaCircle, FaBan } from 'react-icons/fa';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useBlockStatus } from '../../hooks/useBlockStatus';
-import useFirestore from '../../hooks/useFirestore';
+import useOptimizedFirestore from '../../hooks/useOptimizedFirestore';
 
 function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile = false }) {
   const { user: currentUser } = useContext(AuthContext);
@@ -28,7 +28,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
     compareValue: currentUser?.uid,
   }), [currentUser?.uid]);
   
-  const friendEdges = useFirestore('friends', friendsCondition);
+  const { documents: friendEdges } = useOptimizedFirestore('friends', friendsCondition);
   
   // Check if there's a pending friend request
   const outgoingReqsCondition = React.useMemo(() => ({
@@ -37,7 +37,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
     compareValue: currentUser?.uid,
   }), [currentUser?.uid]);
   
-  const outgoingRequests = useFirestore('friend_requests', outgoingReqsCondition);
+  const { documents: outgoingRequests } = useOptimizedFirestore('friend_requests', outgoingReqsCondition);
 
   const { isBlockedByMe, refreshBlockStatus } = useBlockStatus(targetUser?.uid);
 

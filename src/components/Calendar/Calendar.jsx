@@ -5,7 +5,7 @@ import {
 } from "react-icons/fa";
 import { AppContext } from "../../Context/AppProvider.jsx";
 // import { AuthContext } from '../../Context/AuthProvider.jsx';
-import useFirestore from "../../hooks/useFirestore";
+import useOptimizedFirestore from "../../hooks/useOptimizedFirestore";
 import { format, isSameDay } from "date-fns";
 import EventModal from "../Modals/EventModal.jsx";
 
@@ -27,7 +27,7 @@ export default function Calendar() {
     [selectedRoom.id]
   );
 
-  const events = useFirestore("events", eventsCondition);
+  const { documents: events } = useOptimizedFirestore("events", eventsCondition);
 
   const getEventsForDate = (date) => {
     return events.filter((event) => {

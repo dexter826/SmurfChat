@@ -2,7 +2,7 @@ import React, { useContext } from "react";
 import { AppContext } from "../../Context/AppProvider.jsx";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
 import { useTheme } from "../../Context/ThemeProvider.jsx";
-import useFirestore from "../../hooks/useFirestore";
+import useOptimizedFirestore from "../../hooks/useOptimizedFirestore";
 
 function ConversationItem({ selected, children, onClick }) {
   return (
@@ -33,7 +33,7 @@ export default function DirectMessageList() {
     [user.uid]
   );
 
-  const allUsers = useFirestore("users", allUsersCondition);
+  const { documents: allUsers } = useOptimizedFirestore("users", allUsersCondition);
 
   const getOtherParticipant = (conversation) => {
     const otherUid = conversation.participants.find((uid) => uid !== user.uid);

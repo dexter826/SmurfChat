@@ -5,7 +5,7 @@ import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
 import { useUsers } from '../../Context/UserContext';
 import { useAlert } from '../../Context/AlertProvider';
-import useFirestore from '../../hooks/useFirestore';
+import useOptimizedFirestore from '../../hooks/useOptimizedFirestore';
 import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation, logoutUser } from '../../firebase/services';
 import { isUserBlockedOptimized } from '../../firebase/utils/block.utils';
 
@@ -84,7 +84,8 @@ export default function Sidebar() {
     operator: '==',
     compareValue: user?.uid,
   }), [user?.uid]);
-  const incomingRequests = useFirestore('friend_requests', incomingReqsCondition).filter(r => r.status === 'pending');
+  const { documents: incomingRequestsRaw } = useOptimizedFirestore('friend_requests', incomingReqsCondition);
+  const incomingRequests = incomingRequestsRaw.filter(r => r.status === 'pending');
 
   // Outgoing friend requests
   const outgoingReqsCondition = React.useMemo(() => ({
@@ -92,7 +93,8 @@ export default function Sidebar() {
     operator: '==',
     compareValue: user?.uid,
   }), [user?.uid]);
-  const outgoingRequests = useFirestore('friend_requests', outgoingReqsCondition).filter(r => r.status === 'pending');
+  const { documents: outgoingRequestsRaw } = useOptimizedFirestore('friend_requests', outgoingReqsCondition);
+  const outgoingRequests = outgoingRequestsRaw.filter(r => r.status === 'pending');
 
   // Friends list (edges containing current user)
   const friendsCondition = React.useMemo(() => ({
@@ -100,7 +102,7 @@ export default function Sidebar() {
     operator: 'array-contains',
     compareValue: user?.uid,
   }), [user?.uid]);
-  const friendEdges = useFirestore('friends', friendsCondition);
+  const { documents: friendEdges } = useOptimizedFirestore('friends', friendsCondition);
 
   // REMOVED: Duplicate user loading - now using UserContext
   // const allUsersCondition = React.useMemo(() => ({
