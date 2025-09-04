@@ -7,8 +7,8 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase/config";
+import { generateKeywords } from "../../firebase/utils/keywords";
 import {
-  generateKeywords,
   loginWithEmailAndPassword,
 } from "../../firebase/services";
 import { useTheme } from "../../Context/ThemeProvider";

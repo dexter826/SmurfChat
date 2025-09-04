@@ -3,62 +3,6 @@ import { db } from '../config';
 
 // User management services
 
-// Generate keywords for displayName, used for search
-export const generateKeywords = (displayName) => {
-  // List all permutations. Example: name = ["David", "Van", "Teo"]
-  // => ["David", "Van", "Teo"], ["David", "Teo", "Van"], ["Teo", "David", "Van"],...
-  const name = displayName.split(' ').filter((word) => word);
-
-  const length = name.length;
-  let flagArray = [];
-  let result = [];
-  let stringArray = [];
-
-  /**
-   * Initialize flag array with false values
-   * Used to mark if value at this position
-   * has been used or not
-   **/
-  for (let i = 0; i < length; i++) {
-    flagArray[i] = false;
-  }
-
-  const createKeywords = (name) => {
-    const arrName = [];
-    let curName = '';
-    name.split('').forEach((letter) => {
-      curName += letter;
-      arrName.push(curName);
-    });
-    return arrName;
-  };
-
-  function findPermutation(k) {
-    for (let i = 0; i < length; i++) {
-      if (!flagArray[i]) {
-        flagArray[i] = true;
-        result[k] = name[i];
-
-        if (k === length - 1) {
-          stringArray.push(result.join(' '));
-        }
-
-        findPermutation(k + 1);
-        flagArray[i] = false;
-      }
-    }
-  }
-
-  findPermutation(0);
-
-  const keywords = stringArray.reduce((acc, cur) => {
-    const words = createKeywords(cur);
-    return [...acc, ...words];
-  }, []);
-
-  return keywords;
-};
-
 // Update user settings (e.g., privacy options)
 export const updateUserSettings = async (userId, data) => {
   try {
