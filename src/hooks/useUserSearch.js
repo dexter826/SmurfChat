@@ -10,6 +10,7 @@
 
 import { useState, useCallback, useContext, useMemo } from 'react';
 import { AuthContext } from '../Context/AuthProvider';
+import { useUsers } from '../Context/UserContext';
 import useFirestore from './useFirestore';
 import { useBlockStatus } from './useBlockStatus';
 import { debounce } from 'lodash';
@@ -23,22 +24,22 @@ export const useUserSearch = (options = {}) => {
   } = options;
 
   const { user: currentUser } = useContext(AuthContext);
+  const { allUsers } = useUsers(); // Use optimized user loading
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Get all users (excluding current user if needed)
-  const allUsersCondition = useMemo(
-    () => excludeCurrentUser && currentUser?.uid ? {
-      fieldName: 'uid',
-      operator: '!=',
-      compareValue: currentUser.uid,
-    } : null,
-    [currentUser?.uid, excludeCurrentUser]
-  );
-
-  const allUsers = useFirestore('users', allUsersCondition);
+  // REMOVED: Duplicate user loading - now using UserContext
+  // const allUsersCondition = useMemo(
+  //   () => excludeCurrentUser && currentUser?.uid ? {
+  //     fieldName: 'uid',
+  //     operator: '!=',
+  //     compareValue: currentUser.uid,
+  //   } : null,
+  //   [currentUser?.uid, excludeCurrentUser]
+  // );
+  // const allUsers = useFirestore('users', allUsersCondition);
 
   // Get friends data
   const friendsCondition = useMemo(

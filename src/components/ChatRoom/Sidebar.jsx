@@ -3,6 +3,7 @@ import UserInfo from './UserInfo';
 import UnifiedChatList from './UnifiedChatList';
 import { AuthContext } from '../../Context/AuthProvider';
 import { AppContext } from '../../Context/AppProvider';
+import { useUsers } from '../../Context/UserContext';
 import { useAlert } from '../../Context/AlertProvider';
 import useFirestore from '../../hooks/useFirestore';
 import { acceptFriendRequest, declineFriendRequest, cancelFriendRequest, removeFriendship, createOrUpdateConversation, logoutUser, isUserBlocked } from '../../firebase/services';
@@ -61,6 +62,7 @@ export default function Sidebar() {
     setIsUserProfileVisible,
     setSelectedUser 
   } = useContext(AppContext);
+  const { getUserById } = useUsers(); // Use optimized user lookup
   const { confirm } = useAlert();
   
   // Tab state
@@ -99,15 +101,16 @@ export default function Sidebar() {
   }), [user?.uid]);
   const friendEdges = useFirestore('friends', friendsCondition);
 
-  // Fetch all users (to resolve names)
-  const allUsersCondition = React.useMemo(() => ({
-    fieldName: 'uid',
-    operator: '!=',
-    compareValue: user?.uid,
-  }), [user?.uid]);
-  const allUsers = useFirestore('users', allUsersCondition);
+  // REMOVED: Duplicate user loading - now using UserContext
+  // const allUsersCondition = React.useMemo(() => ({
+  //   fieldName: 'uid',
+  //   operator: '!=',
+  //   compareValue: user?.uid,
+  // }), [user?.uid]);
+  // const allUsers = useFirestore('users', allUsersCondition);
   
-  const getUserById = (uid) => allUsers.find(u => u.uid === uid);
+  // REMOVED: Local getUserById - now using optimized version from UserContext
+  // const getUserById = (uid) => allUsers.find(u => u.uid === uid);
 
   // Load blocked users list
   React.useEffect(() => {

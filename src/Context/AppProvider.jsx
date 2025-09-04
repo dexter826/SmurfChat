@@ -4,10 +4,12 @@ import { AuthContext } from './AuthProvider';
 import { useAlert } from './AlertProvider';
 import { createOrUpdateConversation } from '../firebase/services';
 import reminderService from '../components/Notifications/ReminderService';
+import { UserProvider, useUsers } from './UserContext';
 
 export const AppContext = React.createContext();
 
-export default function AppProvider({ children }) {
+function AppProviderInner({ children }) {
+  const { getUserById, getOtherParticipant } = useUsers();
   const [isAddRoomVisible, setIsAddRoomVisible] = useState(false);
   const [isInviteMemberVisible, setIsInviteMemberVisible] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState('');
@@ -102,13 +104,13 @@ export default function AppProvider({ children }) {
   }, [rooms, uid]);
 
   // Get all users for conversation lookup
-  const allUsersCondition = React.useMemo(() => ({
-    fieldName: 'uid',
-    operator: '!=',
-    compareValue: uid,
-  }), [uid]);
-
-  const allUsers = useFirestore('users', allUsersCondition);
+  // REMOVED: Now using UserContext for optimized user lookups
+  // const allUsersCondition = React.useMemo(() => ({
+  //   fieldName: 'uid',
+  //   operator: '!=',
+  //   compareValue: uid,
+  // }), [uid]);
+  // const allUsers = useFirestore('users', allUsersCondition);
 
   const selectedConversation = React.useMemo(() => {
     if (!selectedConversationId) return {};
@@ -116,7 +118,7 @@ export default function AppProvider({ children }) {
     // Handle new conversation creation
     if (selectedConversationId.startsWith('new_')) {
       const otherUserId = selectedConversationId.replace('new_', '');
-      const otherUser = allUsers.find(u => u.uid === otherUserId);
+      const otherUser = getUserById(otherUserId);
 
       // Create new conversation
       const newConversationId = [uid, otherUserId].sort().join('_');
@@ -160,15 +162,14 @@ export default function AppProvider({ children }) {
 
     const conversation = conversations.find((conv) => conv.id === selectedConversationId) || {};
     if (conversation.participants) {
-      const otherUserId = conversation.participants.find(participantId => participantId !== uid);
-      const otherUser = allUsers.find(u => u.uid === otherUserId);
+      const otherUser = getOtherParticipant(conversation);
       return {
         ...conversation,
         otherUser
       };
     }
     return conversation;
-  }, [conversations, selectedConversationId, uid, allUsers]);
+  }, [conversations, selectedConversationId, uid, getUserById, getOtherParticipant]);
 
   // =====================
   // Global notifications for new, unread messages
@@ -456,7 +457,7 @@ export default function AppProvider({ children }) {
         isBlockedUsersVisible,
         setIsBlockedUsersVisible,
         userEvents,
-        allUsers,
+        // allUsers removed - now available via useUsers hook
         clearState,
         selectRoom,
         selectConversation,
@@ -464,5 +465,16 @@ export default function AppProvider({ children }) {
     >
       {children}
     </AppContext.Provider>
+  );
+}
+
+// Main AppProvider with UserContext wrapper
+export default function AppProvider({ children }) {
+  return (
+    <UserProvider>
+      <AppProviderInner>
+        {children}
+      </AppProviderInner>
+    </UserProvider>
   );
 }

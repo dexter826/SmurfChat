@@ -2,7 +2,7 @@ import React, { useContext, useState } from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
 import { useAlert } from "../../Context/AlertProvider";
-import useFirestore from "../../hooks/useFirestore";
+import { useUsers } from "../../Context/UserContext";
 import { useUserOnlineStatus } from "../../hooks/useOnlineStatus";
 import {
   deleteConversation,
@@ -72,20 +72,20 @@ export default function UnifiedChatList() {
   } = useContext(AppContext);
   const { user } = useContext(AuthContext);
   const { success, error, confirm } = useAlert();
+  const { getOtherParticipant } = useUsers(); // Use optimized user lookup
   const [openMenuId, setOpenMenuId] = useState(null);
   const [blockStatus, setBlockStatus] = useState({}); // Track block status for each conversation
 
-  // Get all users for conversation lookup
-  const allUsersCondition = React.useMemo(
-    () => ({
-      fieldName: "uid",
-      operator: "!=",
-      compareValue: user.uid,
-    }),
-    [user.uid]
-  );
-
-  const allUsers = useFirestore("users", allUsersCondition);
+  // REMOVED: Duplicate user loading - now using UserContext
+  // const allUsersCondition = React.useMemo(
+  //   () => ({
+  //     fieldName: "uid", 
+  //     operator: "!=",
+  //     compareValue: user.uid,
+  //   }),
+  //   [user.uid]
+  // );
+  // const allUsers = useFirestore("users", allUsersCondition);
 
   // Check block status for a conversation participant
   const checkBlockStatus = React.useCallback(async (conversationId, otherUserId) => {
@@ -105,7 +105,7 @@ export default function UnifiedChatList() {
   // Check block status for all conversations when component mounts or conversations change
   React.useEffect(() => {
     const checkAllBlockStatuses = async () => {
-      if (!user?.uid || !conversations.length || !allUsers.length) return;
+      if (!user?.uid || !conversations.length) return;
 
       const statusChecks = conversations.map(async (conversation) => {
         const otherUserId = conversation.participants.find(uid => uid !== user.uid);
@@ -128,7 +128,7 @@ export default function UnifiedChatList() {
     };
 
     checkAllBlockStatuses();
-  }, [conversations, allUsers, user?.uid, checkBlockStatus]);
+  }, [conversations, user?.uid, checkBlockStatus]);
 
   const handleRoomClick = async (roomId) => {
     selectRoom(roomId);
@@ -237,17 +237,7 @@ export default function UnifiedChatList() {
 
   // Combine rooms and conversations into a single list
   const allChats = React.useMemo(() => {
-    const getOtherParticipant = (conversation) => {
-      const otherUid = conversation.participants.find(
-        (uid) => uid !== user.uid
-      );
-      return (
-        allUsers.find((u) => u.uid === otherUid) || {
-          displayName: "Unknown User",
-          photoURL: "",
-        }
-      );
-    };
+    // Use optimized getOtherParticipant from UserContext instead of local function
 
     const roomItems = rooms.map((room) => ({
       ...room,
@@ -324,7 +314,7 @@ export default function UnifiedChatList() {
     conversations,
     selectedRoomId,
     selectedConversationId,
-    allUsers,
+    getOtherParticipant, // Use optimized function from UserContext
     user.uid,
     blockStatus,
   ]);
@@ -512,9 +502,7 @@ export default function UnifiedChatList() {
                           onClick={(e) => {
                             e.stopPropagation();
                             setOpenMenuId(null);
-                            const otherUser = allUsers.find(u => 
-                              chat.participants.includes(u.uid) && u.uid !== user.uid
-                            );
+                            const otherUser = getOtherParticipant(chat);
                             if (otherUser) {
                               handleToggleBlock(chat, otherUser);
                             }
