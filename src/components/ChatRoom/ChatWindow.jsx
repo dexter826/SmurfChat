@@ -4,6 +4,8 @@ import { AppContext } from '../../Context/AppProvider';
 import { AuthContext } from '../../Context/AuthProvider';
 import { updateLastSeen, setTypingStatus, markMessageAsRead } from '../../firebase/services';
 import useFirestore from '../../hooks/useFirestore';
+import usePaginatedFirestore from '../../hooks/usePaginatedFirestore';
+import InfiniteScrollContainer from '../Common/InfiniteScrollContainer';
 import Message from './Message';
 import { useUserOnlineStatus } from '../../hooks/useOnlineStatus';
 import EventMessage from './EventMessage';
@@ -94,8 +96,23 @@ export default function ChatWindow() {
     return null;
   }, [chatType, selectedRoom?.id, selectedConversation?.id]);
 
-  const messages = useFirestore('messages', messagesCondition, 'createdAt', 'asc');
+  // Use paginated firestore for messages
+  const {
+    documents: messages,
+    loading: messagesLoading,
+    hasMore,
+    loadMore,
+    refresh: refreshMessages
+  } = usePaginatedFirestore(
+    'messages',
+    messagesCondition,
+    'createdAt',
+    'desc', // newest first
+    30, // page size
+    true // real-time
+  );
 
+  // Still use regular useFirestore for events and votes since they're usually smaller datasets
   // Fetch events for this room
   const eventsCondition = React.useMemo(() => ({
     fieldName: 'roomId',
@@ -117,7 +134,8 @@ export default function ChatWindow() {
 
   // Combine messages and events, then sort by timestamp (only for room chats)
   const combinedMessages = React.useMemo(() => {
-    const messageItems = (messages || []).map(msg => ({
+    // Convert messages to items with timestamps (reverse since paginated data comes desc)
+    const messageItems = [...messages].reverse().map(msg => ({
       ...msg,
       type: 'message',
       timestamp: msg.createdAt?.toDate?.() || new Date()
@@ -145,12 +163,14 @@ export default function ChatWindow() {
   }, [messages, events, votes, chatType]);
 
   useEffect(() => {
-    // scroll to bottom after chat items changed
-    if (messageListRef?.current) {
-      messageListRef.current.scrollTop =
-        messageListRef.current.scrollHeight + 50;
+    // scroll to bottom after chat items changed (only for new messages)
+    if (messageListRef?.current && combinedMessages.length > 0) {
+      // Only scroll if we're not loading more (to prevent scroll jumping)
+      if (!messagesLoading) {
+        messageListRef.current.scrollTop = messageListRef.current.scrollHeight + 50;
+      }
     }
-  }, [combinedMessages]);
+  }, [combinedMessages, messagesLoading]);
 
   // (moved) Notification handled globally in AppProvider
 
@@ -295,21 +315,29 @@ export default function ChatWindow() {
             )}
           </div>
           <div className="flex h-[calc(100%_-_56px)] flex-col justify-end p-3">
-            <div ref={messageListRef} className="thin-scrollbar max-h-full overflow-y-auto">
-              {combinedMessages.map((item, index) => {
-                if (item.type === 'event') {
-                  return (
-                    <EventMessage key={item.id} event={item} />
-                  );
-                } else if (item.type === 'vote') {
-                  return (
-                    <VoteMessage key={item.id} vote={item} />
-                  );
-                } else {
-                  return (
-                    <Message
-                      key={item.id}
-                      id={item.id}
+            <InfiniteScrollContainer
+              hasMore={hasMore}
+              loading={messagesLoading}
+              loadMore={loadMore}
+              reverse={true} // Load older messages on top scroll
+              className="max-h-full"
+              style={{ display: 'flex', flexDirection: 'column-reverse' }}
+            >
+              <div ref={messageListRef}>
+                {combinedMessages.map((item, index) => {
+                  if (item.type === 'event') {
+                    return (
+                      <EventMessage key={item.id} event={item} />
+                    );
+                  } else if (item.type === 'vote') {
+                    return (
+                      <VoteMessage key={item.id} vote={item} />
+                    );
+                  } else {
+                    return (
+                      <Message
+                        key={item.id}
+                        id={item.id}
                       text={item.text}
                       photoURL={item.photoURL}
                       displayName={item.displayName}
@@ -329,7 +357,8 @@ export default function ChatWindow() {
                   );
                 }
               })}
-            </div>
+              </div>
+            </InfiniteScrollContainer>
             {(() => {
               const typingMap = chatType === 'direct' ? selectedConversation?.typingStatus : selectedRoom?.typingStatus;
               const isOtherTyping = typingMap && Object.entries(typingMap).some(([k, v]) => k !== uid && v);

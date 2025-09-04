@@ -7,7 +7,8 @@ import {
   areUsersFriends,
   markMessageAsRead,
 } from "../../firebase/services";
-import useFirestore from "../../hooks/useFirestore";
+import usePaginatedFirestore from "../../hooks/usePaginatedFirestore";
+import InfiniteScrollContainer from "../Common/InfiniteScrollContainer";
 import Message from "./Message";
 import { useUserOnlineStatus } from "../../hooks/useOnlineStatus";
 import FileUpload from "../FileUpload/FileUpload";
@@ -85,20 +86,31 @@ export default function ConversationWindow() {
     [selectedConversation.id]
   );
   
-  const messages = useFirestore(
+  // Use paginated firestore instead of regular useFirestore
+  const {
+    documents: messages,
+    loading: messagesLoading,
+    hasMore,
+    loadMore,
+    refresh: refreshMessages
+  } = usePaginatedFirestore(
     "messages",
     messagesCondition,
     "createdAt",  // orderBy field
-    "asc"         // order direction
+    "desc",       // order direction - newest first for messages
+    30,           // page size
+    true          // real-time updates
   );
 
   useEffect(() => {
-    // scroll to bottom after message changed
-    if (messageListRef?.current) {
-      messageListRef.current.scrollTop =
-        messageListRef.current.scrollHeight + 50;
+    // scroll to bottom after message changed (only for new messages)
+    if (messageListRef?.current && messages.length > 0) {
+      // Only scroll if we're not loading more (to prevent scroll jumping)
+      if (!messagesLoading) {
+        messageListRef.current.scrollTop = messageListRef.current.scrollHeight + 50;
+      }
     }
-  }, [messages]);
+  }, [messages, messagesLoading]);
 
   // Check friendship to enable/disable chat
   useEffect(() => {
@@ -218,35 +230,42 @@ export default function ConversationWindow() {
             </div>
           </div>
           <div className="flex h-[calc(100%_-_56px)] flex-col justify-end p-3">
-            <div
-              ref={messageListRef}
-              className="thin-scrollbar max-h-full overflow-y-auto"
+            <InfiniteScrollContainer
+              hasMore={hasMore}
+              loading={messagesLoading}
+              loadMore={loadMore}
+              reverse={true} // Load older messages on top scroll
+              className="max-h-full"
+              style={{ display: 'flex', flexDirection: 'column-reverse' }} // Reverse order for chat
             >
-              {messages.map((mes, index) => {
-                // Only the very last message in conversation should show read status
-                const isLatestFromSender = index === messages.length - 1;
+              <div ref={messageListRef}>
+                {/* Reverse messages array to show newest at bottom */}
+                {[...messages].reverse().map((mes, index) => {
+                  // Only the very last message in conversation should show read status
+                  const isLatestFromSender = index === messages.length - 1;
 
-                return (
-                  <Message
-                    key={mes.id}
-                    id={mes.id}
-                    text={mes.text}
-                    photoURL={mes.photoURL} // Keep original message photo for message display
-                    displayName={mes.displayName}
-                    createdAt={mes.createdAt}
-                    uid={mes.uid}
-                    messageType={mes.messageType || "text"}
-                    fileData={mes.fileData}
-                    locationData={mes.locationData}
-                    recalled={mes.recalled}
-                    readByDetails={mes.readByDetails || {}}
-                    chatType="direct"
-                    isLatestFromSender={isLatestFromSender}
-                    otherParticipant={otherParticipant} // Pass other participant info for read status display
-                  />
-                );
-              })}
-            </div>
+                  return (
+                    <Message
+                      key={mes.id}
+                      id={mes.id}
+                      text={mes.text}
+                      photoURL={mes.photoURL} // Keep original message photo for message display
+                      displayName={mes.displayName}
+                      createdAt={mes.createdAt}
+                      uid={mes.uid}
+                      messageType={mes.messageType || "text"}
+                      fileData={mes.fileData}
+                      locationData={mes.locationData}
+                      recalled={mes.recalled}
+                      readByDetails={mes.readByDetails || {}}
+                      chatType="direct"
+                      isLatestFromSender={isLatestFromSender}
+                      otherParticipant={otherParticipant} // Pass other participant info for read status display
+                    />
+                  );
+                })}
+              </div>
+            </InfiniteScrollContainer>
             {(() => {
               const typingMap = selectedConversation?.typingStatus;
               const isOtherTyping =
