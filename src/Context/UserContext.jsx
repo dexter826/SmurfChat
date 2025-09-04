@@ -26,7 +26,10 @@ export function UserProvider({ children }) {
     [currentUser?.uid]
   );
 
-  const { documents: allUsers } = useOptimizedFirestore('users', allUsersCondition);
+  const { documents: allUsers } = useOptimizedFirestore(
+    currentUser?.uid ? 'users' : null, // Only fetch if user is authenticated
+    allUsersCondition
+  );
 
   // Filter out current user from the result
   const filteredUsers = useMemo(() => 

@@ -32,7 +32,7 @@ class ListenerManager {
   /**
    * Subscribe to a listener (ref counting)
    */
-  subscribe(key, callback, query) {
+  async subscribe(key, query, callback) {
     // Add callback to set
     if (!this.listenerCallbacks.has(key)) {
       this.listenerCallbacks.set(key, new Set());
@@ -45,7 +45,7 @@ class ListenerManager {
 
     // If first subscriber, create listener
     if (currentCount === 0 && query) {
-      this.createListener(key, query);
+      await this.createListener(key, query);
     }
 
     // If data already exists, call callback immediately
@@ -81,9 +81,11 @@ class ListenerManager {
   /**
    * Create actual Firestore listener
    */
-  createListener(key, query) {
-    // Dynamic import để avoid bundle bloat
-    import('firebase/firestore').then(({ onSnapshot }) => {
+  async createListener(key, query) {
+    try {
+      // Dynamic import để avoid bundle bloat
+      const { onSnapshot } = await import('firebase/firestore');
+      
       console.log(`🔥 Creating listener: ${key}`);
       
       const unsubscribe = onSnapshot(
@@ -115,7 +117,15 @@ class ListenerManager {
       );
 
       this.listeners.set(key, unsubscribe);
-    });
+    } catch (error) {
+      console.error(`❌ Failed to create listener for ${key}:`, error);
+      
+      // Notify callbacks of error
+      const callbacks = this.listenerCallbacks.get(key);
+      if (callbacks) {
+        callbacks.forEach(callback => callback([], error));
+      }
+    }
   }
 
   /**

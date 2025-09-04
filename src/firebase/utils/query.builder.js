@@ -36,31 +36,21 @@ class QueryBuilder {
   async buildQuery(collectionName, condition = null, orderByField = null, orderDirection = 'asc') {
     const { collection, query, where, orderBy } = await this.loadFirestore();
     
-    let q = query(collection(this.db, collectionName));
+    const collectionRef = collection(this.db, collectionName);
+    const constraints = [];
 
     // Add where condition
     if (condition) {
-      q = query(
-        collection(this.db, collectionName),
-        where(condition.fieldName, condition.operator, condition.compareValue)
-      );
+      constraints.push(where(condition.fieldName, condition.operator, condition.compareValue));
     }
 
     // Add ordering
     if (orderByField) {
-      q = condition
-        ? query(
-            collection(this.db, collectionName),
-            where(condition.fieldName, condition.operator, condition.compareValue),
-            orderBy(orderByField, orderDirection)
-          )
-        : query(
-            collection(this.db, collectionName),
-            orderBy(orderByField, orderDirection)
-          );
+      constraints.push(orderBy(orderByField, orderDirection));
     }
 
-    return q;
+    // Build the query with all constraints
+    return constraints.length > 0 ? query(collectionRef, ...constraints) : query(collectionRef);
   }
 
   /**

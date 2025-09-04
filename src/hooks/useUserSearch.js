@@ -39,7 +39,10 @@ export const useUserSearch = (options = {}) => {
     [currentUser?.uid]
   );
 
-  const { documents: friendEdges } = useOptimizedFirestore('friends', friendsCondition);
+  const { documents: friendEdges } = useOptimizedFirestore(
+    currentUser?.uid ? 'friends' : null, 
+    friendsCondition
+  );
 
   // Friend requests data (always loaded for efficiency)
   const incomingReqsCondition = useMemo(
@@ -60,10 +63,16 @@ export const useUserSearch = (options = {}) => {
     [currentUser?.uid]
   );
 
-  const { documents: incomingRequestsRaw } = useOptimizedFirestore('friend_requests', incomingReqsCondition);
+  const { documents: incomingRequestsRaw } = useOptimizedFirestore(
+    currentUser?.uid ? 'friend_requests' : null, 
+    incomingReqsCondition
+  );
   const incomingRequests = incomingRequestsRaw.filter(r => r.status === 'pending');
 
-  const { documents: outgoingRequestsRaw } = useOptimizedFirestore('friend_requests', outgoingReqsCondition);  
+  const { documents: outgoingRequestsRaw } = useOptimizedFirestore(
+    currentUser?.uid ? 'friend_requests' : null, 
+    outgoingReqsCondition
+  );  
   const outgoingRequests = outgoingRequestsRaw.filter(r => r.status === 'pending');
 
   // Extract friend IDs

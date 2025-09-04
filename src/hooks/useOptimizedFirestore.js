@@ -39,6 +39,32 @@ const useOptimizedFirestore = (
                 return;
             }
 
+            // Early return if condition is invalid
+            if (condition && (!condition.compareValue ||
+                (Array.isArray(condition.compareValue) && !condition.compareValue.length))) {
+                setData([]);
+                setLoading(false);
+                return;
+            }
+
+            // Check if we have authentication context - don't start listeners without auth
+            try {
+                const { getAuth } = await import('firebase/auth');
+                const auth = getAuth();
+                
+                // If no current user and we're trying to access protected collections, skip
+                if (!auth.currentUser) {
+                    const protectedCollections = ['friends', 'friend_requests', 'users', 'conversations', 'rooms'];
+                    if (protectedCollections.includes(collectionName)) {
+                        setData([]);
+                        setLoading(false);
+                        return;
+                    }
+                }
+            } catch (authError) {
+                console.warn('Auth check failed, proceeding with query:', authError);
+            }
+
             // Generate unique key for this query
             const key = queryBuilder.generateKey(
                 collectionName,
@@ -47,14 +73,6 @@ const useOptimizedFirestore = (
                 orderDirection,
                 customKey
             );
-
-            // Early return if condition is invalid
-            if (condition && (!condition.compareValue ||
-                (Array.isArray(condition.compareValue) && !condition.compareValue.length))) {
-                setData([]);
-                setLoading(false);
-                return;
-            }
 
             try {
                 setLoading(true);
