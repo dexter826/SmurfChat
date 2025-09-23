@@ -126,7 +126,7 @@ async function fetchFriendsList(search, currentUserId) {
           friendIds.push(friendId);
         }
       } catch (err) {
-        console.error('Error checking block status:', err);
+        console.error("Error checking block status:", err);
         // Include if can't check (default behavior)
         friendIds.push(friendId);
       }
@@ -167,7 +167,7 @@ export default function AddRoomModal() {
   const [formState, setFormState] = useState({ name: "" });
   const [selectedMembers, setSelectedMembers] = useState([]);
 
-  const handleOk = () => {
+  const handleOk = async () => {
     // Validate room name
     if (!formState.name || formState.name.trim().length < 3) {
       warning("Tên nhóm phải có ít nhất 3 ký tự!");
@@ -188,10 +188,12 @@ export default function AddRoomModal() {
     const members = [uid, ...selectedMembers.map((member) => member.value)];
 
     // Thêm nhóm mới vào firestore (không lưu mô tả)
-    addDocument("rooms", {
+    await addDocument("rooms", {
       name: formState.name,
       members: members,
       admin: uid,
+      lastMessageAt: null,
+      lastMessage: "",
     });
 
     // Reset form và state

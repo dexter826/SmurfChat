@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import useOptimizedFirestore from '../hooks/useOptimizedFirestore';
-import { AuthContext } from './AuthProvider';
-import { useAlert } from './AlertProvider';
-import { createOrUpdateConversation } from '../firebase/services';
-import reminderService from '../components/Notifications/ReminderService';
-import { UserProvider, useUsers } from './UserContext';
+import React, { useState, useEffect, useRef } from "react";
+import useOptimizedFirestore from "../hooks/useOptimizedFirestore";
+import { AuthContext } from "./AuthProvider";
+import { useAlert } from "./AlertProvider";
+import { createOrUpdateConversation } from "../firebase/services";
+import reminderService from "../components/Notifications/ReminderService";
+import { UserProvider, useUsers } from "./UserContext";
 
 export const AppContext = React.createContext();
 
@@ -12,9 +12,9 @@ function AppProviderInner({ children }) {
   const { getUserById, getOtherParticipant } = useUsers();
   const [isAddRoomVisible, setIsAddRoomVisible] = useState(false);
   const [isInviteMemberVisible, setIsInviteMemberVisible] = useState(false);
-  const [selectedRoomId, setSelectedRoomId] = useState('');
-  const [selectedConversationId, setSelectedConversationId] = useState('');
-  const [chatType, setChatType] = useState('room'); // 'room' or 'direct'
+  const [selectedRoomId, setSelectedRoomId] = useState("");
+  const [selectedConversationId, setSelectedConversationId] = useState("");
+  const [chatType, setChatType] = useState("room"); // 'room' or 'direct'
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [isVoteModalVisible, setIsVoteModalVisible] = useState(false);
   const [isNewMessageVisible, setIsNewMessageVisible] = useState(false);
@@ -26,7 +26,7 @@ function AppProviderInner({ children }) {
   const {
     user: { uid },
   } = React.useContext(AuthContext);
-  
+
   const alertProvider = useAlert();
 
   // Set alert provider for reminder service
@@ -36,13 +36,18 @@ function AppProviderInner({ children }) {
 
   const roomsCondition = React.useMemo(() => {
     return {
-      fieldName: 'members',
-      operator: 'array-contains',
+      fieldName: "members",
+      operator: "array-contains",
       compareValue: uid,
     };
   }, [uid]);
 
-  const { documents: rooms } = useOptimizedFirestore('rooms', roomsCondition, 'lastMessageAt', 'desc');
+  const { documents: rooms } = useOptimizedFirestore(
+    "rooms",
+    roomsCondition,
+    "lastMessageAt",
+    "desc"
+  );
 
   const selectedRoom = React.useMemo(
     () => rooms.find((room) => room.id === selectedRoomId) || {},
@@ -51,33 +56,46 @@ function AppProviderInner({ children }) {
 
   const usersCondition = React.useMemo(() => {
     return {
-      fieldName: 'uid',
-      operator: 'in',
+      fieldName: "uid",
+      operator: "in",
       compareValue: selectedRoom.members,
     };
   }, [selectedRoom.members]);
 
-  const { documents: members } = useOptimizedFirestore('users', usersCondition);
+  const { documents: members } = useOptimizedFirestore("users", usersCondition);
 
   // Conversations for direct messaging
   const conversationsCondition = React.useMemo(() => {
     return {
-      fieldName: 'participants',
-      operator: 'array-contains',
+      fieldName: "participants",
+      operator: "array-contains",
       compareValue: uid,
     };
   }, [uid]);
 
-  const { documents: conversations } = useOptimizedFirestore('conversations', conversationsCondition, 'lastMessageAt', 'desc');
+  const { documents: conversations } = useOptimizedFirestore(
+    "conversations",
+    conversationsCondition,
+    "lastMessageAt",
+    "desc"
+  );
 
   // Events for reminder system
-  const eventsCondition = React.useMemo(() => ({
-    fieldName: 'participants',
-    operator: 'array-contains',
-    compareValue: uid,
-  }), [uid]);
+  const eventsCondition = React.useMemo(
+    () => ({
+      fieldName: "participants",
+      operator: "array-contains",
+      compareValue: uid,
+    }),
+    [uid]
+  );
 
-  const { documents: userEvents } = useOptimizedFirestore('events', eventsCondition, 'eventDate', 'asc');
+  const { documents: userEvents } = useOptimizedFirestore(
+    "events",
+    eventsCondition,
+    "eventDate",
+    "asc"
+  );
 
   // Update reminder service when events change
   useEffect(() => {
@@ -85,11 +103,11 @@ function AppProviderInner({ children }) {
       reminderService.updateReminders(userEvents);
 
       // Show daily agenda on first load
-      const hasShownAgenda = sessionStorage.getItem('dailyAgendaShown');
+      const hasShownAgenda = sessionStorage.getItem("dailyAgendaShown");
       if (!hasShownAgenda) {
         setTimeout(() => {
           reminderService.showDailyAgenda(userEvents);
-          sessionStorage.setItem('dailyAgendaShown', 'true');
+          sessionStorage.setItem("dailyAgendaShown", "true");
         }, 2000);
       }
     }
@@ -98,8 +116,8 @@ function AppProviderInner({ children }) {
   // Keep reminder service per-chat mutes in sync for rooms
   useEffect(() => {
     const mutedRoomIds = rooms
-      .filter(r => r.mutedBy && r.mutedBy[uid])
-      .map(r => r.id);
+      .filter((r) => r.mutedBy && r.mutedBy[uid])
+      .map((r) => r.id);
     reminderService.setMutedChats(mutedRoomIds);
   }, [rooms, uid]);
 
@@ -116,23 +134,25 @@ function AppProviderInner({ children }) {
     if (!selectedConversationId) return {};
 
     // Handle new conversation creation
-    if (selectedConversationId.startsWith('new_')) {
-      const otherUserId = selectedConversationId.replace('new_', '');
+    if (selectedConversationId.startsWith("new_")) {
+      const otherUserId = selectedConversationId.replace("new_", "");
       const otherUser = getUserById(otherUserId);
 
       // Create new conversation
-      const newConversationId = [uid, otherUserId].sort().join('_');
+      const newConversationId = [uid, otherUserId].sort().join("_");
 
       // Check if conversation already exists
-      const existingConversation = conversations.find(conv =>
-        conv.participants.includes(otherUserId) && conv.participants.includes(uid)
+      const existingConversation = conversations.find(
+        (conv) =>
+          conv.participants.includes(otherUserId) &&
+          conv.participants.includes(uid)
       );
 
       if (existingConversation) {
         setSelectedConversationId(existingConversation.id);
         return {
           ...existingConversation,
-          otherUser
+          otherUser,
         };
       }
 
@@ -142,11 +162,11 @@ function AppProviderInner({ children }) {
           id: newConversationId,
           participants: [uid, otherUserId],
           createdAt: new Date(),
-          lastMessage: '',
+          lastMessage: "",
           lastMessageAt: null,
         });
       } catch (err) {
-        console.error('Error creating conversation in AppProvider:', err);
+        console.error("Error creating conversation in AppProvider:", err);
         // Silent fail in AppProvider to prevent app crash
       }
 
@@ -155,21 +175,28 @@ function AppProviderInner({ children }) {
         participants: [uid, otherUserId],
         otherUser,
         createdAt: new Date(),
-        lastMessage: '',
+        lastMessage: "",
         lastMessageAt: null,
       };
     }
 
-    const conversation = conversations.find((conv) => conv.id === selectedConversationId) || {};
+    const conversation =
+      conversations.find((conv) => conv.id === selectedConversationId) || {};
     if (conversation.participants) {
       const otherUser = getOtherParticipant(conversation);
       return {
         ...conversation,
-        otherUser
+        otherUser,
       };
     }
     return conversation;
-  }, [conversations, selectedConversationId, uid, getUserById, getOtherParticipant]);
+  }, [
+    conversations,
+    selectedConversationId,
+    uid,
+    getUserById,
+    getOtherParticipant,
+  ]);
 
   // =====================
   // Global notifications for new, unread messages
@@ -185,14 +212,14 @@ function AppProviderInner({ children }) {
   useEffect(() => {
     // Preload custom sound
     try {
-      const a = new Audio('/sounds/incoming.mp3');
-      a.preload = 'auto';
+      const a = new Audio("/sounds/incoming.mp3");
+      a.preload = "auto";
       audioRef.current = a;
-    } catch { }
+    } catch {}
 
     // Store original title
     originalTitleRef.current = document.title;
-    
+
     // Mark as not initial load after a short delay
     setTimeout(() => {
       isInitialLoadRef.current = false;
@@ -206,14 +233,14 @@ function AppProviderInner({ children }) {
         audio.currentTime = 0;
         await audio.play();
         return;
-      } catch { }
+      } catch {}
     }
   }, []);
 
   const updateTabTitle = React.useCallback((count) => {
     if (count > 0) {
       document.title = `(${count}) ${originalTitleRef.current}`;
-      
+
       // Start blinking effect
       if (!titleIntervalRef.current) {
         let isOriginal = true;
@@ -239,42 +266,72 @@ function AppProviderInner({ children }) {
   useEffect(() => {
     // Skip during initial load to prevent showing notification badges on reload
     if (isInitialLoadRef.current) return;
-    
+
     let totalUnread = 0;
-    
+
     // Count unread conversations (excluding currently open conversation)
     conversations.forEach((conv) => {
       if (!conv) return;
-      
+
       // Skip currently selected conversation
-      if (chatType === 'direct' && selectedConversationId === conv.id) return;
-      
+      if (chatType === "direct" && selectedConversationId === conv.id) return;
+
       const lastAt = conv.lastMessageAt;
       const lastSeen = conv.lastSeen?.[uid];
-      const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
-      const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
-      const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
+      const lastAtDate = lastAt?.toDate
+        ? lastAt.toDate()
+        : lastAt
+        ? new Date(lastAt)
+        : null;
+      const lastSeenDate = lastSeen?.toDate
+        ? lastSeen.toDate()
+        : lastSeen
+        ? new Date(lastSeen)
+        : null;
+      const isUnread = !!(
+        lastAtDate &&
+        (!lastSeenDate || lastAtDate > lastSeenDate)
+      );
       if (isUnread) totalUnread++;
     });
-    
+
     // Count unread rooms (excluding currently open room)
     rooms.forEach((room) => {
       if (!room || room.deleted) return;
-      
+
       // Skip currently selected room
-      if (chatType === 'room' && selectedRoomId === room.id) return;
-      
+      if (chatType === "room" && selectedRoomId === room.id) return;
+
       const lastAt = room.lastMessageAt;
       const lastSeen = room.lastSeen?.[uid];
-      const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
-      const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
-      const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
+      const lastAtDate = lastAt?.toDate
+        ? lastAt.toDate()
+        : lastAt
+        ? new Date(lastAt)
+        : null;
+      const lastSeenDate = lastSeen?.toDate
+        ? lastSeen.toDate()
+        : lastSeen
+        ? new Date(lastSeen)
+        : null;
+      const isUnread = !!(
+        lastAtDate &&
+        (!lastSeenDate || lastAtDate > lastSeenDate)
+      );
       if (isUnread) totalUnread++;
     });
-    
+
     setUnreadCount(totalUnread);
     updateTabTitle(totalUnread);
-  }, [conversations, rooms, uid, updateTabTitle, chatType, selectedConversationId, selectedRoomId]);
+  }, [
+    conversations,
+    rooms,
+    uid,
+    updateTabTitle,
+    chatType,
+    selectedConversationId,
+    selectedRoomId,
+  ]);
 
   // Clean up title interval on unmount
   useEffect(() => {
@@ -293,57 +350,96 @@ function AppProviderInner({ children }) {
         // When user comes back to tab, recalculate unread count to reset title appropriately
         setTimeout(() => {
           let totalUnread = 0;
-          
+
           // Count unread conversations (excluding currently open conversation)
           conversations.forEach((conv) => {
             if (!conv) return;
-            if (chatType === 'direct' && selectedConversationId === conv.id) return;
-            
+            if (chatType === "direct" && selectedConversationId === conv.id)
+              return;
+
             const lastAt = conv.lastMessageAt;
             const lastSeen = conv.lastSeen?.[uid];
-            const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
-            const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
-            const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
+            const lastAtDate = lastAt?.toDate
+              ? lastAt.toDate()
+              : lastAt
+              ? new Date(lastAt)
+              : null;
+            const lastSeenDate = lastSeen?.toDate
+              ? lastSeen.toDate()
+              : lastSeen
+              ? new Date(lastSeen)
+              : null;
+            const isUnread = !!(
+              lastAtDate &&
+              (!lastSeenDate || lastAtDate > lastSeenDate)
+            );
             if (isUnread) totalUnread++;
           });
-          
+
           // Count unread rooms (excluding currently open room)
           rooms.forEach((room) => {
             if (!room || room.deleted) return;
-            if (chatType === 'room' && selectedRoomId === room.id) return;
-            
+            if (chatType === "room" && selectedRoomId === room.id) return;
+
             const lastAt = room.lastMessageAt;
             const lastSeen = room.lastSeen?.[uid];
-            const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
-            const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
-            const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
+            const lastAtDate = lastAt?.toDate
+              ? lastAt.toDate()
+              : lastAt
+              ? new Date(lastAt)
+              : null;
+            const lastSeenDate = lastSeen?.toDate
+              ? lastSeen.toDate()
+              : lastSeen
+              ? new Date(lastSeen)
+              : null;
+            const isUnread = !!(
+              lastAtDate &&
+              (!lastSeenDate || lastAtDate > lastSeenDate)
+            );
             if (isUnread) totalUnread++;
           });
-          
+
           setUnreadCount(totalUnread);
           updateTabTitle(totalUnread);
         }, 100);
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [conversations, rooms, uid, updateTabTitle, chatType, selectedConversationId, selectedRoomId]);
+  }, [
+    conversations,
+    rooms,
+    uid,
+    updateTabTitle,
+    chatType,
+    selectedConversationId,
+    selectedRoomId,
+  ]);
 
   // Notify for direct messages (any conversation, not only selected)
   useEffect(() => {
     if (!Array.isArray(conversations) || isInitialLoadRef.current) return; // Skip notifications during initial load
-    
+
     conversations.forEach((conv) => {
       if (!conv) return;
       const lastAt = conv.lastMessageAt;
       const updatedBy = conv.updatedBy;
       const lastSeen = conv.lastSeen?.[uid];
-      const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
-      const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
+      const lastAtDate = lastAt?.toDate
+        ? lastAt.toDate()
+        : lastAt
+        ? new Date(lastAt)
+        : null;
+      const lastSeenDate = lastSeen?.toDate
+        ? lastSeen.toDate()
+        : lastSeen
+        ? new Date(lastSeen)
+        : null;
 
       // Only notify if:
       // 1. There's a valid lastAtDate
@@ -353,47 +449,84 @@ function AppProviderInner({ children }) {
       // 5. Chat is not muted
       // 6. We haven't already notified for this exact timestamp
       const isFromOther = updatedBy && updatedBy !== uid;
-      const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
+      const isUnread = !!(
+        lastAtDate &&
+        (!lastSeenDate || lastAtDate > lastSeenDate)
+      );
       const isMuted = !!(conv.mutedBy && conv.mutedBy[uid]);
-      const hasNotifiedForThisMessage = notifiedConversationsRef.current[conv.id] && 
-        lastAtDate && notifiedConversationsRef.current[conv.id].getTime() === lastAtDate.getTime();
-      
-      const shouldNotify = lastAtDate && isFromOther && isUnread && !isMuted && !hasNotifiedForThisMessage &&
-        (!notifiedConversationsRef.current[conv.id] || lastAtDate > notifiedConversationsRef.current[conv.id]) &&
+      const hasNotifiedForThisMessage =
+        notifiedConversationsRef.current[conv.id] &&
+        lastAtDate &&
+        notifiedConversationsRef.current[conv.id].getTime() ===
+          lastAtDate.getTime();
+
+      const shouldNotify =
+        lastAtDate &&
+        isFromOther &&
+        isUnread &&
+        !isMuted &&
+        !hasNotifiedForThisMessage &&
+        (!notifiedConversationsRef.current[conv.id] ||
+          lastAtDate > notifiedConversationsRef.current[conv.id]) &&
         // Don't notify if user is currently viewing this conversation
-        (chatType !== 'direct' || selectedConversationId !== conv.id);
-      
+        (chatType !== "direct" || selectedConversationId !== conv.id);
+
       if (shouldNotify) {
         notifiedConversationsRef.current[conv.id] = lastAtDate;
         playNotificationSound();
       }
     });
-  }, [conversations, uid, playNotificationSound, chatType, selectedConversationId]);
+  }, [
+    conversations,
+    uid,
+    playNotificationSound,
+    chatType,
+    selectedConversationId,
+  ]);
 
   // Optional: Notify for rooms as well using lastMessageAt/lastSeen
   useEffect(() => {
     if (!Array.isArray(rooms) || isInitialLoadRef.current) return; // Skip notifications during initial load
-    
+
     rooms.forEach((room) => {
       if (!room || room.deleted) return;
       const lastAt = room.lastMessageAt;
       const updatedBy = room.updatedBy;
       const lastSeen = room.lastSeen?.[uid];
-      const lastAtDate = lastAt?.toDate ? lastAt.toDate() : (lastAt ? new Date(lastAt) : null);
-      const lastSeenDate = lastSeen?.toDate ? lastSeen.toDate() : (lastSeen ? new Date(lastSeen) : null);
+      const lastAtDate = lastAt?.toDate
+        ? lastAt.toDate()
+        : lastAt
+        ? new Date(lastAt)
+        : null;
+      const lastSeenDate = lastSeen?.toDate
+        ? lastSeen.toDate()
+        : lastSeen
+        ? new Date(lastSeen)
+        : null;
 
       // Same improved logic for rooms
       const isFromOther = updatedBy && updatedBy !== uid;
-      const isUnread = !!(lastAtDate && (!lastSeenDate || lastAtDate > lastSeenDate));
+      const isUnread = !!(
+        lastAtDate &&
+        (!lastSeenDate || lastAtDate > lastSeenDate)
+      );
       const isMuted = !!(room.mutedBy && room.mutedBy[uid]);
-      const hasNotifiedForThisMessage = notifiedRoomsRef.current[room.id] && 
-        lastAtDate && notifiedRoomsRef.current[room.id].getTime() === lastAtDate.getTime();
-      
-      const shouldNotify = lastAtDate && isFromOther && isUnread && !isMuted && !hasNotifiedForThisMessage &&
-        (!notifiedRoomsRef.current[room.id] || lastAtDate > notifiedRoomsRef.current[room.id]) &&
+      const hasNotifiedForThisMessage =
+        notifiedRoomsRef.current[room.id] &&
+        lastAtDate &&
+        notifiedRoomsRef.current[room.id].getTime() === lastAtDate.getTime();
+
+      const shouldNotify =
+        lastAtDate &&
+        isFromOther &&
+        isUnread &&
+        !isMuted &&
+        !hasNotifiedForThisMessage &&
+        (!notifiedRoomsRef.current[room.id] ||
+          lastAtDate > notifiedRoomsRef.current[room.id]) &&
         // Don't notify if user is currently viewing this room
-        (chatType !== 'room' || selectedRoomId !== room.id);
-      
+        (chatType !== "room" || selectedRoomId !== room.id);
+
       if (shouldNotify) {
         notifiedRoomsRef.current[room.id] = lastAtDate;
         playNotificationSound();
@@ -402,26 +535,26 @@ function AppProviderInner({ children }) {
   }, [rooms, uid, playNotificationSound, chatType, selectedRoomId]);
 
   const clearState = () => {
-    setSelectedRoomId('');
-    setSelectedConversationId('');
+    setSelectedRoomId("");
+    setSelectedConversationId("");
     setIsAddRoomVisible(false);
     setIsInviteMemberVisible(false);
     setIsUserProfileVisible(false);
     setSelectedUser(null);
-    setChatType('room');
+    setChatType("room");
   };
 
   // Helper functions to properly switch between chat types
   const selectRoom = (roomId) => {
-    setSelectedConversationId(''); // Clear conversation selection
+    setSelectedConversationId(""); // Clear conversation selection
     setSelectedRoomId(roomId);
-    setChatType('room');
+    setChatType("room");
   };
 
   const selectConversation = (conversationId) => {
-    setSelectedRoomId(''); // Clear room selection
+    setSelectedRoomId(""); // Clear room selection
     setSelectedConversationId(conversationId);
-    setChatType('direct');
+    setChatType("direct");
   };
 
   return (
@@ -472,9 +605,7 @@ function AppProviderInner({ children }) {
 export default function AppProvider({ children }) {
   return (
     <UserProvider>
-      <AppProviderInner>
-        {children}
-      </AppProviderInner>
+      <AppProviderInner>{children}</AppProviderInner>
     </UserProvider>
   );
 }
