@@ -10,7 +10,9 @@
 
 import { useState, useCallback, useEffect, useContext } from 'react';
 import { AuthContext } from '../Context/AuthProvider';
-import { getMutualBlockStatus, isUserBlockedOptimized } from '../firebase/utils/block.utils';
+import { getMutualBlockStatus, isUserBlockedOptimized, clearBlockCache } from '../firebase/utils/block.utils';
+import { collection, query, where, or, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 export const useBlockStatus = (targetUserId = null) => {
   const { user } = useContext(AuthContext);
@@ -28,7 +30,7 @@ export const useBlockStatus = (targetUserId = null) => {
       if (!fromUserId || !toUserId || fromUserId === toUserId) {
         return false;
       }
-      
+
       return await isUserBlockedOptimized(fromUserId, toUserId);
     } catch (error) {
       console.error('Error checking block status:', error);
@@ -46,7 +48,7 @@ export const useBlockStatus = (targetUserId = null) => {
           isBlocked: false
         };
       }
-      
+
       return await getMutualBlockStatus(userA, userB);
     } catch (error) {
       console.error('Error checking mutual block status:', error);
@@ -75,7 +77,7 @@ export const useBlockStatus = (targetUserId = null) => {
 
     try {
       const mutualStatus = await checkMutualBlockStatus(user.uid, userId);
-      
+
       setBlockStatus({
         isBlockedByMe: mutualStatus.aBlockedB,
         isBlockingMe: mutualStatus.bBlockedA,
@@ -93,40 +95,64 @@ export const useBlockStatus = (targetUserId = null) => {
     }
   }, [user?.uid, targetUserId, checkMutualBlockStatus]);
 
-  // Auto-refresh when target user changes
+  // Real-time listener for block status changes
   useEffect(() => {
-    if (targetUserId && user?.uid) {
-      refreshBlockStatus(targetUserId);
+    if (!user?.uid) return;
+
+    // Set up listener for block changes involving current user and target user
+    const blockedUsersRef = collection(db, 'blocked_users');
+
+    // Query for documents where current user or target user is involved
+    const conditions = [where('blocker', '==', user.uid), where('blocked', '==', user.uid)];
+    if (targetUserId) {
+      conditions.push(where('blocker', '==', targetUserId), where('blocked', '==', targetUserId));
     }
-  }, [targetUserId, user?.uid, refreshBlockStatus]);
+
+    const q = query(blockedUsersRef, or(...conditions));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      // Clear cache when changes occur
+      clearBlockCache(user.uid, targetUserId);
+
+      // Refresh block status
+      if (targetUserId) {
+        refreshBlockStatus(targetUserId);
+      }
+    }, (error) => {
+      console.error('Error listening to block changes:', error);
+    });
+
+    // Cleanup listener on unmount or when dependencies change
+    return () => unsubscribe();
+  }, [user?.uid, targetUserId, refreshBlockStatus]);
 
   // Utility functions for common use cases
   const canSendMessage = useCallback((recipientId = targetUserId) => {
     if (!user?.uid || !recipientId || user.uid === recipientId) return true;
-    
+
     // Can't send if either user blocked the other
     return !blockStatus.isMutuallyBlocked;
   }, [user?.uid, targetUserId, blockStatus.isMutuallyBlocked]);
 
   const canViewProfile = useCallback((profileUserId = targetUserId) => {
     if (!user?.uid || !profileUserId || user.uid === profileUserId) return true;
-    
+
     // Can view if not blocking me
     return !blockStatus.isBlockingMe;
   }, [user?.uid, targetUserId, blockStatus.isBlockingMe]);
 
   const canStartConversation = useCallback((otherUserId = targetUserId) => {
     if (!user?.uid || !otherUserId || user.uid === otherUserId) return false;
-    
+
     // Can start if no blocks exist
     return !blockStatus.isMutuallyBlocked;
   }, [user?.uid, targetUserId, blockStatus.isMutuallyBlocked]);
 
   const getBlockMessage = useCallback((actionType = 'message') => {
     if (!blockStatus.isMutuallyBlocked) return null;
-    
+
     const messages = {
-      message: blockStatus.isBlockedByMe 
+      message: blockStatus.isBlockedByMe
         ? 'Không thể gửi tin nhắn - bạn đã chặn người dùng này'
         : 'Không thể gửi tin nhắn - người dùng này đã chặn bạn',
       conversation: blockStatus.isBlockedByMe
@@ -139,19 +165,19 @@ export const useBlockStatus = (targetUserId = null) => {
         ? 'Không thể mời - bạn đã chặn người dùng này'
         : 'Không thể mời - người dùng này đã chặn bạn'
     };
-    
+
     return messages[actionType] || messages.message;
   }, [blockStatus]);
 
   return {
     // Status
     ...blockStatus,
-    
+
     // Actions
     checkIsBlocked,
     checkMutualBlockStatus,
     refreshBlockStatus,
-    
+
     // Utility functions
     canSendMessage,
     canViewProfile,

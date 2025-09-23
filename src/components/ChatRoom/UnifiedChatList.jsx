@@ -13,26 +13,64 @@ import {
   unblockUser,
 } from "../../firebase/services";
 import { isUserBlockedOptimized } from "../../firebase/utils/block.utils";
-import { doc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  or,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "../../firebase/config";
+import { clearBlockCache } from "../../firebase/utils/block.utils";
 
 // Icon components
 const PinIcon = () => (
   <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 
 const MuteIcon = () => (
-  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+  <svg
+    className="h-3 w-3"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+    />
   </svg>
 );
 
 const MoreIcon = () => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+  <svg
+    className="h-4 w-4"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+    />
   </svg>
 );
 
@@ -43,19 +81,39 @@ const GroupIcon = () => (
 );
 
 const BlockIcon = () => (
-  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L5.636 5.636" />
-    <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+  <svg
+    className="h-3 w-3"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L5.636 5.636"
+    />
+    <circle
+      cx="12"
+      cy="12"
+      r="9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+    />
   </svg>
 );
 
 const OnlineStatusIndicator = ({ userId }) => {
   const { isOnline } = useUserOnlineStatus(userId);
-  
+
   return (
-    <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-900 transition-colors duration-200 ${
-      isOnline ? 'bg-emerald-500' : 'bg-slate-400'
-    }`} title={isOnline ? 'Đang hoạt động' : 'Không hoạt động'}></div>
+    <div
+      className={`absolute bottom-0 right-0 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-900 transition-colors duration-200 ${
+        isOnline ? "bg-emerald-500" : "bg-slate-400"
+      }`}
+      title={isOnline ? "Đang hoạt động" : "Không hoạt động"}
+    ></div>
   );
 };
 
@@ -79,7 +137,7 @@ export default function UnifiedChatList() {
   // REMOVED: Duplicate user loading - now using UserContext
   // const allUsersCondition = React.useMemo(
   //   () => ({
-  //     fieldName: "uid", 
+  //     fieldName: "uid",
   //     operator: "!=",
   //     compareValue: user.uid,
   //   }),
@@ -88,19 +146,22 @@ export default function UnifiedChatList() {
   // const allUsers = useFirestore("users", allUsersCondition);
 
   // Check block status for a conversation participant
-  const checkBlockStatus = React.useCallback(async (conversationId, otherUserId) => {
-    try {
-      const blocked = await isUserBlockedOptimized(user.uid, otherUserId);
-      setBlockStatus(prev => ({
-        ...prev,
-        [conversationId]: blocked
-      }));
-      return blocked;
-    } catch (err) {
-      console.error("Error checking block status:", err);
-      return false;
-    }
-  }, [user.uid]);
+  const checkBlockStatus = React.useCallback(
+    async (conversationId, otherUserId) => {
+      try {
+        const blocked = await isUserBlockedOptimized(user.uid, otherUserId);
+        setBlockStatus((prev) => ({
+          ...prev,
+          [conversationId]: blocked,
+        }));
+        return blocked;
+      } catch (err) {
+        console.error("Error checking block status:", err);
+        return false;
+      }
+    },
+    [user.uid]
+  );
 
   // Check block status for all conversations when component mounts or conversations change
   React.useEffect(() => {
@@ -108,7 +169,9 @@ export default function UnifiedChatList() {
       if (!user?.uid || !conversations.length) return;
 
       const statusChecks = conversations.map(async (conversation) => {
-        const otherUserId = conversation.participants.find(uid => uid !== user.uid);
+        const otherUserId = conversation.participants.find(
+          (uid) => uid !== user.uid
+        );
         if (otherUserId) {
           const blocked = await checkBlockStatus(conversation.id, otherUserId);
           return { conversationId: conversation.id, blocked };
@@ -118,17 +181,71 @@ export default function UnifiedChatList() {
 
       const results = await Promise.all(statusChecks);
       const newBlockStatus = {};
-      results.forEach(result => {
+      results.forEach((result) => {
         if (result) {
           newBlockStatus[result.conversationId] = result.blocked;
         }
       });
-      
+
       setBlockStatus(newBlockStatus);
     };
 
     checkAllBlockStatuses();
   }, [conversations, user?.uid, checkBlockStatus]);
+
+  // Real-time listener for block status changes
+  React.useEffect(() => {
+    if (!user?.uid) return;
+
+    const blockedUsersRef = collection(db, "blocked_users");
+
+    // Listen for block changes involving current user
+    const q = query(
+      blockedUsersRef,
+      or(where("blocker", "==", user.uid), where("blocked", "==", user.uid))
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      async (snapshot) => {
+        // Clear cache when changes occur
+        clearBlockCache(user.uid);
+
+        // Re-check block status for all conversations
+        if (conversations.length > 0) {
+          const statusChecks = conversations.map(async (conversation) => {
+            const otherUserId = conversation.participants.find(
+              (uid) => uid !== user.uid
+            );
+            if (otherUserId) {
+              const blocked = await isUserBlockedOptimized(
+                user.uid,
+                otherUserId
+              );
+              return { conversationId: conversation.id, blocked };
+            }
+            return null;
+          });
+
+          const results = await Promise.all(statusChecks);
+          const newBlockStatus = {};
+          results.forEach((result) => {
+            if (result) {
+              newBlockStatus[result.conversationId] = result.blocked;
+            }
+          });
+
+          setBlockStatus(newBlockStatus);
+        }
+      },
+      (error) => {
+        console.error("Error listening to block changes in chat list:", error);
+      }
+    );
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
+  }, [user?.uid, conversations]);
 
   const handleRoomClick = async (roomId) => {
     selectRoom(roomId);
@@ -165,14 +282,14 @@ export default function UnifiedChatList() {
       if (isConversation) {
         // Clear selected conversation if it's the one being deleted
         if (selectedConversationId === chatId) {
-          setSelectedConversationId('');
+          setSelectedConversationId("");
         }
         await deleteConversation(chatId);
         success("Đã xóa cuộc trò chuyện");
       } else {
         // Clear selected room if it's the one being deleted
         if (selectedRoomId === chatId) {
-          setSelectedRoomId('');
+          setSelectedRoomId("");
         }
         await dissolveRoom(chatId);
         success("Đã xóa phòng chat");
@@ -205,32 +322,32 @@ export default function UnifiedChatList() {
   // Handle block/unblock user in conversation
   const handleToggleBlock = async (conversation, otherUser) => {
     const isBlocked = blockStatus[conversation.id];
-    const actionText = isBlocked ? 'bỏ chặn' : 'chặn';
-    
+    const actionText = isBlocked ? "bỏ chặn" : "chặn";
+
     const confirmed = await confirm(
       `Bạn có chắc muốn ${actionText} ${otherUser.displayName}?`
     );
-    
+
     if (!confirmed) return;
 
     try {
       if (isBlocked) {
         await unblockUser(user.uid, otherUser.uid);
-        setBlockStatus(prev => ({
+        setBlockStatus((prev) => ({
           ...prev,
-          [conversation.id]: false
+          [conversation.id]: false,
         }));
         success(`Đã bỏ chặn ${otherUser.displayName}`);
       } else {
         await blockUser(user.uid, otherUser.uid);
-        setBlockStatus(prev => ({
+        setBlockStatus((prev) => ({
           ...prev,
-          [conversation.id]: true
+          [conversation.id]: true,
         }));
         success(`Đã chặn ${otherUser.displayName}`);
       }
     } catch (err) {
-      console.error('Error toggling block:', err);
+      console.error("Error toggling block:", err);
       error(err.message || `Không thể ${actionText} người dùng`);
     }
   };
@@ -252,7 +369,7 @@ export default function UnifiedChatList() {
         room.lastSeen &&
         room.lastSeen[user.uid] &&
         room.lastMessage &&
-        room.lastMessage.trim() !== '' &&
+        room.lastMessage.trim() !== "" &&
         (room.lastMessageAt?.toDate
           ? room.lastMessageAt.toDate()
           : new Date(room.lastMessageAt)) >
@@ -271,30 +388,30 @@ export default function UnifiedChatList() {
       .map((conversation) => {
         const otherUser = getOtherParticipant(conversation);
         return {
-        ...conversation,
-        type: "conversation",
-        displayName: otherUser.displayName,
-        description: conversation.lastMessage || "Chưa có tin nhắn",
-        avatar: otherUser.photoURL,
-        isSelected: selectedConversationId === conversation.id,
-        otherUser,
-        isMuted: !!(conversation.mutedBy && conversation.mutedBy[user.uid]),
-        hasUnread: !!(
-          conversation.lastMessageAt &&
-          conversation.lastSeen &&
-          conversation.lastSeen[user.uid] &&
-          conversation.lastMessage &&
-          conversation.lastMessage.trim() !== '' &&
-          (conversation.lastMessageAt?.toDate
-            ? conversation.lastMessageAt.toDate()
-            : new Date(conversation.lastMessageAt)) >
-            (conversation.lastSeen[user.uid]?.toDate
-              ? conversation.lastSeen[user.uid].toDate()
-              : new Date(conversation.lastSeen[user.uid]))
-        ),
-        isPinned: conversation.pinned || false,
-      };
-    });
+          ...conversation,
+          type: "conversation",
+          displayName: otherUser.displayName,
+          description: conversation.lastMessage || "Chưa có tin nhắn",
+          avatar: otherUser.photoURL,
+          isSelected: selectedConversationId === conversation.id,
+          otherUser,
+          isMuted: !!(conversation.mutedBy && conversation.mutedBy[user.uid]),
+          hasUnread: !!(
+            conversation.lastMessageAt &&
+            conversation.lastSeen &&
+            conversation.lastSeen[user.uid] &&
+            conversation.lastMessage &&
+            conversation.lastMessage.trim() !== "" &&
+            (conversation.lastMessageAt?.toDate
+              ? conversation.lastMessageAt.toDate()
+              : new Date(conversation.lastMessageAt)) >
+              (conversation.lastSeen[user.uid]?.toDate
+                ? conversation.lastSeen[user.uid].toDate()
+                : new Date(conversation.lastSeen[user.uid]))
+          ),
+          isPinned: conversation.pinned || false,
+        };
+      });
 
     // Sort by pinned first, then by last activity
     return [...roomItems, ...conversationItems].sort((a, b) => {
@@ -324,11 +441,23 @@ export default function UnifiedChatList() {
       {allChats.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
           <div className="rounded-full bg-slate-100 p-3 dark:bg-slate-800 mb-3">
-            <svg className="h-6 w-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
+            <svg
+              className="h-6 w-6 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z"
+              />
             </svg>
           </div>
-          <h3 className="text-sm font-medium text-slate-800 dark:text-slate-100 mb-1">Chưa có cuộc trò chuyện</h3>
+          <h3 className="text-sm font-medium text-slate-800 dark:text-slate-100 mb-1">
+            Chưa có cuộc trò chuyện
+          </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Hãy bắt đầu tạo phòng chat hoặc gửi tin nhắn
           </p>
@@ -341,8 +470,8 @@ export default function UnifiedChatList() {
             <div
               key={`${chat.type}-${chat.id}`}
               className={`group relative flex cursor-pointer items-center rounded-lg mx-3 px-3 py-3 transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800/50 ${
-                isSelected 
-                  ? "bg-skybrand-50 dark:bg-skybrand-900/20 border-l-4 border-skybrand-500" 
+                isSelected
+                  ? "bg-skybrand-50 dark:bg-skybrand-900/20 border-l-4 border-skybrand-500"
                   : "border-l-4 border-transparent"
               }`}
               onClick={(e) => {
@@ -364,22 +493,24 @@ export default function UnifiedChatList() {
                     src={chat.avatar}
                     alt="avatar"
                     onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "flex";
                     }}
                   />
                 ) : null}
-                <div 
-                  className={`${chat.avatar ? 'hidden' : 'flex'} h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-skybrand-500 to-skybrand-600 text-white ring-2 ring-slate-200 dark:ring-slate-700 font-semibold user-avatar`}
+                <div
+                  className={`${
+                    chat.avatar ? "hidden" : "flex"
+                  } h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-skybrand-500 to-skybrand-600 text-white ring-2 ring-slate-200 dark:ring-slate-700 font-semibold user-avatar`}
                 >
-                  {chat.displayName?.charAt(0)?.toUpperCase() || '?'}
+                  {chat.displayName?.charAt(0)?.toUpperCase() || "?"}
                 </div>
-                
+
                 {/* Online status indicator for conversations */}
                 {chat.type === "conversation" && (
                   <OnlineStatusIndicator userId={chat.otherUser?.uid} />
                 )}
-                
+
                 {/* Unread indicator */}
                 {chat.hasUnread && (
                   <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-skybrand-500 ring-2 ring-white dark:ring-slate-900 notification-badge"></div>
@@ -398,7 +529,7 @@ export default function UnifiedChatList() {
                   >
                     {chat.displayName}
                   </p>
-                  
+
                   {/* Status indicators */}
                   <div className="flex items-center gap-1">
                     {chat.isPinned && (
@@ -419,7 +550,7 @@ export default function UnifiedChatList() {
                     )}
                   </div>
                 </div>
-                
+
                 <p
                   className={`truncate text-xs leading-tight ${
                     chat.hasUnread
@@ -458,12 +589,12 @@ export default function UnifiedChatList() {
                 >
                   <MoreIcon />
                 </button>
-                
+
                 {isOpen && (
                   <>
                     {/* Backdrop to close menu */}
-                    <div 
-                      className="fixed inset-0 z-10" 
+                    <div
+                      className="fixed inset-0 z-10"
                       onClick={() => setOpenMenuId(null)}
                     />
                     <div className="absolute right-0 top-10 z-20 w-48 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800 py-1">
@@ -482,7 +613,7 @@ export default function UnifiedChatList() {
                         <PinIcon />
                         {chat.isPinned ? "Bỏ ghim" : "Ghim cuộc trò chuyện"}
                       </button>
-                      
+
                       <button
                         className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors duration-150"
                         onClick={(e) => {
@@ -494,7 +625,7 @@ export default function UnifiedChatList() {
                         <MuteIcon />
                         {chat.isMuted ? "Bật thông báo" : "Tắt thông báo"}
                       </button>
-                      
+
                       {/* Block/Unblock option - only for direct conversations */}
                       {chat.type === "conversation" && (
                         <button
@@ -512,22 +643,43 @@ export default function UnifiedChatList() {
                           {blockStatus[chat.id] ? "Bỏ chặn" : "Chặn người dùng"}
                         </button>
                       )}
-                      
+
                       <div className="border-t border-slate-200 dark:border-slate-600 my-1"></div>
-                      
+
                       <button
                         className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors duration-150"
                         onClick={async () => {
-                          const confirmed = await confirm(`Bạn có chắc muốn xóa ${chat.type === "room" ? "phòng chat" : "cuộc trò chuyện"} này?`);
+                          const confirmed = await confirm(
+                            `Bạn có chắc muốn xóa ${
+                              chat.type === "room"
+                                ? "phòng chat"
+                                : "cuộc trò chuyện"
+                            } này?`
+                          );
                           if (confirmed) {
-                            handleDeleteChat(chat.id, chat.type === "conversation");
+                            handleDeleteChat(
+                              chat.id,
+                              chat.type === "conversation"
+                            );
                           }
                         }}
                       >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
-                        {chat.type === "room" ? "Xóa phòng chat" : "Xóa cuộc trò chuyện"}
+                        {chat.type === "room"
+                          ? "Xóa phòng chat"
+                          : "Xóa cuộc trò chuyện"}
                       </button>
                     </div>
                   </>
