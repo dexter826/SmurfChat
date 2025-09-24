@@ -70,6 +70,7 @@ export default function ConversationWindow() {
   const messageListRef = useRef();
   const [canChat, setCanChat] = useState(true);
   const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
+  const [replyContext, setReplyContext] = useState(null);
 
   const scrollToMessage = useCallback((messageId) => {
     // Find the message element in the chat
@@ -102,7 +103,16 @@ export default function ConversationWindow() {
   };
 
   const handleOnSubmit = async () => {
-    await handleTextMessage();
+    await handleTextMessage([], replyContext);
+    setReplyContext(null); // Clear reply context after sending
+  };
+
+  const handleReply = (messageData) => {
+    setReplyContext(messageData);
+  };
+
+  const handleCancelReply = () => {
+    setReplyContext(null);
   };
 
   // Toggle quick reactions
@@ -368,6 +378,9 @@ export default function ConversationWindow() {
                       encryptedLocationData={mes.encryptedLocationData}
                       contentHash={mes.contentHash}
                       userCredentials={userCredentials}
+                      // Reply props
+                      onReply={handleReply}
+                      replyTo={mes.replyTo}
                       // Forward props
                       forwarded={mes.forwarded}
                       originalSender={mes.originalSender}
@@ -409,6 +422,62 @@ export default function ConversationWindow() {
             {isBlockingMe && (
               <div className="my-2 rounded border border-gray-300 bg-gray-50 p-2 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900/20 dark:text-gray-300">
                 👤 Người này hiện không có mặt
+              </div>
+            )}
+
+            {/* Reply Preview */}
+            {replyContext && (
+              <div className="mb-2 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-700 dark:bg-blue-900/20">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg
+                        className="w-4 h-4 text-blue-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                        />
+                      </svg>
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        Trả lời {replyContext.displayName}
+                      </span>
+                    </div>
+                    <p className="text-sm text-blue-600 dark:text-blue-400 truncate">
+                      {replyContext.messageType === "file"
+                        ? "📁 File"
+                        : replyContext.messageType === "voice"
+                        ? "🎤 Tin nhắn thoại"
+                        : replyContext.messageType === "location"
+                        ? "📍 Vị trí"
+                        : replyContext.text || "Tin nhắn"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCancelReply}
+                    className="ml-2 p-1 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200"
+                    title="Hủy trả lời"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
             )}
 

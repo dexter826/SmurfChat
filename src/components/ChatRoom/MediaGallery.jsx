@@ -434,6 +434,8 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
                       forwarded={message.forwarded}
                       originalSender={message.originalSender}
                       originalChatType={message.originalChatType}
+                      // Reply props
+                      replyTo={message.replyTo}
                     />
                   </div>
                 ))}

@@ -61,6 +61,9 @@ export default function Message({
   forwarded = false,
   originalSender,
   originalChatType,
+  // Reply props
+  onReply,
+  replyTo,
 }) {
   const { user } = React.useContext(AuthContext);
   const { setSelectedUser, setIsUserProfileVisible } =
@@ -156,6 +159,20 @@ export default function Message({
 
   const handleForwardMessage = () => {
     setShowForwardModal(true);
+    setShowMenu(false);
+  };
+
+  const handleReplyMessage = () => {
+    if (onReply) {
+      onReply({
+        id,
+        text: currentContent.text,
+        displayName,
+        messageType: currentContent.messageType,
+        fileData: currentContent.fileData,
+        locationData: currentContent.locationData,
+      });
+    }
     setShowMenu(false);
   };
 
@@ -400,6 +417,27 @@ export default function Message({
                 isOwn ? "left-full ml-1" : "right-full mr-1"
               } bottom-0 mb-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[120px] z-30`}
             >
+              {/* Reply option */}
+              <button
+                onClick={handleReplyMessage}
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                  />
+                </svg>
+                Trả lời
+              </button>
+
               {/* Forward option */}
               <button
                 onClick={handleForwardMessage}
@@ -504,13 +542,6 @@ export default function Message({
             ) : (
               <EmojiText text={currentContent.text} className="break-words" />
             )}
-
-            {/* Debug: show members count */}
-            {chatType === "room" && (
-              <div className="text-xs text-gray-400 mt-1">
-                Debug: {members?.length || 0} members
-              </div>
-            )}
           </div>
         );
     }
@@ -587,6 +618,28 @@ export default function Message({
             {formatDate(createdAt?.seconds)}
           </span>
         </div>
+
+        {/* Reply Context */}
+        {replyTo && (
+          <div className="mb-2 ml-2 pl-3 border-l-2 border-gray-300 dark:border-gray-600">
+            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+              Trả lời{" "}
+              <span className="font-medium text-gray-800 dark:text-gray-200">
+                {replyTo.senderName}
+              </span>
+            </div>
+            <div className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-xs">
+              {replyTo.messageType === "file"
+                ? "📁 File"
+                : replyTo.messageType === "voice"
+                ? "🎤 Tin nhắn thoại"
+                : replyTo.messageType === "location"
+                ? "📍 Vị trí"
+                : replyTo.text || "Tin nhắn"}
+            </div>
+          </div>
+        )}
+
         {renderMessageContent()}
 
         {/* Message Reactions */}

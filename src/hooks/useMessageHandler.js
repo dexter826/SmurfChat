@@ -48,11 +48,13 @@ export const useMessageHandler = (chatType, chatData, enableEncryption = false, 
     if (!text || chatType !== 'room') return [];
 
     const userMap = new Map();
-    members.forEach(member => {
-      if (member && member.displayName) {
-        userMap.set(member.displayName.toLowerCase(), member.uid);
-      }
-    });
+    if (Array.isArray(members)) {
+      members.forEach(member => {
+        if (member && member.displayName) {
+          userMap.set(member.displayName.toLowerCase(), member.uid);
+        }
+      });
+    }
 
     const mentions = [];
     const mentionRegex = /@([^\s@]+)/g;
@@ -70,7 +72,7 @@ export const useMessageHandler = (chatType, chatData, enableEncryption = false, 
   };
 
   // Xử lý gửi tin nhắn văn bản
-  const handleTextMessage = async (members = []) => {
+  const handleTextMessage = async (members = [], replyContext = null) => {
     if (!inputValue.trim() || !chatData?.id) return;
 
     try {
@@ -81,6 +83,17 @@ export const useMessageHandler = (chatType, chatData, enableEncryption = false, 
         text: inputValue,
         messageType: "text",
         mentions: mentions, // Add mentions array
+        // Add reply data if replying to a message
+        ...(replyContext && replyContext.id ? {
+          replyTo: {
+            messageId: replyContext.id,
+            senderName: replyContext.displayName || '',
+            messageType: replyContext.messageType || 'text',
+            text: replyContext.text || '',
+            fileData: replyContext.fileData || null,
+            locationData: replyContext.locationData || null,
+          }
+        } : {}),
       });
 
       const unifiedMessageData = {
