@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import EmojiPicker from "emoji-picker-react";
 
+// Icon emoji dạng SVG
 const EmojiIcon = () => (
   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
     <path
@@ -16,7 +17,7 @@ const EmojiPickerComponent = ({ onEmojiClick, disabled = false }) => {
   const pickerRef = useRef(null);
   const buttonRef = useRef(null);
 
-  // Close picker when clicking outside
+  // Đóng picker khi click bên ngoài
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -36,11 +37,13 @@ const EmojiPickerComponent = ({ onEmojiClick, disabled = false }) => {
     }
   }, [showPicker]);
 
+  // Xử lý khi chọn emoji
   const handleEmojiClick = (emojiObject) => {
     onEmojiClick(emojiObject.emoji);
-    // Keep picker open for multiple selections
+    // Giữ picker mở để chọn nhiều emoji
   };
 
+  // Toggle hiển thị picker
   const togglePicker = () => {
     if (!disabled) {
       setShowPicker(!showPicker);

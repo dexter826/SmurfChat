@@ -9,7 +9,6 @@ import { ThemeProvider } from "./Context/ThemeProvider.jsx";
 import AlertProvider from "./Context/AlertProvider.jsx";
 import AddRoomModal from "./components/Modals/AddRoomModal.jsx";
 import InviteMemberModal from "./components/Modals/InviteMemberModal.jsx";
-import CalendarModal from "./components/Modals/CalendarModal.jsx";
 import VoteModal from "./components/Modals/VoteModal.jsx";
 import NewMessageModal from "./components/Modals/NewMessageModal.jsx";
 import AddFriendModal from "./components/Modals/AddFriendModal.jsx";
@@ -45,7 +44,6 @@ function App() {
                 </Switch>
                 <AddRoomModal />
                 <InviteMemberModal />
-                <CalendarModal />
                 <VoteModal />
                 <NewMessageModal />
                 <AddFriendModal />

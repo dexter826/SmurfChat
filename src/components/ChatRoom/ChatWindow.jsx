@@ -1,4 +1,4 @@
-import { FaCalendar, FaChartBar } from "react-icons/fa";
+import { FaChartBar } from "react-icons/fa";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
@@ -12,7 +12,6 @@ import usePaginatedFirestore from "../../hooks/usePaginatedFirestore";
 import InfiniteScrollContainer from "../Common/InfiniteScrollContainer";
 import Message from "./Message";
 import { useUserOnlineStatus } from "../../hooks/useOnlineStatus";
-import EventMessage from "./EventMessage";
 import VoteMessage from "./VoteMessage";
 import RoomInfoModal from "./RoomInfoModal";
 import FileUpload from "../FileUpload/FileUpload";
@@ -26,7 +25,6 @@ export default function ChatWindow() {
     selectedConversation,
     chatType,
     setIsInviteMemberVisible,
-    setIsCalendarVisible,
     setIsVoteModalVisible,
     members,
   } = useContext(AppContext);
@@ -114,20 +112,6 @@ export default function ChatWindow() {
     true // real-time
   );
 
-  const eventsCondition = React.useMemo(
-    () => ({
-      fieldName: "roomId",
-      operator: "==",
-      compareValue: selectedRoom?.id,
-    }),
-    [selectedRoom?.id]
-  );
-
-  const { documents: events } = useOptimizedFirestore(
-    "events",
-    eventsCondition
-  );
-
   const votesCondition = React.useMemo(
     () => ({
       fieldName: "roomId",
@@ -152,26 +136,20 @@ export default function ChatWindow() {
     }));
 
     if (chatType === "room") {
-      const eventItems = (events || []).map((event) => ({
-        ...event,
-        type: "event",
-        timestamp: event.createdAt?.toDate?.() || new Date(),
-      }));
-
       const voteItems = (votes || []).map((vote) => ({
         ...vote,
         type: "vote",
         timestamp: vote.createdAt?.toDate?.() || new Date(),
       }));
 
-      return [...messageItems, ...eventItems, ...voteItems].sort(
+      return [...messageItems, ...voteItems].sort(
         (a, b) => a.timestamp - b.timestamp
       );
     }
 
     // For direct messages, only return message items
     return messageItems.sort((a, b) => a.timestamp - b.timestamp);
-  }, [messages, events, votes, chatType]);
+  }, [messages, votes, chatType]);
 
   useEffect(() => {
     if (messageListRef?.current && combinedMessages.length > 0) {
@@ -312,13 +290,6 @@ export default function ChatWindow() {
             {chatType === "room" && (
               <div className="flex items-center gap-2">
                 <button
-                  title="Mở lịch"
-                  className="rounded-md border border-gray-300 p-1 text-slate-700 hover:bg-slate-100 dark:border-gray-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                  onClick={() => setIsCalendarVisible(true)}
-                >
-                  <FaCalendar />
-                </button>
-                <button
                   title="Tạo vote"
                   className="rounded-md border border-gray-300 p-1 text-slate-700 hover:bg-slate-100 dark:border-gray-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   onClick={() => setIsVoteModalVisible(true)}
@@ -351,9 +322,7 @@ export default function ChatWindow() {
             >
               <div ref={messageListRef}>
                 {combinedMessages.map((item, index) => {
-                  if (item.type === "event") {
-                    return <EventMessage key={item.id} event={item} />;
-                  } else if (item.type === "vote") {
+                  if (item.type === "vote") {
                     return <VoteMessage key={item.id} vote={item} />;
                   } else {
                     return (

@@ -73,34 +73,6 @@
           "order": "DESCENDING"
         }
       ]
-    },
-    {
-      "collectionGroup": "events",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "participants",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "eventDate",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "events",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "roomId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "eventDate",
-          "order": "ASCENDING"
-        }
-      ]
     }
   ],
   "fieldOverrides": []

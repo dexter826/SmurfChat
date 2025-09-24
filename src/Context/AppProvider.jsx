@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import useOptimizedFirestore from "../hooks/useOptimizedFirestore";
 import { AuthContext } from "./AuthProvider";
-import { useAlert } from "./AlertProvider";
 import { createOrUpdateConversation } from "../firebase/services";
-import eventReminderService from "../components/Notifications/EventReminderService";
 import { UserProvider, useUsers } from "./UserContext";
 
 export const AppContext = React.createContext();
@@ -15,7 +13,6 @@ function AppProviderInner({ children }) {
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState("");
   const [chatType, setChatType] = useState("room"); // 'room' or 'direct'
-  const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [isVoteModalVisible, setIsVoteModalVisible] = useState(false);
   const [isNewMessageVisible, setIsNewMessageVisible] = useState(false);
   const [isAddFriendVisible, setIsAddFriendVisible] = useState(false);
@@ -26,19 +23,6 @@ function AppProviderInner({ children }) {
   const {
     user: { uid },
   } = React.useContext(AuthContext);
-
-  const alertProvider = useAlert();
-
-  // Khởi tạo reminder service
-  React.useEffect(() => {
-    if (uid && alertProvider) {
-      eventReminderService.initialize(uid, alertProvider);
-    }
-
-    return () => {
-      eventReminderService.destroy();
-    };
-  }, [uid, alertProvider]);
 
   const roomsCondition = React.useMemo(() => {
     return {
@@ -84,23 +68,6 @@ function AppProviderInner({ children }) {
     conversationsCondition,
     "lastMessageAt",
     "desc"
-  );
-
-  // Events for reminder system
-  const eventsCondition = React.useMemo(
-    () => ({
-      fieldName: "participants",
-      operator: "array-contains",
-      compareValue: uid,
-    }),
-    [uid]
-  );
-
-  const { documents: userEvents } = useOptimizedFirestore(
-    "events",
-    eventsCondition,
-    "eventDate",
-    "asc"
   );
 
   const selectedConversation = React.useMemo(() => {
@@ -548,8 +515,6 @@ function AppProviderInner({ children }) {
         setSelectedConversationId,
         chatType,
         setChatType,
-        isCalendarVisible,
-        setIsCalendarVisible,
         isVoteModalVisible,
         setIsVoteModalVisible,
         isNewMessageVisible,
@@ -562,7 +527,6 @@ function AppProviderInner({ children }) {
         setSelectedUser,
         isBlockedUsersVisible,
         setIsBlockedUsersVisible,
-        userEvents,
         // allUsers removed - now available via useUsers hook
         clearState,
         selectRoom,

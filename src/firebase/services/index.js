@@ -17,7 +17,6 @@ export * from './conversation.service';
 
 export * from './room.service';
 
-export * from './event.service';
 
 export * from './vote.service';
 

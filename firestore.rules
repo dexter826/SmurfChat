@@ -47,11 +47,7 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Events and votes
-    match /events/{eventId} {
-      allow read, write: if request.auth != null;
-    }
-
+    // Votes
     match /votes/{voteId} {
       allow read, write: if request.auth != null;
     }
