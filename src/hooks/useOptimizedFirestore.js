@@ -1,9 +1,3 @@
-/**
- * useOptimizedFirestore - Optimized Real-time Hook
- * Replacement for useFirestore with listener management
- * Prevents duplicate listeners and memory leaks
- */
-
 import { useState, useEffect, useRef, useMemo } from 'react';
 import listenerManager from '../firebase/utils/listener.manager';
 import queryBuilder from '../firebase/utils/query.builder';
@@ -154,7 +148,7 @@ const useOptimizedFirestore = (
 
     return {
         data,
-        documents: data, // Alias for backward compatibility
+        documents: data,
         loading,
         error,
         refresh

@@ -1,4 +1,3 @@
-import "./App.css";
 import React, { useEffect, useState } from "react";
 import Login from "./components/Login/index.jsx";
 import { Route, Switch, BrowserRouter } from "react-router-dom";

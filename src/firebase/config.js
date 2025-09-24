@@ -12,22 +12,9 @@ const firebaseConfig = {
   measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-// Analytics optional; requires measurementId
-// import { getAnalytics } from 'firebase/analytics';
-// if (firebaseConfig.measurementId) {
-//   getAnalytics(app);
-// }
-
 const auth = getAuth(app);
 const db = getFirestore(app);
-
-// Uncomment these lines if you want to use Firebase emulators locally
-// if (window.location.hostname === 'localhost') {
-//   connectAuthEmulator(auth, 'http://localhost:9099');
-//   connectFirestoreEmulator(db, 'localhost', 8080);
-// }
 
 export { db, auth };
 export default app;

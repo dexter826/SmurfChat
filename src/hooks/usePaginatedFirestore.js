@@ -1,8 +1,3 @@
-/**
- * usePaginatedFirestore - Paginated Data Loading Hook
- * Implements efficient pagination with infinite scroll
- */
-
 import React, { useState, useCallback, useRef } from 'react';
 import {
   collection,
@@ -29,7 +24,6 @@ const usePaginatedFirestore = (
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState(null);
 
-  // Pagination state
   const lastDocRef = useRef(null);
   const unsubscribeRef = useRef(null);
   const initialLoadRef = useRef(false);
