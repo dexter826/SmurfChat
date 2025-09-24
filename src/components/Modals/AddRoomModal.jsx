@@ -13,6 +13,7 @@ function DebounceSelect({
   fetchOptions,
   debounceTimeout = 300,
   currentUserId,
+  selectedUserIds = [],
   ...props
 }) {
   const [fetching, setFetching] = useState(false);
@@ -23,21 +24,21 @@ function DebounceSelect({
       setOptions([]);
       setFetching(true);
 
-      fetchOptions(value, currentUserId).then((newOptions) => {
+      fetchOptions(value, currentUserId, selectedUserIds).then((newOptions) => {
         setOptions(newOptions);
         setFetching(false);
       });
     };
 
     return debounce(loadOptions, debounceTimeout);
-  }, [debounceTimeout, fetchOptions, currentUserId]);
+  }, [debounceTimeout, fetchOptions, currentUserId, selectedUserIds]);
 
   const handleFocus = () => {
     // Show all friends when input is focused
     setOptions([]);
     setFetching(true);
 
-    fetchOptions("", currentUserId).then((newOptions) => {
+    fetchOptions("", currentUserId, selectedUserIds).then((newOptions) => {
       setOptions(newOptions);
       setFetching(false);
     });
@@ -116,7 +117,7 @@ function DebounceSelect({
 }
 
 // Hàm tìm kiếm bạn bè của người dùng
-async function fetchFriendsList(search, currentUserId) {
+async function fetchFriendsList(search, currentUserId, selectedUserIds = []) {
   // Get friends list first
   const friendsRef = collection(db, "friends");
   const friendsQuery = query(
@@ -127,11 +128,11 @@ async function fetchFriendsList(search, currentUserId) {
   const friendsSnapshot = await getDocs(friendsQuery);
   const friendIds = [];
 
-  // Filter out blocked users
+  // Filter out blocked users and already selected users
   for (const doc of friendsSnapshot.docs) {
     const participants = doc.data().participants || [];
     const friendId = participants.find((id) => id !== currentUserId);
-    if (friendId) {
+    if (friendId && !selectedUserIds.includes(friendId)) {
       try {
         const isBlocked = await isUserBlockedOptimized(currentUserId, friendId);
         if (!isBlocked) {
@@ -181,14 +182,9 @@ export default function AddRoomModal() {
   } = useContext(AuthContext);
   const { warning } = useAlert();
   const [formState, setFormState] = useState({ name: "" });
-  const [selectedMembers, setSelectedMembers] = useState(preSelectedMembers);
-
-  // Update selectedMembers when preSelectedMembers changes (when modal opens with pre-selected users)
-  React.useEffect(() => {
-    if (preSelectedMembers.length > 0) {
-      setSelectedMembers(preSelectedMembers);
-    }
-  }, [preSelectedMembers]);
+  const [selectedMembers, setSelectedMembers] = useState(
+    preSelectedMembers || []
+  );
 
   const handleOk = async () => {
     // Validate room name
@@ -273,6 +269,7 @@ export default function AddRoomModal() {
               onChange={(newValue) => setSelectedMembers(newValue)}
               value={selectedMembers}
               currentUserId={uid}
+              selectedUserIds={selectedMembers.map((member) => member.value)}
             />
             <div className="mt-1 text-xs text-slate-500">
               Đã chọn: {selectedMembers.length} bạn bè. Cần thêm ít nhất{" "}

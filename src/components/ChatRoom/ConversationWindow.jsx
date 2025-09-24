@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
+import { useUsers } from "../../Context/UserContext";
 import {
   updateLastSeen,
   setTypingStatus,
@@ -25,6 +26,7 @@ export default function ConversationWindow() {
   const {
     user: { uid },
   } = useContext(AuthContext);
+  const { getUserById, getOtherParticipant } = useUsers();
 
   // Get other user ID from conversation
   const otherUserId = selectedConversation?.participants?.find(
@@ -81,15 +83,15 @@ export default function ConversationWindow() {
   const handleCreateGroup = () => {
     // Pre-populate the AddRoomModal with the current conversation user
     if (otherUserId) {
-      // Get other participant info
-      const otherUser = selectedConversation.otherUser;
-      if (otherUser) {
+      // Get other participant info using the optimized getOtherParticipant function
+      const otherUser = getOtherParticipant(selectedConversation);
+      if (otherUser && otherUser.uid) {
         // Set the other user as pre-selected member
         setPreSelectedMembers([
           {
-            value: otherUserId,
-            label: otherUser.displayName,
-            photoURL: otherUser.photoURL,
+            value: otherUser.uid,
+            label: otherUser.displayName || "Unknown User",
+            photoURL: otherUser.photoURL || "",
           },
         ]);
       }
