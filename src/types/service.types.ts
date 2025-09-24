@@ -3,20 +3,17 @@ import {
   Room, 
   Message, 
   Conversation, 
-  Event, 
   Block, 
   Friend,
   UserId,
   RoomId,
   ConversationId,
   MessageId,
-  EventId,
   ApiResponse,
   PaginatedResult,
   CreateUserData,
   CreateRoomData,
   CreateMessageData,
-  CreateEventData,
   ChatType
 } from './database.types';
 
@@ -72,13 +69,6 @@ export interface ConversationService {
   getOtherParticipant(conversation: Conversation, currentUserId: UserId): UserId;
 }
 
-export interface EventService {
-  createEvent(eventData: CreateEventData, creatorId: UserId): Promise<ApiResponse<Event>>;
-  getEvent(eventId: EventId): Promise<ApiResponse<Event>>;
-  updateEvent(eventId: EventId, updates: Partial<Event>, userId: UserId): Promise<ApiResponse<Event>>;
-  deleteEvent(eventId: EventId, userId: UserId): Promise<ApiResponse<void>>;
-  getUserEvents(userId: UserId, startDate?: Date, endDate?: Date): Promise<ApiResponse<Event[]>>;
-}
 
 export interface FriendService {
   sendFriendRequest(requesterId: UserId, addresseeId: UserId): Promise<ApiResponse<Friend>>;
@@ -135,7 +125,6 @@ export interface DatabaseServices {
   message: MessageService;
   room: RoomService;
   conversation: ConversationService;
-  event: EventService;
   friend: FriendService;
   block: BlockService;
   fileUpload: FileUploadService;

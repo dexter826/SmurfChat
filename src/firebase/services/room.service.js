@@ -56,7 +56,7 @@ export const dissolveRoom = async (roomId) => {
   try {
     // Delete all messages in the room first
     const messagesQuery = query(
-      collection(db, 'messages'), 
+      collection(db, 'messages'),
       where('chatType', '==', 'room'),
       where('chatId', '==', roomId)
     );
@@ -64,11 +64,6 @@ export const dissolveRoom = async (roomId) => {
     const messageDeletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(messageDeletePromises);
 
-    // Delete all events in the room
-    const eventsQuery = query(collection(db, 'events'), where('roomId', '==', roomId));
-    const eventsSnapshot = await getDocs(eventsQuery);
-    const eventDeletePromises = eventsSnapshot.docs.map(doc => deleteDoc(doc.ref));
-    await Promise.all(eventDeletePromises);
 
     // Delete all votes in the room
     const votesQuery = query(collection(db, 'votes'), where('roomId', '==', roomId));

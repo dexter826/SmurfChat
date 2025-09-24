@@ -1,11 +1,6 @@
 /**
  * React Hooks Type Definitions
- * 
- * TypeScript interfaces for custom React hooks used in SmurfChat
- * Provides type safety và intellisense cho hook usage
- * 
- * Created: September 4, 2025
- * Task: 4.2 - Add Proper TypeScript Definitions
+ * TypeScript interfaces for custom React hooks
  */
 
 import { 
@@ -274,5 +269,3 @@ export interface EmojiCategory {
 }
 
 // All hook types are exported for easy importing
-// Example usage:
-// import { UseFirestoreResult, UseMessageHandlerResult } from '../types/hooks.types';

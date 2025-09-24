@@ -66,13 +66,6 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 - **Chia sẻ vị trí** với Google Maps
 - **Chụp ảnh trực tiếp** từ camera
 
-### 📅 Sự Kiện & Lịch
-
-- **Tạo sự kiện** từ tin nhắn chứa thời gian
-- **Quản lý lịch** trong phòng chat
-- **Nhắc nhở tự động** cho sự kiện
-- **Vote/Poll system** cho quyết định nhóm
-
 ### 🎨 Giao Diện & Trải Nghiệm
 
 - **Dark/Light Mode** với theme switcher
@@ -208,10 +201,6 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Events and votes
-    match /events/{eventId} {
-      allow read, write: if request.auth != null;
-    }
 
     match /votes/{voteId} {
       allow read, write: if request.auth != null;
@@ -269,7 +258,6 @@ SmurfChat/
 │   │   │   ├── UnifiedChatList.jsx # Unified chat list
 │   │   │   ├── UserInfo.jsx        # User profile info
 │   │   │   ├── EmojiPicker.jsx     # Emoji selection
-│   │   │   ├── EventList.jsx       # Event management
 │   │   │   └── VoteMessage.jsx     # Vote/Poll messages
 │   │   │
 │   │   ├── Login/           # Authentication
@@ -281,7 +269,6 @@ SmurfChat/
 │   │   │   ├── InviteMemberModal.jsx # Invite users modal
 │   │   │   ├── AddFriendModal.jsx  # Add friend modal
 │   │   │   ├── CalendarModal.jsx   # Calendar view modal
-│   │   │   ├── EventModal.jsx      # Event creation modal
 │   │   │   ├── VoteModal.jsx       # Vote creation modal
 │   │   │   └── NewMessageModal.jsx # New message modal
 │   │   │
@@ -295,7 +282,6 @@ SmurfChat/
 │   │   │   └── AlertModal.jsx      # Alert notifications
 │   │   │
 │   │   └── Notifications/   # Notification system
-│   │       └── ReminderService.js  # Event reminders
 │   │
 │   ├── Context/             # React Context providers
 │   │   ├── AppProvider.jsx         # App state management
@@ -357,7 +343,6 @@ Tối ưu hóa build để có hiệu suất tốt nhất.
 
 ### 🎯 Smart Features
 
-- **Auto-detect time** trong tin nhắn để tạo sự kiện
 - **Smart search** với fuzzy matching
 - **Typing indicators** hiển thị ai đang gõ
 - **Message status** (sent, delivered, read)

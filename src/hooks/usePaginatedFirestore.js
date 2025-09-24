@@ -1,23 +1,18 @@
 /**
  * usePaginatedFirestore - Paginated Data Loading Hook
- * 
- * Implements efficient pagination with infinite scroll for large datasets
- * Optimizes memory usage and loading performance
- * 
- * Created: September 4, 2025
- * Task: 4.1 - Implement Data Pagination
+ * Implements efficient pagination with infinite scroll
  */
 
 import React, { useState, useCallback, useRef } from 'react';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
   startAfter,
   onSnapshot,
-  getDocs 
+  getDocs
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
@@ -33,13 +28,12 @@ const usePaginatedFirestore = (
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Store last document for pagination
+
+  // Pagination state
   const lastDocRef = useRef(null);
   const unsubscribeRef = useRef(null);
   const initialLoadRef = useRef(false);
 
-  // Reset pagination when collection/condition changes
   const resetPagination = useCallback(() => {
     setDocuments([]);
     setLoading(false);
@@ -47,22 +41,20 @@ const usePaginatedFirestore = (
     setError(null);
     lastDocRef.current = null;
     initialLoadRef.current = false;
-    
+
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
       unsubscribeRef.current = null;
     }
   }, []);
 
-  // Build query with pagination
   const buildQuery = useCallback((isLoadMore = false) => {
     const collectionRef = collection(db, collectionName);
     let q = query(collectionRef);
 
-    // Add where condition if provided
     if (condition) {
       if (!condition.compareValue || !condition.compareValue.length) {
-        return null; // Invalid condition
+        return null;
       }
       q = query(
         collectionRef,
@@ -70,55 +62,52 @@ const usePaginatedFirestore = (
       );
     }
 
-    // Add orderBy
     if (orderByField) {
-      q = condition 
+      q = condition
         ? query(
-            collectionRef,
-            where(condition.fieldName, condition.operator, condition.compareValue),
-            orderBy(orderByField, orderDirection)
-          )
+          collectionRef,
+          where(condition.fieldName, condition.operator, condition.compareValue),
+          orderBy(orderByField, orderDirection)
+        )
         : query(collectionRef, orderBy(orderByField, orderDirection));
     }
 
-    // Add pagination
     if (isLoadMore && lastDocRef.current) {
       q = condition
         ? query(
-            collectionRef,
-            where(condition.fieldName, condition.operator, condition.compareValue),
-            orderBy(orderByField, orderDirection),
-            startAfter(lastDocRef.current),
-            limit(pageSize)
-          )
+          collectionRef,
+          where(condition.fieldName, condition.operator, condition.compareValue),
+          orderBy(orderByField, orderDirection),
+          startAfter(lastDocRef.current),
+          limit(pageSize)
+        )
         : query(
-            collectionRef,
-            orderBy(orderByField, orderDirection),
-            startAfter(lastDocRef.current),
-            limit(pageSize)
-          );
+          collectionRef,
+          orderBy(orderByField, orderDirection),
+          startAfter(lastDocRef.current),
+          limit(pageSize)
+        );
     } else {
       q = condition
         ? query(
-            collectionRef,
-            where(condition.fieldName, condition.operator, condition.compareValue),
-            orderBy(orderByField, orderDirection),
-            limit(pageSize)
-          )
+          collectionRef,
+          where(condition.fieldName, condition.operator, condition.compareValue),
+          orderBy(orderByField, orderDirection),
+          limit(pageSize)
+        )
         : query(
-            collectionRef,
-            orderBy(orderByField, orderDirection),
-            limit(pageSize)
-          );
+          collectionRef,
+          orderBy(orderByField, orderDirection),
+          limit(pageSize)
+        );
     }
 
     return q;
   }, [collectionName, condition, orderByField, orderDirection, pageSize]);
 
-  // Load initial data
   const loadInitialData = useCallback(async () => {
     if (initialLoadRef.current) return;
-    
+
     setLoading(true);
     setError(null);
 
@@ -131,7 +120,6 @@ const usePaginatedFirestore = (
       }
 
       if (realTime) {
-        // Real-time subscription for initial data
         unsubscribeRef.current = onSnapshot(
           q,
           (snapshot) => {
@@ -143,21 +131,20 @@ const usePaginatedFirestore = (
             setDocuments(docs);
             setLoading(false);
             setHasMore(docs.length === pageSize);
-            
+
             if (docs.length > 0) {
               lastDocRef.current = snapshot.docs[snapshot.docs.length - 1];
             }
-            
+
             initialLoadRef.current = true;
           },
           (err) => {
-            console.error('Error in real-time subscription:', err);
+            console.error('Real-time subscription error:', err);
             setError(err);
             setLoading(false);
           }
         );
       } else {
-        // One-time fetch for initial data
         const snapshot = await getDocs(q);
         const docs = snapshot.docs.map((doc) => ({
           ...doc.data(),
@@ -167,11 +154,11 @@ const usePaginatedFirestore = (
         setDocuments(docs);
         setLoading(false);
         setHasMore(docs.length === pageSize);
-        
+
         if (docs.length > 0) {
           lastDocRef.current = snapshot.docs[snapshot.docs.length - 1];
         }
-        
+
         initialLoadRef.current = true;
       }
     } catch (err) {
@@ -181,7 +168,6 @@ const usePaginatedFirestore = (
     }
   }, [buildQuery, realTime, pageSize]);
 
-  // Load more data (for infinite scroll)
   const loadMore = useCallback(async () => {
     if (loading || !hasMore || !initialLoadRef.current) return;
 
@@ -216,13 +202,11 @@ const usePaginatedFirestore = (
     }
   }, [buildQuery, loading, hasMore, pageSize]);
 
-  // Refresh data (pull to refresh)
   const refresh = useCallback(async () => {
     resetPagination();
     await loadInitialData();
   }, [resetPagination, loadInitialData]);
 
-  // Effect to handle condition/collection changes
   React.useEffect(() => {
     resetPagination();
     loadInitialData();
@@ -235,7 +219,6 @@ const usePaginatedFirestore = (
     };
   }, [collectionName, condition, orderByField, orderDirection, resetPagination, loadInitialData]);
 
-  // Cleanup on unmount
   React.useEffect(() => {
     return () => {
       if (unsubscribeRef.current) {
@@ -251,7 +234,6 @@ const usePaginatedFirestore = (
     error,
     loadMore,
     refresh,
-    // Utility functions
     isEmpty: documents.length === 0 && !loading,
     totalCount: documents.length
   };

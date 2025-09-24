@@ -6,7 +6,6 @@ export type {
   RoomId,
   ConversationId,
   MessageId,
-  EventId,
   VoteId,
   
   // Main entities
@@ -17,7 +16,6 @@ export type {
   DirectMessage,
   Room,
   Conversation,
-  Event,
   Vote,
   Block,
   Friend,
@@ -35,14 +33,12 @@ export type {
   CreateUserData,
   CreateRoomData,
   CreateMessageData,
-  CreateEventData
 } from './database.types';
 
 // Export enums
 export {
   ChatType,
   MessageType,
-  EventStatus,
   FriendStatus
 } from './database.types';
 
@@ -53,7 +49,6 @@ export type {
   MessageService,
   RoomService,
   ConversationService,
-  EventService,
   FriendService,
   BlockService,
   FileUploadService,
@@ -97,13 +92,11 @@ export {
   validateCreateUser,
   validateCreateRoom,
   validateCreateMessage,
-  validateCreateEvent,
   
   // Type guards
   isUser,
   isRoom,
   isMessage,
-  isEvent,
   
   // Helper functions
   isValidEmail,
@@ -178,7 +171,6 @@ export const DEFAULT_VALIDATION = {
   maxDisplayNameLength: 50,
   maxMessageLength: 5000,
   maxRoomNameLength: 100,
-  maxEventTitleLength: 200
 } as const;
 
 export const UPLOAD_CONSTRAINTS = {

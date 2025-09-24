@@ -1,11 +1,6 @@
 /**
  * QueryBuilder - Dynamic Firebase Query Builder
- * 
  * Lazy loads Firebase functions to reduce bundle size
- * Provides uniform query building interface
- * 
- * Created: September 4, 2025
- * Task: 4.3 - Optimize Real-time Listeners (Bundle Size Optimization)
  */
 
 class QueryBuilder {
@@ -15,7 +10,7 @@ class QueryBuilder {
   }
 
   /**
-   * Lazy load Firebase Firestore functions
+   * Lazy load Firebase functions
    */
   async loadFirestore() {
     if (!this.firestoreFunctions) {
@@ -23,7 +18,7 @@ class QueryBuilder {
         import('../config'),
         import('firebase/firestore')
       ]);
-      
+
       this.db = firebaseConfig.db;
       this.firestoreFunctions = firestoreFunctions;
     }
@@ -31,11 +26,11 @@ class QueryBuilder {
   }
 
   /**
-   * Build Firestore query with conditions
+   * Build query with conditions
    */
   async buildQuery(collectionName, condition = null, orderByField = null, orderDirection = 'asc') {
     const { collection, query, where, orderBy } = await this.loadFirestore();
-    
+
     const collectionRef = collection(this.db, collectionName);
     const constraints = [];
 
@@ -54,17 +49,17 @@ class QueryBuilder {
   }
 
   /**
-   * Generate unique key for query caching
+   * Generate unique cache key
    */
   generateKey(collectionName, condition, orderByField, orderDirection, customKey) {
     if (customKey) return customKey;
 
     const parts = [collectionName];
-    
+
     if (condition) {
       parts.push(`${condition.fieldName}_${condition.operator}_${condition.compareValue}`);
     }
-    
+
     if (orderByField) {
       parts.push(`order_${orderByField}_${orderDirection}`);
     }
@@ -73,7 +68,7 @@ class QueryBuilder {
   }
 }
 
-// Singleton instance
+// Export singleton instance
 const queryBuilder = new QueryBuilder();
 
 export default queryBuilder;

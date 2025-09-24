@@ -1,12 +1,7 @@
 /**
  * useOptimizedFirestore - Optimized Real-time Hook
- * 
- * Replacement cho useFirestore với listener management và optimization
- * Prevents duplicate listeners và memory leaks
- * Uses dynamic imports để giảm bundle size
- * 
- * Created: September 4, 2025
- * Task: 4.3 - Optimize Real-time Listeners
+ * Replacement for useFirestore with listener management
+ * Prevents duplicate listeners and memory leaks
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -26,7 +21,6 @@ const useOptimizedFirestore = (
     const [error, setError] = useState(null);
     const currentKeyRef = useRef(null);
 
-    // Memoize condition để tránh re-render vô nghĩa
     const conditionKey = useMemo(() => {
         return condition ? JSON.stringify(condition) : null;
     }, [condition]);
@@ -39,7 +33,6 @@ const useOptimizedFirestore = (
                 return;
             }
 
-            // Early return if condition is invalid
             if (condition && (!condition.compareValue ||
                 (Array.isArray(condition.compareValue) && !condition.compareValue.length))) {
                 setData([]);
@@ -47,12 +40,10 @@ const useOptimizedFirestore = (
                 return;
             }
 
-            // Check if we have authentication context - don't start listeners without auth
             try {
                 const { getAuth } = await import('firebase/auth');
                 const auth = getAuth();
-                
-                // If no current user and we're trying to access protected collections, skip
+
                 if (!auth.currentUser) {
                     const protectedCollections = ['friends', 'friend_requests', 'users', 'conversations', 'rooms'];
                     if (protectedCollections.includes(collectionName)) {
@@ -65,7 +56,6 @@ const useOptimizedFirestore = (
                 console.warn('Auth check failed, proceeding with query:', authError);
             }
 
-            // Generate unique key for this query
             const key = queryBuilder.generateKey(
                 collectionName,
                 condition,
@@ -78,7 +68,6 @@ const useOptimizedFirestore = (
                 setLoading(true);
                 setError(null);
 
-                // Build query using QueryBuilder
                 const query = await queryBuilder.buildQuery(
                     collectionName,
                     condition,
@@ -86,7 +75,6 @@ const useOptimizedFirestore = (
                     orderDirection
                 );
 
-                // Callback for data updates
                 const handleDataUpdate = (docs, err = null) => {
                     if (err) {
                         console.error('❌ Firestore error:', err);
@@ -101,11 +89,9 @@ const useOptimizedFirestore = (
                 };
 
                 if (realTime) {
-                    // Subscribe to managed real-time listener
                     await listenerManager.subscribe(key, query, handleDataUpdate);
                     currentKeyRef.current = key;
                 } else {
-                    // One-time fetch
                     const { getDocs } = await import('firebase/firestore');
                     const snapshot = await getDocs(query);
                     const docs = snapshot.docs.map((doc) => ({
@@ -124,7 +110,6 @@ const useOptimizedFirestore = (
 
         setupListener();
 
-        // Cleanup on unmount or dependency change
         return () => {
             if (currentKeyRef.current) {
                 listenerManager.unsubscribe(currentKeyRef.current, () => { });
@@ -133,14 +118,12 @@ const useOptimizedFirestore = (
         };
     }, [collectionName, condition, conditionKey, orderByField, orderDirection, realTime, customKey]);
 
-    // Manual refresh function
     const refresh = async () => {
         if (!collectionName || !currentKeyRef.current) return;
 
         try {
             setLoading(true);
 
-            // Force refresh listener
             const query = await queryBuilder.buildQuery(
                 collectionName,
                 condition,
@@ -148,7 +131,6 @@ const useOptimizedFirestore = (
                 orderDirection
             );
 
-            // Unsubscribe and resubscribe to force refresh
             listenerManager.unsubscribe(currentKeyRef.current, () => { });
 
             await listenerManager.subscribe(currentKeyRef.current, query, (docs, err) => {
@@ -172,7 +154,7 @@ const useOptimizedFirestore = (
 
     return {
         data,
-        documents: data, // Backward compatibility
+        documents: data, // Alias for backward compatibility
         loading,
         error,
         refresh

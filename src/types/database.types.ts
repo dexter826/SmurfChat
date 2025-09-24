@@ -1,20 +1,7 @@
 /**
- * SmurfChat Database Type Definitions
- * 
- * Comprehensive TypeScript interfaces for all Firestore collections
- * Provides type safety và better developer experience
- * 
+ * SmurfChat Database Types
+ * TypeScript interfaces for Firestore collections
  * Created: September 4, 2025
- * Task: 4.2 - Add Proper TypeScript Definitions
- * 
- * Collections:
- * - users: User profiles và authentication data
- * - messages: Unified message collection (rooms + direct messages)
- * - rooms: Public chat rooms
- * - conversations: Direct message conversations
- * - events: Calendar events và reminders
- * - blocks: User blocking relationships
- * - friends: Friend relationships
  */
 
 import { Timestamp } from 'firebase/firestore';
@@ -29,7 +16,6 @@ export type UserId = string;
 export type RoomId = string;
 export type ConversationId = string;
 export type MessageId = string;
-export type EventId = string;
 
 export type VoteId = string;
 
@@ -46,11 +32,6 @@ export enum MessageType {
   LOCATION = 'location'
 }
 
-export enum EventStatus {
-  ACTIVE = 'active',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled'
-}
 
 export enum FriendStatus {
   PENDING = 'pending',
@@ -63,12 +44,12 @@ export enum FriendStatus {
 // ================================
 
 export interface User {
-  uid: UserId; // Fix: actual field name in database is 'uid' not 'id'
+  uid: UserId;
   email: string;
   displayName: string;
   photoURL?: string;
-  keywords: string[]; // Fix: actual field name used in code
-  isOnline: boolean; // Fix: actual field type used in code  
+  keywords: string[];
+  isOnline: boolean;
   lastSeen: FirestoreTimestamp;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
@@ -159,42 +140,6 @@ export interface Conversation {
   }>;
 }
 
-// ================================
-// EVENT COLLECTION
-// ================================
-
-export interface Event {
-  id: EventId;
-  title: string;
-  description?: string;
-  createdBy: UserId;
-  createdAt: FirestoreTimestamp;
-  updatedAt: FirestoreTimestamp;
-  
-  // Event timing
-  startDate: FirestoreTimestamp;
-  isAllDay: boolean;
-  
-  // Event details
-  status: EventStatus;
-  
-  // Participants
-  participants: Array<{
-    userId: UserId;
-    status: 'going' | 'maybe' | 'not_going' | 'invited';
-    respondedAt?: FirestoreTimestamp;
-  }>;
-  
-  // Reminders
-  reminders?: Array<{
-    minutes: number; // minutes before event
-    isActive: boolean;
-  }>;
-  
-  // Associated chat
-  roomId?: RoomId;
-  conversationId?: ConversationId;
-}
 
 // ================================
 // BLOCK COLLECTION
@@ -339,13 +284,6 @@ export interface CreateMessageData {
   conversationId?: ConversationId;
 }
 
-export interface CreateEventData {
-  title: string;
-  description?: string;
-  startDate: Date;
-  isAllDay: boolean;
-  participants: UserId[];
-}
 
 export interface CreateVoteData {
   title: string;
@@ -354,7 +292,7 @@ export interface CreateVoteData {
 }
 
 // ================================
-// BLOCKED USER COLLECTION  
+// BLOCKED USER COLLECTION
 // ================================
 
 export interface BlockedUser {
@@ -363,11 +301,3 @@ export interface BlockedUser {
   blockedUserId: UserId;
   createdAt: FirestoreTimestamp;
 }
-
-// ================================
-// TYPE DEFINITIONS COMPLETE
-// ================================
-
-// All types are exported inline above
-// Import như sau:
-// import { User, Message, Room, ChatType } from '../types/database.types';

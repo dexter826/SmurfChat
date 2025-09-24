@@ -1,22 +1,16 @@
 /**
- * TypeScript Validation Utilities
- * 
+ * Validation Utilities
  * Type-safe validation functions for database operations
- * Complements existing error.utils.js với TypeScript support
- * 
  * Created: September 4, 2025
- * Task: 4.2 - Add Proper TypeScript Definitions
  */
 
 import { 
   User, 
   Room, 
   Message, 
-  Event, 
   CreateUserData, 
   CreateRoomData, 
   CreateMessageData, 
-  CreateEventData,
   ValidationResult,
   ChatType,
   MessageType
@@ -111,39 +105,6 @@ export function validateCreateMessage(data: Partial<CreateMessageData>): Validat
   };
 }
 
-/**
- * Validate event creation data
- */
-export function validateCreateEvent(data: Partial<CreateEventData>): ValidationResult {
-  const errors: string[] = [];
-  
-  if (!data.title) {
-    errors.push('Tiêu đề sự kiện là bắt buộc');
-  } else if (data.title.length < 3) {
-    errors.push('Tiêu đề sự kiện phải có ít nhất 3 ký tự');
-  } else if (data.title.length > 200) {
-    errors.push('Tiêu đề sự kiện không được vượt quá 200 ký tự');
-  }
-  
-  if (data.description && data.description.length > 1000) {
-    errors.push('Mô tả sự kiện không được vượt quá 1000 ký tự');
-  }
-  
-  if (!data.startDate) {
-    errors.push('Ngày bắt đầu là bắt buộc');
-  } else if (data.startDate < new Date()) {
-    errors.push('Ngày bắt đầu không thể ở quá khứ');
-  }
-  
-  if (!data.participants || data.participants.length === 0) {
-    errors.push('Sự kiện phải có ít nhất 1 người tham gia');
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
 
 // ================================
 // TYPE GUARDS
@@ -189,18 +150,6 @@ export function isMessage(obj: any): obj is Message {
     typeof obj.readByDetails === 'object';
 }
 
-/**
- * Type guard cho Event objects
- */
-export function isEvent(obj: any): obj is Event {
-  return obj &&
-    typeof obj.id === 'string' &&
-    typeof obj.title === 'string' &&
-    typeof obj.createdBy === 'string' &&
-    obj.startDate &&
-    Array.isArray(obj.participants) &&
-    typeof obj.isAllDay === 'boolean';
-}
 
 // ================================
 // HELPER FUNCTIONS
@@ -235,24 +184,13 @@ export function isStringTooShort(str: string, minLength: number): boolean {
   return str.length < minLength;
 }
 
-// ================================
-// EXPORT ALL VALIDATION FUNCTIONS
-// ================================
-
 const validationUtils = {
-  // Validation functions
   validateCreateUser,
   validateCreateRoom,
   validateCreateMessage,
-  validateCreateEvent,
-  
-  // Type guards
   isUser,
   isRoom,
   isMessage,
-  isEvent,
-  
-  // Helper functions
   isValidEmail,
   sanitizeString,
   isStringTooLong,
