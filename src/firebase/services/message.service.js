@@ -17,7 +17,7 @@
 * @typedef {import('../types/database.types').ApiResponse} ApiResponse
 */
 
-import { doc, updateDoc, getDoc, deleteDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, deleteDoc, serverTimestamp, collection, addDoc, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../config';
 import { getMutualBlockStatus } from '../utils/block.utils';
 import { updateRoomLastMessage, updateConversationLastMessage } from '../utils/conversation.utils';
@@ -520,4 +520,62 @@ export const getDecryptedMessageContent = (messageData, masterKey) => {
   }
 
   return decryptMessage(messageData, masterKey);
+};
+
+/**
+ * Search messages in a chat with optional text matching
+ *
+ * @param {string} chatId - The chat ID to search in
+ * @param {string} searchTerm - The search term to match against message text
+ * @param {number} limitCount - Maximum number of results to return (default: 50)
+ * @returns {Promise<Array>} Array of matching messages
+ *
+ * @example
+ * const results = await searchMessagesInChat('room123', 'hello', 20);
+ */
+export const searchMessagesInChat = async (chatId, searchTerm, limitCount = 50) => {
+  try {
+    validateRequired(chatId, 'Chat ID');
+    validateRequired(searchTerm, 'Search term');
+
+    const messagesRef = collection(db, 'messages');
+    const searchQuery = query(
+      messagesRef,
+      where('chatId', '==', chatId),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+
+    const querySnapshot = await getDocs(searchQuery);
+    const matchingMessages = [];
+
+    querySnapshot.forEach((doc) => {
+      const messageData = { id: doc.id, ...doc.data() };
+
+      // Search in message text (case insensitive)
+      const messageText = (messageData.text || '').toLowerCase();
+      const displayName = (messageData.displayName || '').toLowerCase();
+      const searchText = searchTerm.toLowerCase();
+
+      // Also search in file names if present
+      const fileName = messageData.fileData?.name?.toLowerCase() || '';
+
+      if (messageText.includes(searchText) ||
+        displayName.includes(searchText) ||
+        fileName.includes(searchText)) {
+        matchingMessages.push(messageData);
+      }
+    });
+
+    logSuccess('searchMessagesInChat', {
+      chatId,
+      searchTerm,
+      resultCount: matchingMessages.length
+    });
+
+    return matchingMessages;
+  } catch (error) {
+    const handledError = handleServiceError(error, 'searchMessagesInChat');
+    throw handledError;
+  }
 };

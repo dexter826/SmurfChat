@@ -442,6 +442,7 @@ export default function Message({
       className={`mb-2 flex items-start message-group ${
         isOwn ? "flex-row-reverse" : ""
       }`}
+      data-message-id={id}
     >
       <div
         className={`h-8 w-8 flex-shrink-0 ${!isOwn ? "cursor-pointer" : ""}`}

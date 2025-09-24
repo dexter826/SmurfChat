@@ -1,4 +1,10 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, {
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { AppContext } from "../../Context/AppProvider";
 import { AuthContext } from "../../Context/AuthProvider";
 import { useUsers } from "../../Context/UserContext";
@@ -15,7 +21,7 @@ import { useUserOnlineStatus } from "../../hooks/useOnlineStatus";
 import FileUpload from "../FileUpload/FileUpload";
 import VoiceRecording from "../FileUpload/VoiceRecording";
 import EmojiPickerComponent from "./EmojiPicker";
-import MediaGallery from "./MediaGallery";
+import SearchModal from "./SearchModal";
 import { useMessageHandler } from "../../hooks/useMessageHandler";
 import { useBlockStatus } from "../../hooks/useBlockStatus";
 
@@ -63,7 +69,24 @@ export default function ConversationWindow() {
 
   const messageListRef = useRef();
   const [canChat, setCanChat] = useState(true);
-  const [isMediaGalleryVisible, setIsMediaGalleryVisible] = useState(false);
+  const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
+
+  const scrollToMessage = useCallback((messageId) => {
+    // Find the message element in the chat
+    const messageElement = document.querySelector(
+      `[data-message-id="${messageId}"]`
+    );
+    if (messageElement && messageListRef.current) {
+      // Scroll to the message
+      messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // Highlight the message temporarily
+      messageElement.style.backgroundColor = "rgba(14, 165, 233, 0.2)";
+      setTimeout(() => {
+        messageElement.style.backgroundColor = "";
+      }, 2000);
+    }
+  }, []);
 
   // Computed value: can chat if friends AND not blocked
   const canActuallyChat = canChat && canSendMessage();
@@ -266,8 +289,8 @@ export default function ConversationWindow() {
             <div className="flex items-center gap-1">
               <button
                 className="p-2 rounded-md text-slate-700 hover:bg-gray-100 hover:text-skybrand-600 dark:text-slate-200 dark:hover:bg-gray-800 dark:hover:text-skybrand-400 transition-colors"
-                onClick={() => setIsMediaGalleryVisible(true)}
-                title="Thư viện file"
+                onClick={() => setIsSearchModalVisible(true)}
+                title="Tìm kiếm & Thư viện file"
               >
                 <svg
                   className="w-5 h-5"
@@ -279,13 +302,7 @@ export default function ConversationWindow() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                   />
                 </svg>
               </button>
@@ -447,12 +464,13 @@ export default function ConversationWindow() {
         </div>
       )}
 
-      <MediaGallery
-        isVisible={isMediaGalleryVisible}
-        onClose={() => setIsMediaGalleryVisible(false)}
+      <SearchModal
+        isVisible={isSearchModalVisible}
+        onClose={() => setIsSearchModalVisible(false)}
         chatType="direct"
         chatId={selectedConversation?.id}
         chatName={otherParticipant?.displayName}
+        onMessageClick={scrollToMessage}
       />
     </div>
   );

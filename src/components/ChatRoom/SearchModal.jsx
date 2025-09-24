@@ -9,7 +9,7 @@ import {
   FaFile,
   FaDownload,
   FaSpinner,
-  FaMessage,
+  FaComments,
   FaFolder,
 } from "react-icons/fa";
 import { FileViewerModal } from "../FileUpload";
@@ -18,7 +18,14 @@ import useMediaGallery from "../../hooks/useMediaGallery";
 import useMessageSearch from "../../hooks/useMessageSearch";
 import Message from "./Message";
 
-const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
+const SearchModal = ({
+  isVisible,
+  onClose,
+  chatType,
+  chatId,
+  chatName,
+  onMessageClick,
+}) => {
   const [activeTab, setActiveTab] = useState("media"); // 'media' or 'search'
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -49,7 +56,7 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
 
   const tabs = [
     { key: "media", label: "Thư viện file", icon: FaFolder },
-    { key: "search", label: "Tìm kiếm tin nhắn", icon: FaMessage },
+    { key: "search", label: "Tìm kiếm tin nhắn", icon: FaComments },
   ];
 
   const filters = [
@@ -130,6 +137,13 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
     document.body.removeChild(link);
   };
 
+  const handleMessageClick = (messageId) => {
+    if (onMessageClick) {
+      onMessageClick(messageId);
+    }
+    onClose(); // Close modal after clicking message
+  };
+
   const formatDate = (seconds) => {
     return new Date(seconds * 1000).toLocaleDateString("vi-VN", {
       day: "2-digit",
@@ -160,9 +174,9 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed right-0 top-0 h-full w-96 bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-gray-700 z-40 shadow-lg">
+    <div className="fixed right-0 top-0 h-full w-96 bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-gray-700 z-40 shadow-lg flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800 flex-shrink-0">
         <div className="flex-1">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {activeTab === "media" ? "Thư viện file" : "Tìm kiếm tin nhắn"}
@@ -196,7 +210,7 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800">
+      <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800 flex-shrink-0">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -218,7 +232,7 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
 
       {/* Search and Filter */}
       {activeTab === "media" && (
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800">
+        <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800 flex-shrink-0">
           <div className="flex gap-2">
             {/* Search */}
             <div className="flex-1 relative">
@@ -252,7 +266,7 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
       )}
 
       {activeTab === "search" && (
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800">
+        <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800 flex-shrink-0">
           <div className="flex gap-2">
             {/* Message Search */}
             <div className="flex-1 relative">
@@ -283,7 +297,7 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-3">
+      <div className="flex-1 overflow-auto min-h-0">
         {activeTab === "media" ? (
           // Media Gallery Content
           <>
@@ -376,7 +390,7 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
               </div>
             ) : searchError ? (
               <div className="flex flex-col items-center justify-center h-full text-red-500 dark:text-red-400">
-                <FaMessage className="w-12 h-12 mb-3" />
+                <FaComments className="w-12 h-12 mb-3" />
                 <p className="text-sm font-medium">Lỗi tìm kiếm</p>
                 <p className="text-xs text-center px-2">{searchError}</p>
               </div>
@@ -390,7 +404,7 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
               </div>
             ) : searchResults.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
-                <FaMessage className="w-12 h-12 mb-3" />
+                <FaComments className="w-12 h-12 mb-3" />
                 <p className="text-sm font-medium">
                   Không tìm thấy tin nhắn nào
                 </p>
@@ -403,7 +417,8 @@ const SearchModal = ({ isVisible, onClose, chatType, chatId, chatName }) => {
                 {searchResults.map((message) => (
                   <div
                     key={message.id}
-                    className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                    onClick={() => handleMessageClick(message.id)}
                   >
                     <Message
                       id={message.id}
