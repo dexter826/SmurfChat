@@ -17,6 +17,8 @@ import SeenByModal from "./SeenByModal";
 import MessageReactions from "./MessageReactions";
 import ForwardMessageModal from "../Modals/ForwardMessageModal";
 import MentionText from "./MentionText";
+import LinkPreview from "../Common/LinkPreview";
+import useLinkDetector from "../../hooks/useLinkDetector";
 
 function formatDate(seconds) {
   let formattedDate = "";
@@ -77,6 +79,11 @@ export default function Message({
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const isOwn = uid === user?.uid;
+
+  // Hook để phát hiện link trong tin nhắn
+  const { links, textSegments, hasLinks } = useLinkDetector(
+    isEncrypted && decryptedContent ? decryptedContent.text : text
+  );
 
   React.useEffect(() => {
     const decryptMessageContent = async () => {
@@ -525,25 +532,86 @@ export default function Message({
           );
         }
 
-        return renderContentWithRecallButton(
-          <div
-            className={`${
-              isOwn
-                ? "bg-skybrand-600 text-white border-skybrand-600 rounded-2xl rounded-tr-sm"
-                : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-sm"
-            } border px-3 py-2`}
-          >
-            {chatType === "room" ? (
-              <MentionText
-                text={currentContent.text}
-                className="break-words"
-                members={members}
-              />
-            ) : (
-              <EmojiText text={currentContent.text} className="break-words" />
-            )}
-          </div>
-        );
+        // Render text với link preview
+        const renderTextWithLinks = () => {
+          if (hasLinks && textSegments.length > 0) {
+            return (
+              <>
+                <div
+                  className={`${
+                    isOwn
+                      ? "bg-skybrand-600 text-white border-skybrand-600 rounded-2xl rounded-tr-sm"
+                      : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-sm"
+                  } border px-3 py-2 max-w-full overflow-hidden`}
+                >
+                  {textSegments.map((segment, index) => {
+                    if (segment.type === "link") {
+                      return (
+                        <a
+                          key={index}
+                          href={segment.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`underline break-all ${
+                            isOwn
+                              ? "text-blue-200 hover:text-blue-100"
+                              : "text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                          }`}
+                        >
+                          {segment.content}
+                        </a>
+                      );
+                    } else {
+                      return chatType === "room" ? (
+                        <MentionText
+                          key={index}
+                          text={segment.content}
+                          className="break-words"
+                          members={members}
+                        />
+                      ) : (
+                        <EmojiText
+                          key={index}
+                          text={segment.content}
+                          className="break-words"
+                        />
+                      );
+                    }
+                  })}
+                </div>
+                {/* Hiển thị link preview cho link đầu tiên */}
+                {links.length > 0 && (
+                  <div className="mt-2">
+                    <LinkPreview url={links[0].normalized} />
+                  </div>
+                )}
+              </>
+            );
+          }
+
+          // Không có link, render như bình thường
+          return (
+            <div
+              className={`${
+                isOwn
+                  ? "bg-skybrand-600 text-white border-skybrand-600 rounded-2xl rounded-tr-sm"
+                  : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-sm"
+              } border px-3 py-2 max-w-full overflow-hidden`}
+            >
+              {chatType === "room" ? (
+                <MentionText
+                  text={currentContent.text}
+                  className="break-words"
+                  members={members}
+                />
+              ) : (
+                <EmojiText text={currentContent.text} className="break-words" />
+              )}
+            </div>
+          );
+        };
+
+        return renderContentWithRecallButton(renderTextWithLinks());
     }
   };
 
@@ -581,7 +649,11 @@ export default function Message({
           </div>
         )}
       </div>
-      <div className={`flex max-w-[70%] flex-col ${isOwn ? "mr-2" : "ml-2"}`}>
+      <div
+        className={`flex max-w-[70%] flex-col overflow-hidden ${
+          isOwn ? "mr-2" : "ml-2"
+        }`}
+      >
         {/* Forwarded indicator */}
         {forwarded && originalSender && (
           <div className="mb-1 flex items-center">
