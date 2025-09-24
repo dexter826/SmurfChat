@@ -24,6 +24,7 @@ import FileUpload from "../FileUpload/FileUpload";
 import VoiceRecording from "../FileUpload/VoiceRecording";
 import EmojiPickerComponent from "./EmojiPicker";
 import SearchModal from "./SearchModal";
+import MentionInput from "./MentionInput";
 import { useMessageHandler } from "../../hooks/useMessageHandler";
 
 export default function ChatWindow() {
@@ -110,7 +111,7 @@ export default function ChatWindow() {
   };
 
   const handleOnSubmit = async () => {
-    await handleTextMessage();
+    await handleTextMessage(members);
   };
 
   const handleFileUploaded = async (fileData) => {
@@ -490,20 +491,32 @@ export default function ChatWindow() {
                 </button>
               )}
 
-              <input
-                ref={inputRef}
-                className="flex-1 bg-transparent px-2 py-1 outline-none placeholder:text-slate-400"
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleOnSubmit();
-                  }
-                }}
-                placeholder="Nhập tin nhắn..."
-                autoComplete="off"
-                value={inputValue}
-              />
+              {chatType === "room" ? (
+                <MentionInput
+                  value={inputValue}
+                  onChange={setInputValue}
+                  onSubmit={handleOnSubmit}
+                  placeholder="Nhập tin nhắn..."
+                  disabled={false}
+                  chatType={chatType}
+                  members={members}
+                />
+              ) : (
+                <input
+                  ref={inputRef}
+                  className="flex-1 bg-transparent px-2 py-1 outline-none placeholder:text-slate-400"
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleOnSubmit();
+                    }
+                  }}
+                  placeholder="Nhập tin nhắn..."
+                  autoComplete="off"
+                  value={inputValue}
+                />
+              )}
 
               <VoiceRecording
                 onVoiceUploaded={handleFileUploaded}

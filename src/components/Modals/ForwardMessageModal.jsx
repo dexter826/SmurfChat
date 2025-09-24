@@ -57,6 +57,7 @@ export default function ForwardMessageModal({
   const [selectedChats, setSelectedChats] = useState([]);
   const [isForwarding, setIsForwarding] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isMounted, setIsMounted] = useState(true);
 
   // Combine rooms and conversations for forwarding options
   const getAvailableChats = () => {
@@ -192,14 +193,18 @@ export default function ForwardMessageModal({
 
       if (successCount > 0) {
         success(`Đã chuyển tiếp tin nhắn đến ${successCount} cuộc trò chuyện`);
-        onClose();
-        setSelectedChats([]);
-        setSearchTerm("");
+        if (isMounted) {
+          onClose();
+          setSelectedChats([]);
+          setSearchTerm("");
+        }
       }
     } catch (err) {
       error(err.message || "Không thể chuyển tiếp tin nhắn");
     } finally {
-      setIsForwarding(false);
+      if (isMounted) {
+        setIsForwarding(false);
+      }
     }
   };
 
@@ -210,6 +215,12 @@ export default function ForwardMessageModal({
       setSearchTerm("");
     }
   };
+
+  useEffect(() => {
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isVisible) {

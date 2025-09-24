@@ -431,6 +431,18 @@ function AppProviderInner({ children }) {
       if (shouldNotify) {
         notifiedRoomsRef.current[room.id] = lastAtDate;
         playNotificationSound();
+
+        // Check for mentions in the last message
+        if (room.lastMessage && room.lastMessage.includes("@")) {
+          // Get the actual message to check mentions
+          // This is a simplified check - in production you'd want to get the full message data
+          const senderName = room.updatedBy || "Someone";
+          const mentionTitle = `👤 ${senderName} đã mention bạn`;
+          document.title = mentionTitle;
+          setTimeout(() => {
+            document.title = originalTitleRef.current;
+          }, 5000);
+        }
       }
     });
   }, [rooms, uid, playNotificationSound, chatType, selectedRoomId]);

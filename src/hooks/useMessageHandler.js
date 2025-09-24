@@ -3,6 +3,27 @@ import { AuthContext } from '../Context/AuthProvider';
 import { sendMessage, updateRoomLastMessage, updateConversationLastMessage } from '../firebase/services';
 import { useEmoji } from './useEmoji';
 
+// Helper function to trigger mention notification
+const triggerMentionNotification = (mentions, roomId, senderName, messageText) => {
+  if (!mentions || mentions.length === 0) return;
+
+  // Play notification sound
+  const audio = new Audio("/sounds/incoming.mp3");
+  audio.preload = "auto";
+  audio.currentTime = 0;
+  audio.play().catch(() => { });
+
+  // Update tab title with mention indicator
+  const originalTitle = document.title;
+  const mentionTitle = `👤 Mention từ ${senderName} - ${originalTitle}`;
+  document.title = mentionTitle;
+
+  // Reset title after 5 seconds
+  setTimeout(() => {
+    document.title = originalTitle;
+  }, 5000);
+};
+
 export const useMessageHandler = (chatType, chatData, enableEncryption = false, userCredentials = null) => {
   const [inputValue, setInputValue] = useState('');
   const [showQuickReactions, setShowQuickReactions] = useState(false);
@@ -22,14 +43,44 @@ export const useMessageHandler = (chatType, chatData, enableEncryption = false, 
     ...additionalData
   });
 
+  // Helper function to parse mentions from text
+  const parseMentions = (text, members = []) => {
+    if (!text || chatType !== 'room') return [];
+
+    const userMap = new Map();
+    members.forEach(member => {
+      if (member && member.displayName) {
+        userMap.set(member.displayName.toLowerCase(), member.uid);
+      }
+    });
+
+    const mentions = [];
+    const mentionRegex = /@([^\s@]+)/g;
+    let match;
+
+    while ((match = mentionRegex.exec(text)) !== null) {
+      const displayName = match[1];
+      const userId = userMap.get(displayName.toLowerCase());
+      if (userId && !mentions.includes(userId)) {
+        mentions.push(userId);
+      }
+    }
+
+    return mentions;
+  };
+
   // Xử lý gửi tin nhắn văn bản
-  const handleTextMessage = async () => {
+  const handleTextMessage = async (members = []) => {
     if (!inputValue.trim() || !chatData?.id) return;
 
     try {
+      // Parse mentions from text
+      const mentions = parseMentions(inputValue, members);
+
       const messageData = createBaseMessageData({
         text: inputValue,
         messageType: "text",
+        mentions: mentions, // Add mentions array
       });
 
       const unifiedMessageData = {

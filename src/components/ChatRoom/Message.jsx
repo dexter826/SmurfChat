@@ -16,6 +16,7 @@ import { useEmoji } from "../../hooks/useEmoji";
 import SeenByModal from "./SeenByModal";
 import MessageReactions from "./MessageReactions";
 import ForwardMessageModal from "../Modals/ForwardMessageModal";
+import MentionText from "./MentionText";
 
 function formatDate(seconds) {
   let formattedDate = "";
@@ -494,7 +495,22 @@ export default function Message({
                 : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-sm"
             } border px-3 py-2`}
           >
-            <EmojiText text={currentContent.text} className="break-words" />
+            {chatType === "room" ? (
+              <MentionText
+                text={currentContent.text}
+                className="break-words"
+                members={members}
+              />
+            ) : (
+              <EmojiText text={currentContent.text} className="break-words" />
+            )}
+
+            {/* Debug: show members count */}
+            {chatType === "room" && (
+              <div className="text-xs text-gray-400 mt-1">
+                Debug: {members?.length || 0} members
+              </div>
+            )}
           </div>
         );
     }

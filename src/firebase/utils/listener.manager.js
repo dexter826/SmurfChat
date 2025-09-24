@@ -92,7 +92,7 @@ class ListenerManager {
   }
 
   cleanupListener(key) {
-    console.log(`🧹 Cleaning up listener: ${key}`);
+    // console.log(`🧹 Cleaning up listener: ${key}`);
 
     const unsubscribe = this.listeners.get(key);
     if (unsubscribe) {
