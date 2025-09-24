@@ -144,16 +144,6 @@ const SearchModal = ({
     onClose(); // Close modal after clicking message
   };
 
-  const formatDate = (seconds) => {
-    return new Date(seconds * 1000).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const getFileIcon = (category) => {
     const iconClass = "w-8 h-8";
     switch (category) {

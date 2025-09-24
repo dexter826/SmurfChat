@@ -1,8 +1,6 @@
 import { serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config';
 
-// User management services
-
 // Update user settings (e.g., privacy options)
 export const updateUserSettings = async (userId, data) => {
   try {

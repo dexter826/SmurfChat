@@ -12,7 +12,7 @@ function AppProviderInner({ children }) {
   const [isInviteMemberVisible, setIsInviteMemberVisible] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState("");
-  const [chatType, setChatType] = useState("room"); // 'room' or 'direct'
+  const [chatType, setChatType] = useState("room");
   const [isVoteModalVisible, setIsVoteModalVisible] = useState(false);
   const [isNewMessageVisible, setIsNewMessageVisible] = useState(false);
   const [isAddFriendVisible, setIsAddFriendVisible] = useState(false);
@@ -55,7 +55,6 @@ function AppProviderInner({ children }) {
 
   const { documents: members } = useOptimizedFirestore("users", usersCondition);
 
-  // Conversations for direct messaging
   const conversationsCondition = React.useMemo(() => {
     return {
       fieldName: "participants",
@@ -74,15 +73,10 @@ function AppProviderInner({ children }) {
   const selectedConversation = React.useMemo(() => {
     if (!selectedConversationId) return {};
 
-    // Handle new conversation creation
     if (selectedConversationId.startsWith("new_")) {
       const otherUserId = selectedConversationId.replace("new_", "");
       const otherUser = getUserById(otherUserId);
-
-      // Create new conversation
       const newConversationId = [uid, otherUserId].sort().join("_");
-
-      // Check if conversation already exists
       const existingConversation = conversations.find(
         (conv) =>
           conv.participants.includes(otherUserId) &&
@@ -97,7 +91,6 @@ function AppProviderInner({ children }) {
         };
       }
 
-      // Create new conversation in Firestore
       try {
         createOrUpdateConversation({
           id: newConversationId,
@@ -108,7 +101,6 @@ function AppProviderInner({ children }) {
         });
       } catch (err) {
         console.error("Error creating conversation in AppProvider:", err);
-        // Silent fail in AppProvider to prevent app crash
       }
 
       return {
@@ -139,32 +131,26 @@ function AppProviderInner({ children }) {
     getOtherParticipant,
   ]);
 
-  // =====================
-  // Global notifications for new, unread messages
-  // =====================
   const notifiedConversationsRef = useRef({});
   const notifiedRoomsRef = useRef({});
   const audioRef = useRef(null);
   const originalTitleRef = useRef(document.title);
   const titleIntervalRef = useRef(null);
   const [, setUnreadCount] = useState(0);
-  const isInitialLoadRef = useRef(true); // Track if this is initial page load
+  const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
-    // Preload custom sound
     try {
       const a = new Audio("/sounds/incoming.mp3");
       a.preload = "auto";
       audioRef.current = a;
     } catch {}
 
-    // Store original title
     originalTitleRef.current = document.title;
 
-    // Mark as not initial load after a short delay
     setTimeout(() => {
       isInitialLoadRef.current = false;
-    }, 2000); // Wait 2 seconds before enabling notifications
+    }, 2000);
   }, []);
 
   const playNotificationSound = React.useCallback(async () => {
@@ -181,8 +167,6 @@ function AppProviderInner({ children }) {
   const updateTabTitle = React.useCallback((count) => {
     if (count > 0) {
       document.title = `(${count}) ${originalTitleRef.current}`;
-
-      // Start blinking effect
       if (!titleIntervalRef.current) {
         let isOriginal = true;
         titleIntervalRef.current = setInterval(() => {
@@ -203,18 +187,13 @@ function AppProviderInner({ children }) {
     }
   }, []);
 
-  // Calculate total unread count
   useEffect(() => {
-    // Skip during initial load to prevent showing notification badges on reload
     if (isInitialLoadRef.current) return;
 
     let totalUnread = 0;
 
-    // Count unread conversations (excluding currently open conversation)
     conversations.forEach((conv) => {
       if (!conv) return;
-
-      // Skip currently selected conversation
       if (chatType === "direct" && selectedConversationId === conv.id) return;
 
       const lastAt = conv.lastMessageAt;
@@ -236,11 +215,8 @@ function AppProviderInner({ children }) {
       if (isUnread) totalUnread++;
     });
 
-    // Count unread rooms (excluding currently open room)
     rooms.forEach((room) => {
       if (!room || room.deleted) return;
-
-      // Skip currently selected room
       if (chatType === "room" && selectedRoomId === room.id) return;
 
       const lastAt = room.lastMessageAt;
@@ -274,7 +250,6 @@ function AppProviderInner({ children }) {
     selectedRoomId,
   ]);
 
-  // Clean up title interval on unmount
   useEffect(() => {
     return () => {
       if (titleIntervalRef.current) {
@@ -284,15 +259,12 @@ function AppProviderInner({ children }) {
     };
   }, []);
 
-  // Reset tab title when user focuses back to the tab
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        // When user comes back to tab, recalculate unread count to reset title appropriately
         setTimeout(() => {
           let totalUnread = 0;
 
-          // Count unread conversations (excluding currently open conversation)
           conversations.forEach((conv) => {
             if (!conv) return;
             if (chatType === "direct" && selectedConversationId === conv.id)
@@ -317,7 +289,6 @@ function AppProviderInner({ children }) {
             if (isUnread) totalUnread++;
           });
 
-          // Count unread rooms (excluding currently open room)
           rooms.forEach((room) => {
             if (!room || room.deleted) return;
             if (chatType === "room" && selectedRoomId === room.id) return;
@@ -362,9 +333,8 @@ function AppProviderInner({ children }) {
     selectedRoomId,
   ]);
 
-  // Notify for direct messages (any conversation, not only selected)
   useEffect(() => {
-    if (!Array.isArray(conversations) || isInitialLoadRef.current) return; // Skip notifications during initial load
+    if (!Array.isArray(conversations) || isInitialLoadRef.current) return;
 
     conversations.forEach((conv) => {
       if (!conv) return;
@@ -382,14 +352,7 @@ function AppProviderInner({ children }) {
         ? new Date(lastSeen)
         : null;
 
-      // Only notify if:
-      // 1. There's a valid lastAtDate
-      // 2. Message is from someone else (not current user)
-      // 3. Message is newer than what we've already notified for
-      // 4. Message is unread (lastAt > lastSeen)
-      // 5. Chat is not muted
-      // 6. We haven't already notified for this exact timestamp
-      const isFromOther = updatedBy && updatedBy !== uid;
+      // Remove unused isFromOther variable
       const isUnread = !!(
         lastAtDate &&
         (!lastSeenDate || lastAtDate > lastSeenDate)
@@ -403,13 +366,13 @@ function AppProviderInner({ children }) {
 
       const shouldNotify =
         lastAtDate &&
-        isFromOther &&
+        updatedBy &&
+        updatedBy !== uid &&
         isUnread &&
         !isMuted &&
         !hasNotifiedForThisMessage &&
         (!notifiedConversationsRef.current[conv.id] ||
           lastAtDate > notifiedConversationsRef.current[conv.id]) &&
-        // Don't notify if user is currently viewing this conversation
         (chatType !== "direct" || selectedConversationId !== conv.id);
 
       if (shouldNotify) {
@@ -425,9 +388,8 @@ function AppProviderInner({ children }) {
     selectedConversationId,
   ]);
 
-  // Optional: Notify for rooms as well using lastMessageAt/lastSeen
   useEffect(() => {
-    if (!Array.isArray(rooms) || isInitialLoadRef.current) return; // Skip notifications during initial load
+    if (!Array.isArray(rooms) || isInitialLoadRef.current) return;
 
     rooms.forEach((room) => {
       if (!room || room.deleted) return;
@@ -445,7 +407,6 @@ function AppProviderInner({ children }) {
         ? new Date(lastSeen)
         : null;
 
-      // Same improved logic for rooms
       const isFromOther = updatedBy && updatedBy !== uid;
       const isUnread = !!(
         lastAtDate &&
@@ -465,7 +426,6 @@ function AppProviderInner({ children }) {
         !hasNotifiedForThisMessage &&
         (!notifiedRoomsRef.current[room.id] ||
           lastAtDate > notifiedRoomsRef.current[room.id]) &&
-        // Don't notify if user is currently viewing this room
         (chatType !== "room" || selectedRoomId !== room.id);
 
       if (shouldNotify) {
@@ -486,15 +446,14 @@ function AppProviderInner({ children }) {
     setChatType("room");
   };
 
-  // Helper functions to properly switch between chat types
   const selectRoom = (roomId) => {
-    setSelectedConversationId(""); // Clear conversation selection
+    setSelectedConversationId("");
     setSelectedRoomId(roomId);
     setChatType("room");
   };
 
   const selectConversation = (conversationId) => {
-    setSelectedRoomId(""); // Clear room selection
+    setSelectedRoomId("");
     setSelectedConversationId(conversationId);
     setChatType("direct");
   };
@@ -531,7 +490,6 @@ function AppProviderInner({ children }) {
         setIsBlockedUsersVisible,
         preSelectedMembers,
         setPreSelectedMembers,
-        // allUsers removed - now available via useUsers hook
         clearState,
         selectRoom,
         selectConversation,
@@ -542,7 +500,6 @@ function AppProviderInner({ children }) {
   );
 }
 
-// Main AppProvider with UserContext wrapper
 export default function AppProvider({ children }) {
   return (
     <UserProvider>
