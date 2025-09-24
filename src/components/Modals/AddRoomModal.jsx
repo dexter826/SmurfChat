@@ -14,31 +14,53 @@ function DebounceSelect({
   debounceTimeout = 300,
   currentUserId,
   selectedUserIds = [],
+  cachedFriends: cachedFriendsProp,
+  setCachedFriends: setCachedFriendsProp,
   ...props
 }) {
   const [fetching, setFetching] = useState(false);
   const [options, setOptions] = useState([]);
+  const [cachedFriends, setCachedFriends] = useState([]);
 
   const debounceFetcher = React.useMemo(() => {
     const loadOptions = (value) => {
       setOptions([]);
       setFetching(true);
 
-      fetchOptions(value, currentUserId, selectedUserIds).then((newOptions) => {
+      fetchOptions(
+        value,
+        currentUserId,
+        selectedUserIds,
+        setCachedFriendsProp,
+        cachedFriendsProp
+      ).then((newOptions) => {
         setOptions(newOptions);
         setFetching(false);
       });
     };
 
     return debounce(loadOptions, debounceTimeout);
-  }, [debounceTimeout, fetchOptions, currentUserId, selectedUserIds]);
+  }, [
+    debounceTimeout,
+    fetchOptions,
+    currentUserId,
+    selectedUserIds,
+    setCachedFriends,
+    cachedFriends,
+  ]);
 
   const handleFocus = () => {
     // Show all friends when input is focused
     setOptions([]);
     setFetching(true);
 
-    fetchOptions("", currentUserId, selectedUserIds).then((newOptions) => {
+    fetchOptions(
+      "",
+      currentUserId,
+      selectedUserIds,
+      setCachedFriendsProp,
+      cachedFriendsProp
+    ).then((newOptions) => {
       setOptions(newOptions);
       setFetching(false);
     });
@@ -116,58 +138,97 @@ function DebounceSelect({
   );
 }
 
-// Hàm tìm kiếm bạn bè của người dùng
-async function fetchFriendsList(search, currentUserId, selectedUserIds = []) {
-  // Get friends list first
-  const friendsRef = collection(db, "friends");
-  const friendsQuery = query(
-    friendsRef,
-    where("participants", "array-contains", currentUserId)
-  );
+// Helper function to filter friends based on search and selected users
+function filterFriends(friends, search, selectedUserIds) {
+  let filtered = friends;
 
-  const friendsSnapshot = await getDocs(friendsQuery);
-  const friendIds = [];
-
-  // Filter out blocked users and already selected users
-  for (const doc of friendsSnapshot.docs) {
-    const participants = doc.data().participants || [];
-    const friendId = participants.find((id) => id !== currentUserId);
-    if (friendId && !selectedUserIds.includes(friendId)) {
-      try {
-        const isBlocked = await isUserBlockedOptimized(currentUserId, friendId);
-        if (!isBlocked) {
-          friendIds.push(friendId);
-        }
-      } catch (err) {
-        // Include if can't check (default behavior)
-        friendIds.push(friendId);
-      }
-    }
+  // Filter out already selected users
+  if (selectedUserIds.length > 0) {
+    filtered = filtered.filter(
+      (friend) => !selectedUserIds.includes(friend.value)
+    );
   }
 
-  if (friendIds.length === 0) return [];
-
-  // Get user details for friends
-  const usersRef = collection(db, "users");
-  const usersQuery = query(usersRef, where("uid", "in", friendIds));
-
-  const usersSnapshot = await getDocs(usersQuery);
-  const friends = usersSnapshot.docs.map((doc) => ({
-    label: doc.data().displayName,
-    value: doc.data().uid,
-    photoURL: doc.data().photoURL,
-    keywords: doc.data().keywords || [],
-  }));
-
   // Filter by search term
-  if (!search) return friends;
+  if (search) {
+    const searchLower = search.toLowerCase();
+    filtered = filtered.filter(
+      (friend) =>
+        friend.keywords.some((keyword) => keyword.includes(searchLower)) ||
+        friend.label?.toLowerCase().includes(searchLower)
+    );
+  }
 
-  const searchLower = search.toLowerCase();
-  return friends.filter(
-    (friend) =>
-      friend.keywords.some((keyword) => keyword.includes(searchLower)) ||
-      friend.label?.toLowerCase().includes(searchLower)
-  );
+  return filtered;
+}
+
+// Hàm tìm kiếm bạn bè của người dùng (with caching)
+async function fetchFriendsList(
+  search,
+  currentUserId,
+  selectedUserIds = [],
+  setCachedFriends,
+  cachedFriends
+) {
+  // If we have cached friends, use them instead of fetching from database
+  if (cachedFriends && cachedFriends.length > 0) {
+    return filterFriends(cachedFriends, search, selectedUserIds);
+  }
+
+  // Fetch from database if no cache
+  if (setCachedFriends) {
+    const friendsRef = collection(db, "friends");
+    const friendsQuery = query(
+      friendsRef,
+      where("participants", "array-contains", currentUserId)
+    );
+
+    const friendsSnapshot = await getDocs(friendsQuery);
+    const friendIds = [];
+
+    // Filter out blocked users
+    for (const doc of friendsSnapshot.docs) {
+      const participants = doc.data().participants || [];
+      const friendId = participants.find((id) => id !== currentUserId);
+      if (friendId) {
+        try {
+          const isBlocked = await isUserBlockedOptimized(
+            currentUserId,
+            friendId
+          );
+          if (!isBlocked) {
+            friendIds.push(friendId);
+          }
+        } catch (err) {
+          // Include if can't check (default behavior)
+          friendIds.push(friendId);
+        }
+      }
+    }
+
+    if (friendIds.length === 0) {
+      setCachedFriends([]);
+      return [];
+    }
+
+    // Get user details for friends
+    const usersRef = collection(db, "users");
+    const usersQuery = query(usersRef, where("uid", "in", friendIds));
+
+    const usersSnapshot = await getDocs(usersQuery);
+    const friends = usersSnapshot.docs.map((doc) => ({
+      label: doc.data().displayName,
+      value: doc.data().uid,
+      photoURL: doc.data().photoURL,
+      keywords: doc.data().keywords || [],
+    }));
+
+    // Cache the friends list
+    setCachedFriends(friends);
+    return filterFriends(friends, search, selectedUserIds);
+  }
+
+  return [];
 }
 
 export default function AddRoomModal() {
@@ -185,6 +246,18 @@ export default function AddRoomModal() {
   const [selectedMembers, setSelectedMembers] = useState(
     preSelectedMembers || []
   );
+
+  // Sync selectedMembers with preSelectedMembers when modal opens with pre-selected users
+  React.useEffect(() => {
+    if (
+      preSelectedMembers &&
+      preSelectedMembers.length > 0 &&
+      selectedMembers.length === 0
+    ) {
+      setSelectedMembers(preSelectedMembers);
+    }
+  }, [preSelectedMembers, selectedMembers.length]);
+  const [cachedFriends, setCachedFriends] = useState([]);
 
   const handleOk = async () => {
     // Validate room name
@@ -219,6 +292,7 @@ export default function AddRoomModal() {
     setFormState({ name: "" });
     setSelectedMembers([]);
     setPreSelectedMembers([]);
+    setCachedFriends([]);
     setIsAddRoomVisible(false);
   };
 
@@ -227,6 +301,7 @@ export default function AddRoomModal() {
     setFormState({ name: "" });
     setSelectedMembers([]);
     setPreSelectedMembers([]);
+    setCachedFriends([]);
     setIsAddRoomVisible(false);
   };
 
@@ -270,6 +345,8 @@ export default function AddRoomModal() {
               value={selectedMembers}
               currentUserId={uid}
               selectedUserIds={selectedMembers.map((member) => member.value)}
+              cachedFriends={cachedFriends}
+              setCachedFriends={setCachedFriends}
             />
             <div className="mt-1 text-xs text-slate-500">
               Đã chọn: {selectedMembers.length} bạn bè. Cần thêm ít nhất{" "}
