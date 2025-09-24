@@ -424,6 +424,7 @@ export default function ChatWindow() {
                         reactions={item.reactions || {}}
                         recalled={item.recalled}
                         chatType={chatType}
+                        chatId={currentChatData?.id}
                         isLatestFromSender={
                           index === combinedMessages.length - 1
                         } // Only the very last message
@@ -435,6 +436,10 @@ export default function ChatWindow() {
                         encryptedLocationData={item.encryptedLocationData}
                         contentHash={item.contentHash}
                         userCredentials={userCredentials}
+                        // Forward props
+                        forwarded={item.forwarded}
+                        originalSender={item.originalSender}
+                        originalChatType={item.originalChatType}
                       />
                     );
                   }

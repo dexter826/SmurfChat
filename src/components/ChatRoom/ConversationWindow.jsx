@@ -358,6 +358,7 @@ export default function ConversationWindow() {
                       readByDetails={mes.readByDetails || {}}
                       reactions={mes.reactions || {}}
                       chatType="direct"
+                      chatId={selectedConversation.id}
                       isLatestFromSender={isLatestFromSender}
                       otherParticipant={otherParticipant} // Pass other participant info for read status display
                       // Encryption props
@@ -367,6 +368,10 @@ export default function ConversationWindow() {
                       encryptedLocationData={mes.encryptedLocationData}
                       contentHash={mes.contentHash}
                       userCredentials={userCredentials}
+                      // Forward props
+                      forwarded={mes.forwarded}
+                      originalSender={mes.originalSender}
+                      originalChatType={mes.originalChatType}
                     />
                   );
                 })}

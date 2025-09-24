@@ -15,6 +15,7 @@ import EmojiText, { EmojiOnlyMessage } from "./EmojiText";
 import { useEmoji } from "../../hooks/useEmoji";
 import SeenByModal from "./SeenByModal";
 import MessageReactions from "./MessageReactions";
+import ForwardMessageModal from "../Modals/ForwardMessageModal";
 
 function formatDate(seconds) {
   let formattedDate = "";
@@ -42,6 +43,7 @@ export default function Message({
   messageStatus = "sent",
   recalled = false,
   chatType, // 'room' or 'direct'
+  chatId, // ID of the current chat (room or conversation)
   isLatestFromSender = false, // New prop to identify if this is the latest message from sender
   members = [], // For room chat to get user info
   otherParticipant = null, // For direct chat to get other user info
@@ -54,6 +56,10 @@ export default function Message({
   encryptedLocationData = null,
   contentHash,
   userCredentials = null, // For decryption
+  // Forward props
+  forwarded = false,
+  originalSender,
+  originalChatType,
 }) {
   const { user } = React.useContext(AuthContext);
   const { setSelectedUser, setIsUserProfileVisible } =
@@ -64,6 +70,8 @@ export default function Message({
   const [showSeenByModal, setShowSeenByModal] = useState(false);
   const [seenByUsers, setSeenByUsers] = useState([]);
   const [decryptedContent, setDecryptedContent] = useState(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const isOwn = uid === user?.uid;
 
   React.useEffect(() => {
@@ -113,31 +121,7 @@ export default function Message({
     };
 
     decryptMessageContent();
-  }, [
-    isEncrypted,
-    userCredentials,
-    id,
-    text,
-    displayName,
-    createdAt,
-    photoURL,
-    uid,
-    messageType,
-    fileData,
-    locationData,
-    messageStatus,
-    recalled,
-    chatType,
-    isLatestFromSender,
-    members,
-    otherParticipant,
-    readByDetails,
-    reactions,
-    encryptedText,
-    encryptedFileData,
-    encryptedLocationData,
-    contentHash,
-  ]);
+  }, [isEncrypted, userCredentials]); // Simplified dependencies
 
   // Handler to open user profile
   const handleAvatarClick = () => {
@@ -168,6 +152,27 @@ export default function Message({
       setIsRecalling(false);
     }
   };
+
+  const handleForwardMessage = () => {
+    setShowForwardModal(true);
+    setShowMenu(false);
+  };
+
+  const handleMenuToggle = () => {
+    setShowMenu(!showMenu);
+  };
+
+  // Close menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showMenu && !event.target.closest(".message-menu")) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMenu]);
 
   const canRecall =
     isOwn &&
@@ -361,35 +366,93 @@ export default function Message({
       <div className="relative group">
         {content}
 
-        {/* Recall button - show for all message types */}
-        {canRecall && (
+        {/* Menu button */}
+        <div
+          className={`absolute ${
+            isOwn ? "-left-8" : "-right-8"
+          } top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 message-menu`}
+        >
           <button
-            onClick={handleRecallMessage}
-            disabled={isRecalling}
-            className={`absolute ${
-              isOwn ? "-left-8" : "-right-8"
-            } top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 bg-gray-600 text-white rounded-full hover:bg-gray-700 disabled:opacity-50 z-10`}
-            title="Thu hồi tin nhắn"
+            onClick={handleMenuToggle}
+            className="p-1 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
+            title="Tùy chọn tin nhắn"
           >
-            {isRecalling ? (
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-            ) : (
-              <svg
-                className="w-3 h-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                />
-              </svg>
-            )}
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+              />
+            </svg>
           </button>
-        )}
+
+          {/* Dropdown menu */}
+          {showMenu && (
+            <div
+              className={`absolute ${
+                isOwn ? "left-full ml-1" : "right-full mr-1"
+              } bottom-0 mb-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[120px] z-30`}
+            >
+              {/* Forward option */}
+              <button
+                onClick={handleForwardMessage}
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 8l4 4m0 0l-4 4m4-4H3"
+                  />
+                </svg>
+                Chuyển tiếp
+              </button>
+
+              {/* Recall option - only show for own messages that can be recalled */}
+              {canRecall && (
+                <button
+                  onClick={() => {
+                    handleRecallMessage();
+                    setShowMenu(false);
+                  }}
+                  disabled={isRecalling}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isRecalling ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                  ) : (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                      />
+                    </svg>
+                  )}
+                  {isRecalling ? "Đang thu hồi..." : "Thu hồi"}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
 
@@ -472,6 +535,26 @@ export default function Message({
         )}
       </div>
       <div className={`flex max-w-[70%] flex-col ${isOwn ? "mr-2" : "ml-2"}`}>
+        {/* Forwarded indicator */}
+        {forwarded && originalSender && (
+          <div className="mb-1 flex items-center">
+            <svg
+              className="w-3 h-3 text-gray-400 mr-1"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+              Chuyển tiếp từ {originalSender}
+            </span>
+          </div>
+        )}
+
         <div
           className={`mb-1 flex items-center ${
             isOwn ? "flex-row-reverse" : ""
@@ -508,6 +591,22 @@ export default function Message({
         isVisible={showSeenByModal}
         onClose={() => setShowSeenByModal(false)}
         seenUsers={seenByUsers}
+      />
+
+      {/* Forward Message Modal */}
+      <ForwardMessageModal
+        isVisible={showForwardModal}
+        onClose={() => setShowForwardModal(false)}
+        messageData={{
+          text: currentContent.text,
+          messageType: currentContent.messageType,
+          fileData: currentContent.fileData,
+          locationData: currentContent.locationData,
+          displayName: displayName,
+          chatType: chatType,
+          chatId: chatId,
+        }}
+        userCredentials={userCredentials}
       />
     </div>
   );

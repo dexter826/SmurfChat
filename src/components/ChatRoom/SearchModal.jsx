@@ -426,6 +426,7 @@ const SearchModal = ({
                       reactions={message.reactions || {}}
                       recalled={message.recalled}
                       chatType={chatType}
+                      chatId={chatId}
                       isLatestFromSender={false}
                       members={[]} // Không cần members cho search results
                       isEncrypted={message.isEncrypted}
@@ -434,6 +435,10 @@ const SearchModal = ({
                       encryptedLocationData={message.encryptedLocationData}
                       contentHash={message.contentHash}
                       userCredentials={null} // Không cần decrypt trong search results
+                      // Forward props
+                      forwarded={message.forwarded}
+                      originalSender={message.originalSender}
+                      originalChatType={message.originalChatType}
                     />
                   </div>
                 ))}

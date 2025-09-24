@@ -378,3 +378,17 @@ export const searchMessagesInChat = async (chatId, searchTerm, limitCount = 50) 
     throw handledError;
   }
 };
+
+export const forwardMessage = async (collectionName = 'messages', messageData, encryptMessage = false, userCredentials = null) => {
+  try {
+    // Forward message is essentially sending a new message with forwarded flag
+    const forwardedMessageData = {
+      ...messageData,
+      forwarded: true,
+    };
+
+    return await sendMessage(collectionName, forwardedMessageData, encryptMessage, userCredentials);
+  } catch (error) {
+    throw error;
+  }
+};
