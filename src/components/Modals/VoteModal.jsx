@@ -166,7 +166,7 @@ const VoteModal = () => {
             </div>
             {options.length < 10 && (
               <button
-                className="mt-3 w-full rounded-md border border-dashed border-gray-300 px-3 py-2 text-sm hover:bg-slate-50 dark:border-gray-700"
+                className="mt-3 w-full rounded-md border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-800"
                 onClick={handleAddOption}
                 title="Thêm lựa chọn"
               >
