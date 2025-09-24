@@ -18,11 +18,15 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
     time: format(new Date(), "HH:mm"),
     participants: [],
     reminderMinutes: 15,
+    category: "meeting",
+    priority: "normal",
   });
 
   useEffect(() => {
     if (initialData) {
-      const eventDate = initialData.datetime.toDate ? initialData.datetime.toDate() : new Date(initialData.datetime);
+      const eventDate = initialData.datetime.toDate
+        ? initialData.datetime.toDate()
+        : new Date(initialData.datetime);
       setForm({
         title: initialData.title || "",
         description: initialData.description || "",
@@ -30,9 +34,16 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
         time: format(eventDate, "HH:mm"),
         participants: initialData.participants || [],
         reminderMinutes: initialData.reminderMinutes ?? 15,
+        category: initialData.category || "meeting",
+        priority: initialData.priority || "normal",
       });
     } else {
-      setForm((f) => ({ ...f, participants: selectedRoom.members || [] }));
+      setForm((f) => ({
+        ...f,
+        participants: selectedRoom.members || [],
+        category: "meeting",
+        priority: "normal",
+      }));
     }
   }, [initialData, selectedRoom.members]);
 
@@ -42,6 +53,21 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
     { value: 30, label: "30 phút trước" },
     { value: 60, label: "1 giờ trước" },
     { value: 1440, label: "1 ngày trước" },
+  ];
+
+  const categoryOptions = [
+    { value: "meeting", label: "Họp hành", color: "bg-blue-500" },
+    { value: "work", label: "Công việc", color: "bg-green-500" },
+    { value: "personal", label: "Cá nhân", color: "bg-purple-500" },
+    { value: "reminder", label: "Nhắc nhở", color: "bg-yellow-500" },
+    { value: "other", label: "Khác", color: "bg-gray-500" },
+  ];
+
+  const priorityOptions = [
+    { value: "low", label: "Thấp", color: "text-green-600" },
+    { value: "normal", label: "Bình thường", color: "text-blue-600" },
+    { value: "high", label: "Cao", color: "text-orange-600" },
+    { value: "urgent", label: "Khẩn cấp", color: "text-red-600" },
   ];
 
   const handleSubmit = async () => {
@@ -55,7 +81,11 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
     }
 
     // Validate date is not in the past
-    const eventDateTime = parse(`${form.date} ${form.time}`, "yyyy-MM-dd HH:mm", new Date());
+    const eventDateTime = parse(
+      `${form.date} ${form.time}`,
+      "yyyy-MM-dd HH:mm",
+      new Date()
+    );
     if (isBefore(eventDateTime, new Date())) {
       warning("Không thể tạo sự kiện trong quá khứ!");
       return;
@@ -63,7 +93,11 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
 
     setLoading(true);
     try {
-      const eventDateTime = parse(`${form.date} ${form.time}`, "yyyy-MM-dd HH:mm", new Date());
+      const eventDateTime = parse(
+        `${form.date} ${form.time}`,
+        "yyyy-MM-dd HH:mm",
+        new Date()
+      );
       const eventData = {
         title: form.title,
         description: form.description || "",
@@ -77,8 +111,10 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
             ? form.participants
             : selectedRoom.members,
         reminderMinutes: form.reminderMinutes || 15,
+        category: form.category,
+        priority: form.priority,
         status: "active",
-        type: "meeting",
+        type: form.category,
       };
 
       await createEvent(eventData);
@@ -188,6 +224,38 @@ export default function EventModal({ visible, onCancel, initialData = null }) {
                   );
                 })}
               </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Danh mục</label>
+              <select
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+              >
+                {categoryOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Độ ưu tiên
+              </label>
+              <select
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700"
+                value={form.priority}
+                onChange={(e) => setForm({ ...form, priority: e.target.value })}
+              >
+                {priorityOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div>

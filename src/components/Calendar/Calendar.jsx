@@ -1,8 +1,14 @@
 import React, { useState, useContext } from "react";
-import { FaCalendar, FaClock } from "react-icons/fa";
+import {
+  FaCalendar,
+  FaClock,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaExclamationCircle,
+} from "react-icons/fa";
 import { AppContext } from "../../Context/AppProvider.jsx";
 import useOptimizedFirestore from "../../hooks/useOptimizedFirestore";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, isBefore } from "date-fns";
 import EventModal from "../Modals/EventModal.jsx";
 
 export default function Calendar() {
@@ -36,6 +42,72 @@ export default function Calendar() {
 
   const selectedDateEvents = getEventsForDate(selectedDate);
 
+  // Helper function để lấy màu sắc cho sự kiện
+  const getEventColor = (event) => {
+    const now = new Date();
+    const eventTime = event.datetime.toDate
+      ? event.datetime.toDate()
+      : new Date(event.datetime);
+
+    // Ưu tiên trạng thái trước
+    if (event.status === "completed")
+      return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700";
+    if (event.status === "cancelled")
+      return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-700";
+
+    // Sự kiện trong quá khứ
+    if (isBefore(eventTime, now))
+      return "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600";
+
+    // Sự kiện sắp diễn ra - màu theo category
+    const categoryColors = {
+      meeting:
+        "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700",
+      work: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700",
+      personal:
+        "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700",
+      reminder:
+        "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-700",
+      other:
+        "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700",
+    };
+
+    return (
+      categoryColors[event.category || "meeting"] || categoryColors.meeting
+    );
+  };
+
+  // Helper function để lấy icon cho trạng thái sự kiện
+  const getEventStatusIcon = (event) => {
+    const now = new Date();
+    const eventTime = event.datetime.toDate
+      ? event.datetime.toDate()
+      : new Date(event.datetime);
+
+    if (event.status === "completed")
+      return <FaCheckCircle className="text-green-600" />;
+    if (event.status === "cancelled")
+      return <FaTimesCircle className="text-red-600" />;
+    if (isBefore(eventTime, now))
+      return <FaExclamationCircle className="text-gray-500" />;
+
+    return <FaClock className="text-blue-600" />;
+  };
+
+  // Helper function để format trạng thái sự kiện
+  const getEventStatusText = (event) => {
+    const now = new Date();
+    const eventTime = event.datetime.toDate
+      ? event.datetime.toDate()
+      : new Date(event.datetime);
+
+    if (event.status === "completed") return "Hoàn thành";
+    if (event.status === "cancelled") return "Đã hủy";
+    if (isBefore(eventTime, now)) return "Đã qua";
+
+    return "Sắp diễn ra";
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -68,24 +140,38 @@ export default function Calendar() {
             Sự kiện ngày {format(selectedDate, "dd/MM/yyyy")}
           </h4>
           {selectedDateEvents.length > 0 ? (
-            <ul className="mt-2 divide-y divide-gray-200 dark:divide-gray-700">
+            <ul className="mt-2 space-y-2">
               {selectedDateEvents.map((event) => (
-                <li key={event.id} className="py-2">
-                  <div className="text-sm font-medium">{event.title}</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-300 inline-flex items-center gap-1">
-                    <FaClock />{" "}
-                    {format(
-                      event.datetime.toDate
-                        ? event.datetime.toDate()
-                        : new Date(event.datetime),
-                      "HH:mm"
-                    )}
-                  </div>
-                  {event.description && (
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {event.description}
+                <li
+                  key={event.id}
+                  className={`p-3 rounded-lg border ${getEventColor(event)}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        {getEventStatusIcon(event)}
+                        <span className="text-sm font-semibold">
+                          {event.title}
+                        </span>
+                      </div>
+                      <div className="text-xs opacity-80 mb-1">
+                        {format(
+                          event.datetime.toDate
+                            ? event.datetime.toDate()
+                            : new Date(event.datetime),
+                          "HH:mm"
+                        )}
+                      </div>
+                      {event.description && (
+                        <div className="text-xs opacity-75 line-clamp-2">
+                          {event.description}
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <div className="text-xs opacity-60">
+                      {getEventStatusText(event)}
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>

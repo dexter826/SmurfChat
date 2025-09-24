@@ -3,7 +3,7 @@ import useOptimizedFirestore from "../hooks/useOptimizedFirestore";
 import { AuthContext } from "./AuthProvider";
 import { useAlert } from "./AlertProvider";
 import { createOrUpdateConversation } from "../firebase/services";
-import reminderService from "../components/Notifications/ReminderService";
+import eventReminderService from "../components/Notifications/EventReminderService";
 import { UserProvider, useUsers } from "./UserContext";
 
 export const AppContext = React.createContext();
@@ -29,10 +29,16 @@ function AppProviderInner({ children }) {
 
   const alertProvider = useAlert();
 
-  // Set alert provider for reminder service
+  // Khởi tạo reminder service
   React.useEffect(() => {
-    reminderService.setAlertProvider(alertProvider);
-  }, [alertProvider]);
+    if (uid && alertProvider) {
+      eventReminderService.initialize(uid, alertProvider);
+    }
+
+    return () => {
+      eventReminderService.destroy();
+    };
+  }, [uid, alertProvider]);
 
   const roomsCondition = React.useMemo(() => {
     return {
@@ -96,39 +102,6 @@ function AppProviderInner({ children }) {
     "eventDate",
     "asc"
   );
-
-  // Update reminder service when events change
-  useEffect(() => {
-    if (userEvents.length > 0) {
-      reminderService.updateReminders(userEvents);
-
-      // Show daily agenda on first load
-      const hasShownAgenda = sessionStorage.getItem("dailyAgendaShown");
-      if (!hasShownAgenda) {
-        setTimeout(() => {
-          reminderService.showDailyAgenda(userEvents);
-          sessionStorage.setItem("dailyAgendaShown", "true");
-        }, 2000);
-      }
-    }
-  }, [userEvents]);
-
-  // Keep reminder service per-chat mutes in sync for rooms
-  useEffect(() => {
-    const mutedRoomIds = rooms
-      .filter((r) => r.mutedBy && r.mutedBy[uid])
-      .map((r) => r.id);
-    reminderService.setMutedChats(mutedRoomIds);
-  }, [rooms, uid]);
-
-  // Get all users for conversation lookup
-  // REMOVED: Now using UserContext for optimized user lookups
-  // const allUsersCondition = React.useMemo(() => ({
-  //   fieldName: 'uid',
-  //   operator: '!=',
-  //   compareValue: uid,
-  // }), [uid]);
-  // const allUsers = useFirestore('users', allUsersCondition);
 
   const selectedConversation = React.useMemo(() => {
     if (!selectedConversationId) return {};
