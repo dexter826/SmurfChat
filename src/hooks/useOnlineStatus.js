@@ -8,7 +8,7 @@ export const useOnlineStatus = (userId) => {
   useEffect(() => {
     if (!userId) return;
 
-    // Update user's online status
+    // Cập nhật trạng thái online của người dùng
     const updateOnlineStatus = async (online) => {
       try {
         const userRef = doc(db, 'users', userId);
@@ -18,14 +18,14 @@ export const useOnlineStatus = (userId) => {
         });
         setIsOnline(online);
       } catch (error) {
-        console.error('Error updating online status:', error);
+        // Silent fail for online status updates
       }
     };
 
-    // Set user as online when component mounts
+    // Đặt người dùng online khi component mount
     updateOnlineStatus(true);
 
-    // Listen for online/offline events
+    // Lắng nghe sự kiện online/offline
     const handleOnline = () => updateOnlineStatus(true);
     const handleOffline = () => updateOnlineStatus(false);
 
@@ -33,7 +33,7 @@ export const useOnlineStatus = (userId) => {
     window.addEventListener('offline', handleOffline);
     window.addEventListener('beforeunload', () => updateOnlineStatus(false));
 
-    // Set user as offline when tab becomes hidden
+    // Đặt người dùng offline khi tab bị ẩn
     const handleVisibilityChange = () => {
       if (document.hidden) {
         updateOnlineStatus(false);
@@ -44,14 +44,14 @@ export const useOnlineStatus = (userId) => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Heartbeat to maintain online status every 30 seconds
+    // Heartbeat để duy trì trạng thái online mỗi 30 giây
     const heartbeatInterval = setInterval(() => {
       if (!document.hidden && navigator.onLine) {
         updateOnlineStatus(true);
       }
     }, 30000);
 
-    // Cleanup
+    // Dọn dẹp
     return () => {
       updateOnlineStatus(false);
       window.removeEventListener('online', handleOnline);
@@ -77,13 +77,13 @@ export const useUserOnlineStatus = (userId) => {
         const lastSeen = data.lastSeen;
         let isOnline = data.isOnline || false;
 
-        // Check if user should be considered offline based on last activity
+        // Kiểm tra xem người dùng có nên được coi là offline dựa trên hoạt động cuối cùng
         if (isOnline && lastSeen) {
           const lastSeenTime = lastSeen.toDate ? lastSeen.toDate() : new Date(lastSeen);
           const now = new Date();
           const timeDiff = now - lastSeenTime;
-          
-          // Consider user offline if no activity for more than 5 minutes
+
+          // Coi người dùng offline nếu không có hoạt động trong hơn 5 phút
           if (timeDiff > 5 * 60 * 1000) {
             isOnline = false;
           }
@@ -104,19 +104,19 @@ export const useUserOnlineStatus = (userId) => {
 
 export const formatLastSeen = (lastSeen) => {
   if (!lastSeen) return 'Chưa xác định';
-  
+
   const now = new Date();
   const lastSeenDate = lastSeen.toDate ? lastSeen.toDate() : new Date(lastSeen);
   const diffInMinutes = Math.floor((now - lastSeenDate) / (1000 * 60));
-  
+
   if (diffInMinutes < 1) return 'Vừa xong';
   if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) return `${diffInHours} giờ trước`;
-  
+
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays} ngày trước`;
-  
+
   return lastSeenDate.toLocaleDateString('vi-VN');
 };

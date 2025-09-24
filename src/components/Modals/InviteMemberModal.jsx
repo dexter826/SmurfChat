@@ -20,8 +20,6 @@ function DebounceSelect({
   curMembers,
   ...props
 }) {
-  // Search: abcddassdfasdf
-
   const [fetching, setFetching] = useState(false);
   const [options, setOptions] = useState([]);
 
@@ -133,7 +131,6 @@ async function fetchFriendsList(search, curMembers, currentUserId) {
           friendIds.push(friendId);
         }
       } catch (err) {
-        console.error('Error checking block status:', err);
         // Include if can't check (default behavior)
         friendIds.push(friendId);
       }

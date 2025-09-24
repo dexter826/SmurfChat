@@ -18,10 +18,9 @@ import BlockedUsersModal from "./components/Modals/BlockedUsersModal.jsx";
 import listenerManager from "./firebase/utils/listener.manager";
 
 function App() {
-  // Cleanup all listeners on app unmount
+  // Dọn dẹp tất cả listeners khi app unmount
   useEffect(() => {
     return () => {
-      console.log('🧹 App unmounting - cleaning up all listeners');
       listenerManager.cleanupAll();
     };
   }, []);

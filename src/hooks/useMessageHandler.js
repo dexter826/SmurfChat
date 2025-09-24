@@ -1,13 +1,3 @@
-/**
- * useMessageHandler - Custom Hook for Message Operations
- * 
- * Consolidates duplicate message handling logic between ChatWindow and ConversationWindow.
- * Provides unified interface for sending messages, files, location, and managing input state.
- * 
- * Created: August 30, 2025
- * Purpose: Eliminate code duplication (Issue 2.1)
- */
-
 import { useState, useRef, useContext } from 'react';
 import { AuthContext } from '../Context/AuthProvider';
 import { sendMessage, updateRoomLastMessage, updateConversationLastMessage } from '../firebase/services';
@@ -17,14 +7,14 @@ export const useMessageHandler = (chatType, chatData) => {
   const [inputValue, setInputValue] = useState('');
   const [showQuickReactions, setShowQuickReactions] = useState(false);
   const inputRef = useRef();
-  
+
   const {
     user: { uid, photoURL, displayName },
   } = useContext(AuthContext);
-  
+
   const { addToRecent } = useEmoji();
 
-  // Common message data structure
+  // Cấu trúc dữ liệu tin nhắn chung
   const createBaseMessageData = (additionalData = {}) => ({
     uid,
     photoURL,
@@ -32,7 +22,7 @@ export const useMessageHandler = (chatType, chatData) => {
     ...additionalData
   });
 
-  // Handle text message submission
+  // Xử lý gửi tin nhắn văn bản
   const handleTextMessage = async () => {
     if (!inputValue.trim() || !chatData?.id) return;
 
@@ -56,17 +46,15 @@ export const useMessageHandler = (chatType, chatData) => {
         await updateConversationLastMessage(chatData.id, inputValue, uid);
       }
 
-      // Reset input and focus
+      // Đặt lại input và focus
       setInputValue("");
-      
+
       if (inputRef?.current) {
         setTimeout(() => {
           inputRef.current.focus();
         });
       }
     } catch (error) {
-      console.error("Error sending message:", error);
-      
       if (error.message.includes('blocked')) {
         alert('Không thể gửi tin nhắn. Bạn đã bị chặn hoặc đã chặn người này.');
       } else {
@@ -75,7 +63,7 @@ export const useMessageHandler = (chatType, chatData) => {
     }
   };
 
-  // Handle file upload
+  // Xử lý upload file
   const handleFileMessage = async (fileData) => {
     if (!chatData?.id) return;
 
@@ -102,8 +90,6 @@ export const useMessageHandler = (chatType, chatData) => {
         await updateConversationLastMessage(chatData.id, lastMessageText, uid);
       }
     } catch (error) {
-      console.error('Error sending file message:', error);
-      
       if (error.message.includes('blocked')) {
         alert('Không thể gửi tin nhắn. Bạn đã bị chặn hoặc đã chặn người này.');
       } else {
@@ -112,7 +98,7 @@ export const useMessageHandler = (chatType, chatData) => {
     }
   };
 
-  // Handle location sharing
+  // Xử lý chia sẻ vị trí
   const handleLocationMessage = async (locationData) => {
     if (!chatData?.id) return;
 
@@ -139,28 +125,27 @@ export const useMessageHandler = (chatType, chatData) => {
         await updateConversationLastMessage(chatData.id, lastMessageText, uid);
       }
     } catch (error) {
-      console.error('Error sharing location:', error);
       alert('Có lỗi xảy ra khi chia sẻ vị trí. Vui lòng thử lại.');
     }
   };
 
-  // Handle emoji click
+  // Xử lý click emoji
   const handleEmojiClick = (emoji) => {
     setInputValue(prev => prev + emoji);
     addToRecent(emoji);
-    
+
     // Focus back to input
     if (inputRef?.current) {
       inputRef.current.focus();
     }
   };
 
-  // Toggle quick reactions
+  // Bật/tắt quick reactions
   const toggleQuickReactions = () => {
     setShowQuickReactions(!showQuickReactions);
   };
 
-  // Helper function to get file message text
+  // Hàm helper để lấy text cho tin nhắn file
   const getFileMessageText = (fileData) => {
     if (fileData.messageType === 'voice') return '🎤 Tin nhắn thoại';
     if (fileData.category === 'image') return '🖼️ Hình ảnh';
@@ -173,7 +158,7 @@ export const useMessageHandler = (chatType, chatData) => {
     setInputValue,
     showQuickReactions,
     inputRef,
-    
+
     // Handlers
     handleTextMessage,
     handleFileMessage,

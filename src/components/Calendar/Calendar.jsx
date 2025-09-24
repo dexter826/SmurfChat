@@ -1,23 +1,16 @@
 import React, { useState, useContext } from "react";
-import {
-  FaCalendar,
-  FaClock,
-} from "react-icons/fa";
+import { FaCalendar, FaClock } from "react-icons/fa";
 import { AppContext } from "../../Context/AppProvider.jsx";
-// import { AuthContext } from '../../Context/AuthProvider.jsx';
 import useOptimizedFirestore from "../../hooks/useOptimizedFirestore";
 import { format, isSameDay } from "date-fns";
 import EventModal from "../Modals/EventModal.jsx";
 
 export default function Calendar() {
   const { selectedRoom } = useContext(AppContext);
-  // const {
-  //   user: { uid },
-  // } = useContext(AuthContext);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [eventModalVisible, setEventModalVisible] = useState(false);
 
-  // Get events for the selected room
+  // Lấy danh sách sự kiện cho phòng được chọn
   const eventsCondition = React.useMemo(
     () => ({
       fieldName: "roomId",
@@ -27,11 +20,16 @@ export default function Calendar() {
     [selectedRoom.id]
   );
 
-  const { documents: events } = useOptimizedFirestore("events", eventsCondition);
+  const { documents: events } = useOptimizedFirestore(
+    "events",
+    eventsCondition
+  );
 
   const getEventsForDate = (date) => {
     return events.filter((event) => {
-      const eventDate = event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime);
+      const eventDate = event.datetime.toDate
+        ? event.datetime.toDate()
+        : new Date(event.datetime);
       return isSameDay(eventDate, date);
     });
   };
@@ -76,7 +74,12 @@ export default function Calendar() {
                   <div className="text-sm font-medium">{event.title}</div>
                   <div className="text-xs text-slate-600 dark:text-slate-300 inline-flex items-center gap-1">
                     <FaClock />{" "}
-                    {format(event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime), "HH:mm")}
+                    {format(
+                      event.datetime.toDate
+                        ? event.datetime.toDate()
+                        : new Date(event.datetime),
+                      "HH:mm"
+                    )}
                   </div>
                   {event.description && (
                     <div className="text-xs text-slate-500 dark:text-slate-400">

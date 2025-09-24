@@ -1,14 +1,4 @@
-/**
- * Service Function Type Definitions
- * 
- * TypeScript definitions for service layer functions
- * Provides type safety for Firebase service operations
- * 
- * Created: September 4, 2025
- * Task: 4.2 - Add Proper TypeScript Definitions
- */
-
-import { 
+import {
   User, 
   Room, 
   Message, 
@@ -30,20 +20,12 @@ import {
   ChatType
 } from './database.types';
 
-// ================================
-// AUTH SERVICE TYPES
-// ================================
-
 export interface AuthService {
   signUp(email: string, password: string, userData: CreateUserData): Promise<ApiResponse<User>>;
   signIn(email: string, password: string): Promise<ApiResponse<User>>;
   signOut(): Promise<ApiResponse<void>>;
   updateProfile(userId: UserId, updates: Partial<User>): Promise<ApiResponse<User>>;
 }
-
-// ================================
-// USER SERVICE TYPES
-// ================================
 
 export interface UserService {
   createUser(userData: CreateUserData): Promise<ApiResponse<User>>;
@@ -53,10 +35,6 @@ export interface UserService {
   updateOnlineStatus(userId: UserId, isOnline: boolean): Promise<ApiResponse<void>>;
   getUsersByIds(userIds: UserId[]): Promise<ApiResponse<User[]>>;
 }
-
-// ================================
-// MESSAGE SERVICE TYPES
-// ================================
 
 export interface MessageService {
   sendMessage(messageData: CreateMessageData): Promise<ApiResponse<Message>>;
@@ -76,10 +54,6 @@ export interface MessageService {
   removeReaction(messageId: MessageId, userId: UserId, emoji: string): Promise<ApiResponse<void>>;
 }
 
-// ================================
-// ROOM SERVICE TYPES
-// ================================
-
 export interface RoomService {
   createRoom(roomData: CreateRoomData, creatorId: UserId): Promise<ApiResponse<Room>>;
   getRoom(roomId: RoomId): Promise<ApiResponse<Room>>;
@@ -91,20 +65,12 @@ export interface RoomService {
   getUserRooms(userId: UserId): Promise<ApiResponse<Room[]>>;
 }
 
-// ================================
-// CONVERSATION SERVICE TYPES
-// ================================
-
 export interface ConversationService {
   getOrCreateConversation(participant1: UserId, participant2: UserId): Promise<ApiResponse<Conversation>>;
   getConversation(conversationId: ConversationId): Promise<ApiResponse<Conversation>>;
   getUserConversations(userId: UserId): Promise<ApiResponse<Conversation[]>>;
   getOtherParticipant(conversation: Conversation, currentUserId: UserId): UserId;
 }
-
-// ================================
-// EVENT SERVICE TYPES
-// ================================
 
 export interface EventService {
   createEvent(eventData: CreateEventData, creatorId: UserId): Promise<ApiResponse<Event>>;
@@ -113,10 +79,6 @@ export interface EventService {
   deleteEvent(eventId: EventId, userId: UserId): Promise<ApiResponse<void>>;
   getUserEvents(userId: UserId, startDate?: Date, endDate?: Date): Promise<ApiResponse<Event[]>>;
 }
-
-// ================================
-// FRIEND SERVICE TYPES
-// ================================
 
 export interface FriendService {
   sendFriendRequest(requesterId: UserId, addresseeId: UserId): Promise<ApiResponse<Friend>>;
@@ -130,10 +92,6 @@ export interface FriendService {
   unblockUser(blockerId: UserId, blockedId: UserId): Promise<ApiResponse<void>>;
 }
 
-// ================================
-// BLOCK SERVICE TYPES
-// ================================
-
 export interface BlockService {
   blockUser(blockerId: UserId, blockedId: UserId): Promise<ApiResponse<Block>>;
   unblockUser(blockerId: UserId, blockedId: UserId): Promise<ApiResponse<void>>;
@@ -141,10 +99,6 @@ export interface BlockService {
   isUserBlocked(checkerId: UserId, targetId: UserId): Promise<ApiResponse<boolean>>;
   areMutuallyBlocked(userId1: UserId, userId2: UserId): Promise<ApiResponse<boolean>>;
 }
-
-// ================================
-// FILE UPLOAD SERVICE TYPES
-// ================================
 
 export interface FileUploadService {
   uploadImage(file: File, path: string): Promise<ApiResponse<{
@@ -175,10 +129,6 @@ export interface FileUploadService {
   deleteFile(url: string): Promise<ApiResponse<void>>;
 }
 
-// ================================
-// COMPOSITE SERVICE INTERFACES
-// ================================
-
 export interface DatabaseServices {
   auth: AuthService;
   user: UserService;
@@ -190,10 +140,6 @@ export interface DatabaseServices {
   block: BlockService;
   fileUpload: FileUploadService;
 }
-
-// ================================
-// CONTEXT TYPES
-// ================================
 
 export interface AuthContextType {
   user: User | null;
@@ -230,7 +176,3 @@ export interface ThemeContextType {
     warning: string;
   };
 }
-
-// All types are exported inline above for easy importing
-// Example usage:
-// import { AuthService, MessageService, UseFirestoreResult } from '../types/service.types';

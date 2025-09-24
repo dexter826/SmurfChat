@@ -1,14 +1,4 @@
-/**
- * InfiniteScrollContainer - Infinite Scroll Component
- * 
- * Handles automatic loading when user scrolls near bottom
- * Supports both messages (scroll up to load older) and lists (scroll down to load more)
- * 
- * Created: September 4, 2025
- * Task: 4.1 - Implement Data Pagination
- */
-
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from "react";
 
 const InfiniteScrollContainer = ({
   children,
@@ -18,14 +8,19 @@ const InfiniteScrollContainer = ({
   threshold = 100, // pixels from bottom to trigger load
   reverse = false, // true for messages (load older on top scroll)
   className = "",
-  style = {}
+  style = {},
 }) => {
   const containerRef = useRef(null);
   const loadingTriggeredRef = useRef(false);
 
   // Handle scroll events
   const handleScroll = useCallback(() => {
-    if (!containerRef.current || loading || !hasMore || loadingTriggeredRef.current) {
+    if (
+      !containerRef.current ||
+      loading ||
+      !hasMore ||
+      loadingTriggeredRef.current
+    ) {
       return;
     }
 
@@ -57,8 +52,8 @@ const InfiniteScrollContainer = ({
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
+      container.addEventListener("scroll", handleScroll);
+      return () => container.removeEventListener("scroll", handleScroll);
     }
   }, [handleScroll]);
 
@@ -79,15 +74,17 @@ const InfiniteScrollContainer = ({
       ref={containerRef}
       className={`overflow-y-auto ${className}`}
       style={{
-        height: '100%',
-        ...style
+        height: "100%",
+        ...style,
       }}
     >
       {/* Loading indicator for reverse scroll (messages) */}
       {reverse && loading && (
         <div className="flex justify-center items-center p-4">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-          <span className="ml-2 text-sm text-gray-500">Đang tải tin nhắn cũ...</span>
+          <span className="ml-2 text-sm text-gray-500">
+            Đang tải tin nhắn cũ...
+          </span>
         </div>
       )}
 
@@ -104,7 +101,7 @@ const InfiniteScrollContainer = ({
       {/* No more data indicator */}
       {!hasMore && !loading && (
         <div className="text-center p-4 text-sm text-gray-400">
-          {reverse ? 'Đã tải hết tin nhắn' : 'Không còn dữ liệu'}
+          {reverse ? "Đã tải hết tin nhắn" : "Không còn dữ liệu"}
         </div>
       )}
     </div>

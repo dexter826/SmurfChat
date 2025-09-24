@@ -28,20 +28,20 @@ export default function AuthProvider({ children }) {
         return;
       }
 
-      // reset user info
+      // Đặt lại thông tin người dùng
       setUser({});
       setIsLoading(false);
       history.push("/login");
     });
 
-    // clean function
+    // Hàm dọn dẹp
     return () => {
       unsubscibed();
     };
   }, [history]);
 
   const handleLogout = async () => {
-    const confirmed = await confirm('Bạn có chắc chắn muốn đăng xuất không?');
+    const confirmed = await confirm("Bạn có chắc chắn muốn đăng xuất không?");
     if (confirmed) {
       await logoutUser();
     }

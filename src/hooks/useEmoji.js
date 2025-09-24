@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
 
-// Common emoji reactions for quick access
+// Emoji reactions thường dùng cho truy cập nhanh
 export const QUICK_REACTIONS = [
   '👍', '👎', '❤️', '😂', '😮', '😢', '😡', '👏'
 ];
 
-// Emoji categories with popular emojis
+// Danh mục emoji với các emoji phổ biến
 export const EMOJI_CATEGORIES = {
   smileys: {
     name: 'Mặt cười',
@@ -25,7 +25,7 @@ export const EMOJI_CATEGORIES = {
   }
 };
 
-// Hook for managing emoji functionality
+// Hook để quản lý chức năng emoji
 export const useEmoji = () => {
   const [recentEmojis, setRecentEmojis] = useState(() => {
     const stored = localStorage.getItem('smurfchat_recent_emojis');
@@ -57,7 +57,7 @@ export const useEmoji = () => {
   // Parse text with emojis for better rendering
   const parseEmojiText = useCallback((text) => {
     if (!text) return [];
-    
+
     const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu;
     const parts = [];
     let lastIndex = 0;
@@ -71,16 +71,16 @@ export const useEmoji = () => {
           content: text.slice(lastIndex, match.index)
         });
       }
-      
+
       // Add emoji
       parts.push({
         type: 'emoji',
         content: match[0]
       });
-      
+
       lastIndex = match.index + match[0].length;
     }
-    
+
     // Add remaining text
     if (lastIndex < text.length) {
       parts.push({
@@ -88,7 +88,7 @@ export const useEmoji = () => {
         content: text.slice(lastIndex)
       });
     }
-    
+
     return parts;
   }, []);
 

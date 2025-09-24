@@ -1,4 +1,4 @@
-// Lightweight notification using native alerts for now
+// Service thông báo nhẹ sử dụng native alerts
 import { subMinutes, isAfter, isBefore, differenceInMinutes, format, endOfDay, isWithinInterval, compareAsc } from 'date-fns';
 
 class ReminderService {
@@ -10,12 +10,12 @@ class ReminderService {
     this.startReminderCheck();
   }
 
-  // Set alert provider for notifications
+  // Thiết lập alert provider cho thông báo
   setAlertProvider(alertProvider) {
     this.alertProvider = alertProvider;
   }
 
-  // Start checking for reminders every minute
+  // Bắt đầu kiểm tra nhắc nhở mỗi phút
   startReminderCheck() {
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
@@ -26,7 +26,7 @@ class ReminderService {
     }, 60000); // Check every minute
   }
 
-  // Add a reminder for an event
+  // Thêm nhắc nhở cho một sự kiện
   addReminder(event) {
     if (!event.datetime || !event.reminderMinutes) return;
 
@@ -34,7 +34,7 @@ class ReminderService {
     const reminderTime = subMinutes(eventTime, event.reminderMinutes);
     const now = new Date();
 
-    // Only add reminder if it's in the future
+    // Chỉ thêm nhắc nhở nếu nó ở trong tương lai
     if (isAfter(reminderTime, now)) {
       this.reminders.set(event.id, {
         ...event,
@@ -44,12 +44,12 @@ class ReminderService {
     }
   }
 
-  // Remove a reminder
+  // Xóa một nhắc nhở
   removeReminder(eventId) {
     this.reminders.delete(eventId);
   }
 
-  // Check all reminders and show notifications
+  // Kiểm tra tất cả nhắc nhở và hiển thị thông báo
   checkReminders() {
     const now = new Date();
 
@@ -61,23 +61,23 @@ class ReminderService {
     });
   }
 
-  // Update per-chat mute set from outside
+  // Cập nhật danh sách chat bị tắt thông báo từ bên ngoài
   setMutedChats(ids = []) {
     this.mutedChatIds = new Set(ids);
   }
 
-  // Show reminder notification
+  // Hiển thị thông báo nhắc nhở
   showReminderNotification(event, alertProvider = null) {
-    // Do not show reminders if the event's room is muted
+    // Không hiển thị nhắc nhở nếu phòng của sự kiện bị tắt thông báo
     if (event.roomId && this.mutedChatIds.has(event.roomId)) return;
-    
+
     const eventTime = event.datetime.toDate ? event.datetime.toDate() : new Date(event.datetime);
     const now = new Date();
     const timeUntilEvent = differenceInMinutes(eventTime, now);
 
     try {
       const details = `${event.title}\nPhòng: ${event.roomName}\nThời gian: ${format(eventTime, 'dd/MM/yyyy HH:mm')}\nCòn ${timeUntilEvent} phút nữa` + (event.description ? `\n${event.description}` : '');
-      
+
       // Use custom modal instead of browser alert
       if (alertProvider && alertProvider.info) {
         alertProvider.info(details, 'Nhắc nhở sự kiện');
@@ -87,11 +87,11 @@ class ReminderService {
       }
     } catch { }
 
-    // Also show a message for immediate attention
-    // Optionally show a secondary notice
+    // Cũng hiển thị tin nhắn để thu hút sự chú ý ngay lập tức
+    // Tùy chọn hiển thị thông báo phụ
   }
 
-  // Update reminders when events change
+  // Cập nhật nhắc nhở khi sự kiện thay đổi
   updateReminders(events) {
     // Clear existing reminders
     this.reminders.clear();
@@ -104,7 +104,7 @@ class ReminderService {
     });
   }
 
-  // Get upcoming events (next 24 hours)
+  // Lấy các sự kiện sắp tới (24 giờ tiếp theo)
   getUpcomingEvents() {
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -121,7 +121,7 @@ class ReminderService {
       });
   }
 
-  // Show daily agenda
+  // Hiển thị lịch trình trong ngày
   showDailyAgenda(events) {
     const now = new Date();
     const todayEnd = endOfDay(now);
@@ -140,7 +140,7 @@ class ReminderService {
           return `• ${event.title} (${format(eventTime, 'HH:mm')} - ${event.roomName})`;
         }).join('\n');
         const more = upcomingEvents.length > 3 ? `\n...và ${upcomingEvents.length - 3} sự kiện khác` : '';
-        
+
         // Use custom modal instead of browser alert
         if (this.alertProvider && this.alertProvider.info) {
           this.alertProvider.info(`${lines}${more}`, 'Lịch trình hôm nay');
@@ -152,7 +152,7 @@ class ReminderService {
     }
   }
 
-  // Clean up
+  // Dọn dẹp
   destroy() {
     if (this.checkInterval) {
       clearInterval(this.checkInterval);

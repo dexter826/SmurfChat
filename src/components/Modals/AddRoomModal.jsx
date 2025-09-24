@@ -126,7 +126,6 @@ async function fetchFriendsList(search, currentUserId) {
           friendIds.push(friendId);
         }
       } catch (err) {
-        console.error("Error checking block status:", err);
         // Include if can't check (default behavior)
         friendIds.push(friendId);
       }

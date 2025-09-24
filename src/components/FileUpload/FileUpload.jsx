@@ -17,7 +17,7 @@ const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
 
-  // Handle file selection and upload
+  // Xử lý chọn file và upload
   const handleFileSelect = async (event) => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
@@ -46,7 +46,6 @@ const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
         });
       }
     } catch (err) {
-      console.error("Error uploading files:", err);
       // Show more specific error message
       const errorMessage =
         err.message || "Lỗi khi tải file lên. Vui lòng thử lại.";
@@ -78,7 +77,6 @@ const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
         messageType: "file",
       });
     } catch (err) {
-      console.error("Error capturing photo:", err);
       error("Lỗi khi chụp ảnh. Vui lòng kiểm tra quyền truy cập camera.");
     } finally {
       setIsUploading(false);
@@ -100,7 +98,6 @@ const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
         messageType: "location",
       });
     } catch (err) {
-      console.error("Error sharing location:", err);
       error("Lỗi khi chia sẻ vị trí. Vui lòng kiểm tra quyền truy cập vị trí.");
     } finally {
       setIsUploading(false);
@@ -119,7 +116,7 @@ const FileUpload = ({ onFileUploaded, onLocationShared, disabled = false }) => {
         accept="*/*"
         disabled={disabled || isUploading}
       />
-            <input
+      <input
         ref={imageInputRef}
         type="file"
         accept="image/*"
