@@ -290,13 +290,6 @@ export default function ChatWindow() {
             {chatType === "room" && (
               <div className="flex items-center gap-2">
                 <button
-                  title="Tạo vote"
-                  className="rounded-md border border-gray-300 p-1 text-slate-700 hover:bg-slate-100 dark:border-gray-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                  onClick={() => setIsVoteModalVisible(true)}
-                >
-                  <FaChartBar />
-                </button>
-                <button
                   className="rounded-md border border-gray-300 px-2 py-1 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
                   onClick={() => setIsInviteMemberVisible(true)}
                 >
@@ -380,10 +373,22 @@ export default function ChatWindow() {
                 disabled={false}
               />
 
-              <EmojiPickerComponent
-                onEmojiClick={handleEmojiClick}
-                disabled={false}
-              />
+              {chatType === "room" && (
+                <EmojiPickerComponent
+                  onEmojiClick={handleEmojiClick}
+                  disabled={false}
+                />
+              )}
+
+              {chatType === "room" && (
+                <button
+                  title="Tạo vote"
+                  className="flex items-center justify-center p-2 rounded-lg transition-colors duration-200 text-slate-600 hover:bg-slate-100 hover:text-skybrand-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-skybrand-400"
+                  onClick={() => setIsVoteModalVisible(true)}
+                >
+                  <FaChartBar className="h-5 w-5" />
+                </button>
+              )}
 
               <input
                 ref={inputRef}

@@ -14,7 +14,6 @@ import { useUserOnlineStatus } from "../../hooks/useOnlineStatus";
 import FileUpload from "../FileUpload/FileUpload";
 import VoiceRecording from "../FileUpload/VoiceRecording";
 import EmojiPickerComponent from "./EmojiPicker";
-import { QuickReactions } from "./EmojiText";
 import { useMessageHandler } from "../../hooks/useMessageHandler";
 import { useBlockStatus } from "../../hooks/useBlockStatus";
 
@@ -33,13 +32,11 @@ export default function ConversationWindow() {
   const {
     inputValue,
     setInputValue,
-    showQuickReactions,
     inputRef,
     handleTextMessage,
     handleFileMessage,
     handleLocationMessage,
     handleEmojiClick,
-    toggleQuickReactions,
   } = useMessageHandler("direct", selectedConversation);
 
   // Use the new block status hook
@@ -80,25 +77,25 @@ export default function ConversationWindow() {
   const messagesCondition = React.useMemo(
     () => ({
       fieldName: "chatId",
-      operator: "==", 
+      operator: "==",
       compareValue: selectedConversation.id,
     }),
     [selectedConversation.id]
   );
-  
+
   // Use paginated firestore instead of regular useFirestore
   const {
     documents: messages,
     loading: messagesLoading,
     hasMore,
-    loadMore
+    loadMore,
   } = usePaginatedFirestore(
     "messages",
     messagesCondition,
-    "createdAt",  // orderBy field
-    "desc",       // order direction - newest first for messages
-    30,           // page size
-    true          // real-time updates
+    "createdAt", // orderBy field
+    "desc", // order direction - newest first for messages
+    30, // page size
+    true // real-time updates
   );
 
   useEffect(() => {
@@ -106,7 +103,8 @@ export default function ConversationWindow() {
     if (messageListRef?.current && messages.length > 0) {
       // Only scroll if we're not loading more (to prevent scroll jumping)
       if (!messagesLoading) {
-        messageListRef.current.scrollTop = messageListRef.current.scrollHeight + 50;
+        messageListRef.current.scrollTop =
+          messageListRef.current.scrollHeight + 50;
       }
     }
   }, [messages, messagesLoading]);
@@ -235,7 +233,7 @@ export default function ConversationWindow() {
               loadMore={loadMore}
               reverse={true} // Load older messages on top scroll
               className="max-h-full"
-              style={{ display: 'flex', flexDirection: 'column-reverse' }} // Reverse order for chat
+              style={{ display: "flex", flexDirection: "column-reverse" }} // Reverse order for chat
             >
               <div ref={messageListRef}>
                 {/* Reverse messages array to show newest at bottom */}
@@ -301,16 +299,6 @@ export default function ConversationWindow() {
               </div>
             )}
 
-            {/* Quick Reactions */}
-            {showQuickReactions && canActuallyChat && (
-              <div className="mb-2">
-                <QuickReactions
-                  onEmojiClick={handleEmojiClick}
-                  disabled={!canActuallyChat}
-                />
-              </div>
-            )}
-
             <div className="flex items-center space-x-2 rounded border border-gray-200 p-1 dark:border-gray-700">
               {/* File Upload Component */}
               <FileUpload
@@ -324,27 +312,6 @@ export default function ConversationWindow() {
                 onEmojiClick={handleEmojiClick}
                 disabled={!canActuallyChat}
               />
-
-              {/* Quick Reactions Toggle */}
-              <button
-                type="button"
-                onClick={toggleQuickReactions}
-                disabled={!canActuallyChat}
-                className={`flex items-center justify-center p-2 rounded-lg transition-colors duration-200 ${
-                  !canActuallyChat
-                    ? "text-slate-300 cursor-not-allowed dark:text-slate-600"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-skybrand-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-skybrand-400"
-                }`}
-                title={
-                  !canActuallyChat
-                    ? "Không thể sử dụng"
-                    : showQuickReactions
-                    ? "Ẩn emoji nhanh"
-                    : "Hiện emoji nhanh"
-                }
-              >
-                <span className="text-sm">⚡</span>
-              </button>
 
               {/* Text Input */}
               <input
