@@ -33,20 +33,10 @@ export const useOnlineStatus = (userId) => {
     window.addEventListener('offline', handleOffline);
     window.addEventListener('beforeunload', () => updateOnlineStatus(false));
 
-    // Đặt người dùng offline khi tab bị ẩn
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        updateOnlineStatus(false);
-      } else {
-        updateOnlineStatus(true);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Heartbeat để duy trì trạng thái online mỗi 30 giây
     const heartbeatInterval = setInterval(() => {
-      if (!document.hidden && navigator.onLine) {
+      if (navigator.onLine) {
         updateOnlineStatus(true);
       }
     }, 30000);
@@ -56,7 +46,6 @@ export const useOnlineStatus = (userId) => {
       updateOnlineStatus(false);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(heartbeatInterval);
     };
   }, [userId]);
