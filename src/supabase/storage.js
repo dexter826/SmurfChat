@@ -33,7 +33,6 @@ export const uploadFile = async (file, folder = 'files', userId) => {
       });
 
     if (error) {
-      console.error('Supabase upload error:', error);
       throw new Error(`Lỗi khi tải file lên: ${error.message}`);
     }
 
@@ -51,7 +50,6 @@ export const uploadFile = async (file, folder = 'files', userId) => {
       uploadedAt: new Date().toISOString(),
     };
   } catch (error) {
-    console.error('Error uploading file:', error);
     throw error;
   }
 };
@@ -66,7 +64,6 @@ export const uploadImage = async (file, userId, maxWidth = 1920, quality = 0.8) 
     const compressedFile = await compressImage(file, maxWidth, quality);
     return await uploadFile(compressedFile, 'images', userId);
   } catch (error) {
-    console.error('Error uploading image:', error);
     throw error;
   }
 };
@@ -117,7 +114,6 @@ export const uploadVoiceRecording = async (audioBlob, userId, duration) => {
       type: 'voice'
     };
   } catch (error) {
-    console.error('Error uploading voice recording:', error);
     throw error;
   }
 };
@@ -203,7 +199,6 @@ export const captureAndUploadPhoto = async (userId) => {
       document.body.appendChild(modal);
     });
   } catch (error) {
-    console.error('Error capturing photo:', error);
     throw error;
   }
 };
@@ -233,7 +228,6 @@ export const shareLocation = async (userId) => {
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
-    console.error('Error sharing location:', error);
     throw error;
   }
 };
@@ -248,7 +242,6 @@ const reverseGeocode = async (lat, lng) => {
     const data = await response.json();
     return data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
   } catch (error) {
-    console.error('Error reverse geocoding:', error);
     return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
   }
 };
@@ -263,7 +256,6 @@ export const deleteFile = async (filePath) => {
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Error deleting file:', error);
     throw error;
   }
 };
