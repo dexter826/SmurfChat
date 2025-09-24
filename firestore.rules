@@ -8,6 +8,9 @@ service cloud.firestore {
     }
 
     // Messages collection (unified for rooms + direct messages)
+    // ENCRYPTION SUPPORT: Messages may contain encrypted content (encryptedText, encryptedFileData, encryptedLocationData)
+    // Decryption happens at the application level using user credentials and master key
+    // Security is maintained through Firebase Authentication and application-level encryption
     match /messages/{messageId} {
       allow read, write: if request.auth != null;
     }

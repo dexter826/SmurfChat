@@ -30,8 +30,18 @@ export default function ChatWindow() {
     members,
   } = useContext(AppContext);
   const {
-    user: { uid },
+    user: { uid, email },
   } = useContext(AuthContext);
+
+  // Encryption settings - enable encryption for all messages
+  const [enableEncryption] = useState(true);
+  const [userCredentials] = useState(() => {
+    // Get user credentials for encryption
+    // Note: In production, you should store password securely
+    const storedPassword =
+      localStorage.getItem("userPassword") || "defaultPassword";
+    return { email, password: storedPassword };
+  });
 
   const currentChatData =
     chatType === "room" ? selectedRoom : selectedConversation;
@@ -44,7 +54,12 @@ export default function ChatWindow() {
     handleFileMessage,
     handleLocationMessage,
     handleEmojiClick,
-  } = useMessageHandler(chatType, currentChatData);
+  } = useMessageHandler(
+    chatType,
+    currentChatData,
+    enableEncryption,
+    userCredentials
+  );
 
   const messageListRef = useRef();
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
@@ -396,6 +411,13 @@ export default function ChatWindow() {
                           index === combinedMessages.length - 1
                         } // Only the very last message
                         members={members || []} // Pass room members with full user info for avatar display
+                        // Encryption props
+                        isEncrypted={item.isEncrypted}
+                        encryptedText={item.encryptedText}
+                        encryptedFileData={item.encryptedFileData}
+                        encryptedLocationData={item.encryptedLocationData}
+                        contentHash={item.contentHash}
+                        userCredentials={userCredentials}
                       />
                     );
                   }

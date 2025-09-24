@@ -16,7 +16,6 @@ import FileUpload from "../FileUpload/FileUpload";
 import VoiceRecording from "../FileUpload/VoiceRecording";
 import EmojiPickerComponent from "./EmojiPicker";
 import MediaGallery from "./MediaGallery";
-import AddRoomModal from "../Modals/AddRoomModal";
 import { useMessageHandler } from "../../hooks/useMessageHandler";
 import { useBlockStatus } from "../../hooks/useBlockStatus";
 
@@ -24,16 +23,25 @@ export default function ConversationWindow() {
   const { selectedConversation, setIsAddRoomVisible, setPreSelectedMembers } =
     useContext(AppContext);
   const {
-    user: { uid },
+    user: { uid, email },
   } = useContext(AuthContext);
-  const { getUserById, getOtherParticipant } = useUsers();
+  const { getOtherParticipant } = useUsers();
+
+  // Encryption settings - enable encryption for all messages
+  const [enableEncryption] = useState(true);
+  const [userCredentials] = useState(() => {
+    // Get user credentials for encryption
+    const storedPassword =
+      localStorage.getItem("userPassword") || "defaultPassword";
+    return { email, password: storedPassword };
+  });
 
   // Get other user ID from conversation
   const otherUserId = selectedConversation?.participants?.find(
     (id) => id !== uid
   );
 
-  // Use the new message handler hook
+  // Use the new message handler hook with encryption
   const {
     inputValue,
     setInputValue,
@@ -42,7 +50,12 @@ export default function ConversationWindow() {
     handleFileMessage,
     handleLocationMessage,
     handleEmojiClick,
-  } = useMessageHandler("direct", selectedConversation);
+  } = useMessageHandler(
+    "direct",
+    selectedConversation,
+    enableEncryption,
+    userCredentials
+  );
 
   // Use the new block status hook
   const { isBlockedByMe, isBlockingMe, canSendMessage } =
@@ -330,6 +343,13 @@ export default function ConversationWindow() {
                       chatType="direct"
                       isLatestFromSender={isLatestFromSender}
                       otherParticipant={otherParticipant} // Pass other participant info for read status display
+                      // Encryption props
+                      isEncrypted={mes.isEncrypted}
+                      encryptedText={mes.encryptedText}
+                      encryptedFileData={mes.encryptedFileData}
+                      encryptedLocationData={mes.encryptedLocationData}
+                      contentHash={mes.contentHash}
+                      userCredentials={userCredentials}
                     />
                   );
                 })}

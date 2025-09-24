@@ -3,7 +3,12 @@ import { formatRelative } from "date-fns/esm";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
 import { AppContext } from "../../Context/AppProvider.jsx";
 import { useAlert } from "../../Context/AlertProvider";
-import { recallMessage, canRecallMessage } from "../../firebase/services";
+import {
+  recallMessage,
+  canRecallMessage,
+  getDecryptedMessageContent,
+} from "../../firebase/services";
+import { generateMasterKey } from "../../firebase/utils/encryption.utils";
 import FilePreview from "../FileUpload/FilePreview";
 import LocationPreview from "../FileUpload/LocationPreview";
 import EmojiText, { EmojiOnlyMessage } from "./EmojiText";
@@ -42,6 +47,13 @@ export default function Message({
   otherParticipant = null, // For direct chat to get other user info
   readByDetails = {}, // Details about when each user read the message
   reactions = {}, // Message reactions
+  // Encryption props
+  isEncrypted = false,
+  encryptedText,
+  encryptedFileData = null,
+  encryptedLocationData = null,
+  contentHash,
+  userCredentials = null, // For decryption
 }) {
   const { user } = React.useContext(AuthContext);
   const { setSelectedUser, setIsUserProfileVisible } =
@@ -51,7 +63,81 @@ export default function Message({
   const [isRecalling, setIsRecalling] = useState(false);
   const [showSeenByModal, setShowSeenByModal] = useState(false);
   const [seenByUsers, setSeenByUsers] = useState([]);
+  const [decryptedContent, setDecryptedContent] = useState(null);
   const isOwn = uid === user?.uid;
+
+  React.useEffect(() => {
+    const decryptMessageContent = async () => {
+      if (isEncrypted && userCredentials) {
+        try {
+          const masterKey = generateMasterKey(
+            userCredentials.email,
+            userCredentials.password
+          );
+
+          const messageData = {
+            id,
+            text,
+            displayName,
+            createdAt,
+            photoURL,
+            uid,
+            messageType,
+            fileData,
+            locationData,
+            messageStatus,
+            recalled,
+            chatType,
+            isLatestFromSender,
+            members,
+            otherParticipant,
+            readByDetails,
+            reactions,
+            isEncrypted,
+            encryptedText,
+            encryptedFileData,
+            encryptedLocationData,
+            contentHash,
+          };
+
+          const decrypted = getDecryptedMessageContent(messageData, masterKey);
+          setDecryptedContent(decrypted);
+        } catch (err) {
+          console.error("Failed to decrypt message:", err);
+          // Silently fail - don't show error to user
+          setDecryptedContent(null);
+        }
+      } else {
+        setDecryptedContent(null);
+      }
+    };
+
+    decryptMessageContent();
+  }, [
+    isEncrypted,
+    userCredentials,
+    id,
+    text,
+    displayName,
+    createdAt,
+    photoURL,
+    uid,
+    messageType,
+    fileData,
+    locationData,
+    messageStatus,
+    recalled,
+    chatType,
+    isLatestFromSender,
+    members,
+    otherParticipant,
+    readByDetails,
+    reactions,
+    encryptedText,
+    encryptedFileData,
+    encryptedLocationData,
+    contentHash,
+  ]);
 
   // Handler to open user profile
   const handleAvatarClick = () => {
@@ -62,14 +148,19 @@ export default function Message({
     }
   };
 
-  // Handle recall message
   const handleRecallMessage = async () => {
     if (isRecalling) return;
 
     setIsRecalling(true);
     try {
-      // Use unified messages collection
-      await recallMessage(id, "messages", user?.uid);
+      // Use unified messages collection with user credentials for encrypted messages
+      await recallMessage(
+        id,
+        "messages",
+        user?.uid,
+        chatType === "room" ? "room" : "direct",
+        userCredentials
+      );
       success("Tin nhắn đã được thu hồi");
     } catch (err) {
       error(err.message || "Không thể thu hồi tin nhắn");
@@ -78,7 +169,6 @@ export default function Message({
     }
   };
 
-  // Check if message can be recalled
   const canRecall =
     isOwn &&
     !recalled &&
@@ -91,7 +181,6 @@ export default function Message({
       user?.uid
     );
 
-  // Render message status for own messages
   const renderMessageStatus = () => {
     // Only show status for own messages that are the latest in the entire conversation
     if (!isOwn || !isLatestFromSender) return null;
@@ -188,7 +277,6 @@ export default function Message({
     return null;
   };
 
-  // Handle showing seen details for group chat
   const handleShowSeenDetails = (userIds) => {
     if (!members || members.length === 0) return;
 
@@ -222,14 +310,38 @@ export default function Message({
     setShowSeenByModal(true);
   };
 
+  const getCurrentContent = () => {
+    if (decryptedContent) {
+      return {
+        text: decryptedContent.text,
+        fileData: decryptedContent.fileData,
+        locationData: decryptedContent.locationData,
+        messageType: decryptedContent.messageType,
+      };
+    }
+
+    // For encrypted messages, text might be null, so provide fallback
+    return {
+      text: text || "",
+      fileData: fileData || null,
+      locationData: locationData || null,
+      messageType: messageType || "text",
+    };
+  };
+
+  const currentContent = getCurrentContent();
+
   const renderMessageContent = () => {
     // If message is recalled, show recall notice
     if (recalled) {
       const getRecallText = () => {
-        if (messageType === "file") return "📁 File đã được thu hồi";
-        if (messageType === "voice") return "🎤 Tin nhắn thoại đã được thu hồi";
-        if (messageType === "location") return "📍 Vị trí đã được thu hồi";
-        return text || "💬 Tin nhắn đã được thu hồi";
+        if (currentContent.messageType === "file")
+          return "📁 File đã được thu hồi";
+        if (currentContent.messageType === "voice")
+          return "🎤 Tin nhắn thoại đã được thu hồi";
+        if (currentContent.messageType === "location")
+          return "📍 Vị trí đã được thu hồi";
+        return currentContent.text || "💬 Tin nhắn đã được thu hồi";
       };
 
       return (
@@ -281,23 +393,25 @@ export default function Message({
       </div>
     );
 
-    switch (messageType) {
+    switch (currentContent.messageType) {
       case "file":
       case "voice":
-        return renderContentWithRecallButton(<FilePreview file={fileData} />);
+        return renderContentWithRecallButton(
+          <FilePreview file={currentContent.fileData} />
+        );
 
       case "location":
         return renderContentWithRecallButton(
-          <LocationPreview location={locationData} />
+          <LocationPreview location={currentContent.locationData} />
         );
 
       case "text":
       default:
         // Check if message is emoji-only for special rendering
         const isEmojiOnly =
-          text &&
-          hasEmoji(text) &&
-          parseEmojiText(text).every(
+          currentContent.text &&
+          hasEmoji(currentContent.text) &&
+          parseEmojiText(currentContent.text).every(
             (part) =>
               part.type === "emoji" ||
               (part.type === "text" && !part.content.trim())
@@ -305,7 +419,7 @@ export default function Message({
 
         if (isEmojiOnly) {
           return renderContentWithRecallButton(
-            <EmojiOnlyMessage text={text} />
+            <EmojiOnlyMessage text={currentContent.text} />
           );
         }
 
@@ -317,7 +431,7 @@ export default function Message({
                 : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-sm"
             } border px-3 py-2`}
           >
-            <EmojiText text={text} className="break-words" />
+            <EmojiText text={currentContent.text} className="break-words" />
           </div>
         );
     }
