@@ -19,6 +19,7 @@ function AppProviderInner({ children }) {
   const [isUserProfileVisible, setIsUserProfileVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isBlockedUsersVisible, setIsBlockedUsersVisible] = useState(false);
+  const [preSelectedMembers, setPreSelectedMembers] = useState([]);
 
   const {
     user: { uid },
@@ -481,6 +482,7 @@ function AppProviderInner({ children }) {
     setIsInviteMemberVisible(false);
     setIsUserProfileVisible(false);
     setSelectedUser(null);
+    setPreSelectedMembers([]);
     setChatType("room");
   };
 
@@ -527,6 +529,8 @@ function AppProviderInner({ children }) {
         setSelectedUser,
         isBlockedUsersVisible,
         setIsBlockedUsersVisible,
+        preSelectedMembers,
+        setPreSelectedMembers,
         // allUsers removed - now available via useUsers hook
         clearState,
         selectRoom,

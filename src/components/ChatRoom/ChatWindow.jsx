@@ -17,6 +17,7 @@ import RoomInfoModal from "./RoomInfoModal";
 import FileUpload from "../FileUpload/FileUpload";
 import VoiceRecording from "../FileUpload/VoiceRecording";
 import EmojiPickerComponent from "./EmojiPicker";
+import MediaGallery from "./MediaGallery";
 import { useMessageHandler } from "../../hooks/useMessageHandler";
 
 export default function ChatWindow() {
@@ -47,6 +48,7 @@ export default function ChatWindow() {
 
   const messageListRef = useRef();
   const [isRoomInfoVisible, setIsRoomInfoVisible] = useState(false);
+  const [isMediaGalleryVisible, setIsMediaGalleryVisible] = useState(false);
 
   const ConversationOnlineStatus = ({
     userId,
@@ -287,22 +289,76 @@ export default function ChatWindow() {
                 </>
               )}
             </div>
-            {chatType === "room" && (
-              <div className="flex items-center gap-2">
-                <button
-                  className="rounded-md border border-gray-300 px-2 py-1 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
-                  onClick={() => setIsInviteMemberVisible(true)}
+            {/* Action buttons for both room and direct chats */}
+            <div className="flex items-center gap-1">
+              <button
+                className="p-2 rounded-md text-slate-700 hover:bg-gray-100 hover:text-skybrand-600 dark:text-slate-200 dark:hover:bg-gray-800 dark:hover:text-skybrand-400 transition-colors"
+                onClick={() => setIsMediaGalleryVisible(true)}
+                title="Thư viện file"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  Mời
-                </button>
-                <button
-                  className="rounded-md border border-gray-300 px-2 py-1 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
-                  onClick={() => setIsRoomInfoVisible(true)}
-                >
-                  Thông tin nhóm
-                </button>
-              </div>
-            )}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"
+                  />
+                </svg>
+              </button>
+              {chatType === "room" && (
+                <>
+                  <button
+                    className="p-2 rounded-md text-slate-700 hover:bg-gray-100 hover:text-skybrand-600 dark:text-slate-200 dark:hover:bg-gray-800 dark:hover:text-skybrand-400 transition-colors"
+                    onClick={() => setIsInviteMemberVisible(true)}
+                    title="Mời thành viên"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    className="p-2 rounded-md text-slate-700 hover:bg-gray-100 hover:text-skybrand-600 dark:text-slate-200 dark:hover:bg-gray-800 dark:hover:text-skybrand-400 transition-colors"
+                    onClick={() => setIsRoomInfoVisible(true)}
+                    title="Thông tin nhóm"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
           <div className="flex h-[calc(100%_-_56px)] flex-col justify-end p-3">
             <InfiniteScrollContainer
@@ -443,6 +499,18 @@ export default function ChatWindow() {
         visible={isRoomInfoVisible}
         onClose={() => setIsRoomInfoVisible(false)}
         room={selectedRoom}
+      />
+
+      <MediaGallery
+        isVisible={isMediaGalleryVisible}
+        onClose={() => setIsMediaGalleryVisible(false)}
+        chatType={chatType}
+        chatId={currentChatData?.id}
+        chatName={
+          chatType === "room"
+            ? selectedRoom?.name
+            : selectedConversation?.otherUser?.displayName
+        }
       />
     </div>
   );

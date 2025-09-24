@@ -32,6 +32,17 @@ function DebounceSelect({
     return debounce(loadOptions, debounceTimeout);
   }, [debounceTimeout, fetchOptions, currentUserId]);
 
+  const handleFocus = () => {
+    // Show all friends when input is focused
+    setOptions([]);
+    setFetching(true);
+
+    fetchOptions("", currentUserId).then((newOptions) => {
+      setOptions(newOptions);
+      setFetching(false);
+    });
+  };
+
   React.useEffect(() => {
     return () => {
       setOptions([]);
@@ -45,6 +56,7 @@ function DebounceSelect({
         className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
         placeholder={props.placeholder}
         onChange={(e) => debounceFetcher(e.target.value)}
+        onFocus={handleFocus}
       />
       <div className="mt-2 flex flex-wrap gap-2">
         {(props.value || []).map((v) => (
@@ -158,13 +170,25 @@ async function fetchFriendsList(search, currentUserId) {
 }
 
 export default function AddRoomModal() {
-  const { isAddRoomVisible, setIsAddRoomVisible } = useContext(AppContext);
+  const {
+    isAddRoomVisible,
+    setIsAddRoomVisible,
+    preSelectedMembers,
+    setPreSelectedMembers,
+  } = useContext(AppContext);
   const {
     user: { uid },
   } = useContext(AuthContext);
   const { warning } = useAlert();
   const [formState, setFormState] = useState({ name: "" });
-  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [selectedMembers, setSelectedMembers] = useState(preSelectedMembers);
+
+  // Update selectedMembers when preSelectedMembers changes (when modal opens with pre-selected users)
+  React.useEffect(() => {
+    if (preSelectedMembers.length > 0) {
+      setSelectedMembers(preSelectedMembers);
+    }
+  }, [preSelectedMembers]);
 
   const handleOk = async () => {
     // Validate room name
@@ -198,6 +222,7 @@ export default function AddRoomModal() {
     // Reset form và state
     setFormState({ name: "" });
     setSelectedMembers([]);
+    setPreSelectedMembers([]);
     setIsAddRoomVisible(false);
   };
 
@@ -205,6 +230,7 @@ export default function AddRoomModal() {
     // reset form value
     setFormState({ name: "" });
     setSelectedMembers([]);
+    setPreSelectedMembers([]);
     setIsAddRoomVisible(false);
   };
 
@@ -251,9 +277,6 @@ export default function AddRoomModal() {
             <div className="mt-1 text-xs text-slate-500">
               Đã chọn: {selectedMembers.length} bạn bè. Cần thêm ít nhất{" "}
               {Math.max(0, 2 - selectedMembers.length)} bạn bè nữa.
-            </div>
-            <div className="mt-1 text-xs text-amber-600">
-              ⚠️ Chỉ có thể mời bạn bè vào nhóm chat
             </div>
           </div>
         </div>
