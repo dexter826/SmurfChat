@@ -1,8 +1,10 @@
-import React, { useContext } from "react";
+import React, { useContext, Suspense, lazy } from "react";
 import Sidebar from "./Sidebar.jsx";
-import ChatWindow from "./ChatWindow.jsx";
-import ConversationWindow from "./ConversationWindow.jsx";
 import { AppContext } from "../../Context/AppProvider";
+
+// Lazy load các components lớn
+const ChatWindow = lazy(() => import("./ChatWindow.jsx"));
+const ConversationWindow = lazy(() => import("./ConversationWindow.jsx"));
 
 export default function ChatRoom() {
   const { chatType } = useContext(AppContext);
@@ -13,7 +15,15 @@ export default function ChatRoom() {
         <Sidebar />
       </aside>
       <main className="flex-1 min-w-0 bg-white dark:bg-slate-900 max-sm:w-full">
-        {chatType === "room" ? <ChatWindow /> : <ConversationWindow />}
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-skybrand-600"></div>
+            </div>
+          }
+        >
+          {chatType === "room" ? <ChatWindow /> : <ConversationWindow />}
+        </Suspense>
       </main>
     </div>
   );

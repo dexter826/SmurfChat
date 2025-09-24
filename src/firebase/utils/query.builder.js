@@ -23,7 +23,8 @@ class QueryBuilder {
     const collectionRef = collection(this.db, collectionName);
     const constraints = [];
 
-    if (condition) {
+    // Validate condition trước khi thêm
+    if (condition && this.isValidCondition(condition)) {
       constraints.push(where(condition.fieldName, condition.operator, condition.compareValue));
     }
 
@@ -32,6 +33,31 @@ class QueryBuilder {
     }
 
     return constraints.length > 0 ? query(collectionRef, ...constraints) : query(collectionRef);
+  }
+
+  isValidCondition(condition) {
+    if (!condition || !condition.fieldName || !condition.operator) {
+      return false;
+    }
+
+    const { compareValue } = condition;
+
+    // Kiểm tra undefined/null
+    if (compareValue === undefined || compareValue === null) {
+      return false;
+    }
+
+    // Kiểm tra array rỗng
+    if (Array.isArray(compareValue) && compareValue.length === 0) {
+      return false;
+    }
+
+    // Kiểm tra string rỗng
+    if (typeof compareValue === 'string' && compareValue.trim() === '') {
+      return false;
+    }
+
+    return true;
   }
 
   generateKey(collectionName, condition, orderByField, orderDirection, customKey) {

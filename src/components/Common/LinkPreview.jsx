@@ -1,75 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { useLinkPreview } from "../../hooks/useLinkPreview";
 
 const LinkPreview = ({ url }) => {
-  const [preview, setPreview] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchPreview = async () => {
-      if (!url) return;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const apiKey = process.env.REACT_APP_LINKPREVIEW_API_KEY;
-        if (!apiKey) {
-          throw new Error('LinkPreview API key chưa được cấu hình');
-        }
-        
-        const response = await fetch(
-          `https://api.linkpreview.net/?key=${apiKey}&q=${encodeURIComponent(
-            url
-          )}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Không thể lấy thông tin preview");
-        }
-
-        const data = await response.json();
-
-        if (data.title || data.description || data.image) {
-          setPreview({
-            title: data.title || "Không có tiêu đề",
-            description: data.description || "",
-            image: data.image || "",
-            url: url,
-            domain: new URL(url).hostname,
-          });
-        } else {
-          // Fallback: Tạo preview cơ bản từ URL
-          setPreview({
-            title: new URL(url).hostname,
-            description: url,
-            image: "",
-            url: url,
-            domain: new URL(url).hostname,
-          });
-        }
-      } catch (err) {
-        console.error("Lỗi khi lấy preview:", err);
-        // Fallback: Tạo preview cơ bản
-        try {
-          const domain = new URL(url).hostname;
-          setPreview({
-            title: domain,
-            description: url,
-            image: "",
-            url: url,
-            domain: domain,
-          });
-        } catch (urlError) {
-          setError("URL không hợp lệ");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPreview();
-  }, [url]);
+  const { data: preview, isLoading: loading, error } = useLinkPreview(url);
 
   const handleClick = (e) => {
     e.preventDefault();

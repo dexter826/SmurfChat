@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { formatRelative } from "date-fns/esm";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
 import { AppContext } from "../../Context/AppProvider.jsx";
@@ -25,7 +25,6 @@ function formatDate(seconds) {
 
   if (seconds) {
     formattedDate = formatRelative(new Date(seconds * 1000), new Date());
-
     formattedDate =
       formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
   }
@@ -33,7 +32,7 @@ function formatDate(seconds) {
   return formattedDate;
 }
 
-export default function Message({
+const Message = React.memo(function Message({
   id,
   text,
   displayName,
@@ -45,25 +44,22 @@ export default function Message({
   locationData,
   messageStatus = "sent",
   recalled = false,
-  chatType, // 'room' or 'direct'
-  chatId, // ID of the current chat (room or conversation)
-  isLatestFromSender = false, // New prop to identify if this is the latest message from sender
-  members = [], // For room chat to get user info
-  otherParticipant = null, // For direct chat to get other user info
-  readByDetails = {}, // Details about when each user read the message
-  reactions = {}, // Message reactions
-  // Encryption props
+  chatType,
+  chatId,
+  isLatestFromSender = false,
+  members = [],
+  otherParticipant = null,
+  readByDetails = {},
+  reactions = {},
   isEncrypted = false,
   encryptedText,
   encryptedFileData = null,
   encryptedLocationData = null,
   contentHash,
-  userCredentials = null, // For decryption
-  // Forward props
+  userCredentials = null,
   forwarded = false,
   originalSender,
   originalChatType,
-  // Reply props
   onReply,
   replyTo,
 }) {
@@ -80,11 +76,142 @@ export default function Message({
   const [showMenu, setShowMenu] = useState(false);
   const isOwn = uid === user?.uid;
 
-  // Hook để phát hiện link trong tin nhắn
+  // Memoize decrypted content
+  const currentContent = useMemo(() => {
+    if (decryptedContent) {
+      return {
+        text: decryptedContent.text,
+        fileData: decryptedContent.fileData,
+        locationData: decryptedContent.locationData,
+        messageType: decryptedContent.messageType,
+      };
+    }
+    return {
+      text: text || "",
+      fileData: fileData || null,
+      locationData: locationData || null,
+      messageType: messageType || "text",
+    };
+  }, [decryptedContent, text, fileData, locationData, messageType]);
+
+  // Memoize link detection
   const { links, textSegments, hasLinks } = useLinkDetector(
     isEncrypted && decryptedContent ? decryptedContent.text : text
   );
 
+  // Memoize canRecall
+  const canRecall = useMemo(
+    () =>
+      isOwn &&
+      !recalled &&
+      canRecallMessage(
+        {
+          uid,
+          createdAt,
+          recalled,
+        },
+        user?.uid
+      ),
+    [isOwn, recalled, uid, createdAt, user?.uid]
+  );
+
+  // Callbacks
+  const handleAvatarClick = useCallback(() => {
+    if (!isOwn && uid && displayName) {
+      setSelectedUser({ uid, displayName, photoURL });
+      setIsUserProfileVisible(true);
+    }
+  }, [
+    isOwn,
+    uid,
+    displayName,
+    photoURL,
+    setSelectedUser,
+    setIsUserProfileVisible,
+  ]);
+
+  const handleRecallMessage = useCallback(async () => {
+    if (isRecalling) return;
+    setIsRecalling(true);
+    try {
+      await recallMessage(
+        id,
+        "messages",
+        user?.uid,
+        chatType === "room" ? "room" : "direct",
+        userCredentials
+      );
+      success("Tin nhắn đã được thu hồi");
+    } catch (err) {
+      error(err.message || "Không thể thu hồi tin nhắn");
+    } finally {
+      setIsRecalling(false);
+    }
+  }, [isRecalling, id, user?.uid, chatType, userCredentials, success, error]);
+
+  const handleForwardMessage = useCallback(() => {
+    setShowForwardModal(true);
+    setShowMenu(false);
+  }, []);
+
+  const handleReplyMessage = useCallback(() => {
+    if (onReply) {
+      onReply({
+        id,
+        text: currentContent.text,
+        displayName,
+        messageType: currentContent.messageType,
+        fileData: currentContent.fileData,
+        locationData: currentContent.locationData,
+      });
+    }
+    setShowMenu(false);
+  }, [onReply, id, currentContent, displayName]);
+
+  const handleMenuToggle = useCallback(() => {
+    setShowMenu(!showMenu);
+  }, [showMenu]);
+
+  const handleShowSeenDetails = useCallback(
+    (userIds) => {
+      if (!members || members.length === 0) return;
+      const seenUsers = userIds
+        .map((userId) => {
+          const user = members.find((member) => member.uid === userId);
+          if (!user) return null;
+          const readTime = readByDetails[userId];
+          const seenAt = readTime
+            ? (readTime.toDate
+                ? readTime.toDate()
+                : new Date(readTime)
+              ).toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                day: "2-digit",
+                month: "2-digit",
+              })
+            : "Không xác định";
+          return { ...user, seenAt };
+        })
+        .filter(Boolean);
+      setSeenByUsers(seenUsers);
+      setShowSeenByModal(true);
+    },
+    [members, readByDetails]
+  );
+
+  // Close menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showMenu && !event.target.closest(".message-menu")) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMenu]);
+
+  // Decrypt content effect
   React.useEffect(() => {
     const decryptMessageContent = async () => {
       if (isEncrypted && userCredentials) {
@@ -93,7 +220,6 @@ export default function Message({
             userCredentials.email,
             userCredentials.password
           );
-
           const messageData = {
             id,
             text,
@@ -118,104 +244,21 @@ export default function Message({
             encryptedLocationData,
             contentHash,
           };
-
           const decrypted = getDecryptedMessageContent(messageData, masterKey);
           setDecryptedContent(decrypted);
         } catch (err) {
           console.error("Failed to decrypt message:", err);
-          // Silently fail - don't show error to user
           setDecryptedContent(null);
         }
       } else {
         setDecryptedContent(null);
       }
     };
-
     decryptMessageContent();
-  }, [isEncrypted, userCredentials]); // Simplified dependencies
-
-  // Handler to open user profile
-  const handleAvatarClick = () => {
-    if (!isOwn && uid && displayName) {
-      // Don't open profile for own messages
-      setSelectedUser({ uid, displayName, photoURL });
-      setIsUserProfileVisible(true);
-    }
-  };
-
-  const handleRecallMessage = async () => {
-    if (isRecalling) return;
-
-    setIsRecalling(true);
-    try {
-      // Use unified messages collection with user credentials for encrypted messages
-      await recallMessage(
-        id,
-        "messages",
-        user?.uid,
-        chatType === "room" ? "room" : "direct",
-        userCredentials
-      );
-      success("Tin nhắn đã được thu hồi");
-    } catch (err) {
-      error(err.message || "Không thể thu hồi tin nhắn");
-    } finally {
-      setIsRecalling(false);
-    }
-  };
-
-  const handleForwardMessage = () => {
-    setShowForwardModal(true);
-    setShowMenu(false);
-  };
-
-  const handleReplyMessage = () => {
-    if (onReply) {
-      onReply({
-        id,
-        text: currentContent.text,
-        displayName,
-        messageType: currentContent.messageType,
-        fileData: currentContent.fileData,
-        locationData: currentContent.locationData,
-      });
-    }
-    setShowMenu(false);
-  };
-
-  const handleMenuToggle = () => {
-    setShowMenu(!showMenu);
-  };
-
-  // Close menu when clicking outside
-  React.useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showMenu && !event.target.closest(".message-menu")) {
-        setShowMenu(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showMenu]);
-
-  const canRecall =
-    isOwn &&
-    !recalled &&
-    canRecallMessage(
-      {
-        uid,
-        createdAt,
-        recalled,
-      },
-      user?.uid
-    );
+  }, [isEncrypted, userCredentials]);
 
   const renderMessageStatus = () => {
-    // Only show status for own messages that are the latest in the entire conversation
     if (!isOwn || !isLatestFromSender) return null;
-
-    // Derive readBy from readByDetails and get users who have read this specific message
     const readBy = Object.keys(readByDetails || {});
     const readByOthers = readBy.filter((userId) => userId !== user?.uid);
 
@@ -234,12 +277,9 @@ export default function Message({
       }
     };
 
-    // Handle different display logic for direct vs group chat
     if (chatType === "direct") {
-      // Direct Chat: Show avatar when seen, icons otherwise
       if (readByOthers.length > 0 && otherParticipant) {
-        // Get read time from readByDetails for the other participant
-        const otherUserId = readByOthers[0]; // In direct chat, there's only one other user
+        const otherUserId = readByOthers[0];
         const readTime = readByDetails[otherUserId];
         const seenAtText = readTime
           ? `Đã xem lúc ${(readTime.toDate
@@ -252,7 +292,6 @@ export default function Message({
               month: "2-digit",
             })}`
           : "Đã xem";
-
         return (
           <div className="flex items-center justify-end mt-1">
             {otherParticipant.photoURL ? (
@@ -273,7 +312,6 @@ export default function Message({
           </div>
         );
       } else {
-        // Show regular status icons
         return (
           <div className="flex items-center justify-end mt-1 space-x-1">
             {getStatusIcon()}
@@ -281,7 +319,6 @@ export default function Message({
         );
       }
     } else if (chatType === "room") {
-      // Group Chat: Show "Đã xem bởi X người" or status icons
       if (readByOthers.length > 0) {
         return (
           <div className="flex items-center justify-end mt-1">
@@ -295,7 +332,6 @@ export default function Message({
           </div>
         );
       } else {
-        // Show regular status icons
         return (
           <div className="flex items-center justify-end mt-1 space-x-1">
             {getStatusIcon()}
@@ -303,66 +339,10 @@ export default function Message({
         );
       }
     }
-
     return null;
   };
 
-  const handleShowSeenDetails = (userIds) => {
-    if (!members || members.length === 0) return;
-
-    const seenUsers = userIds
-      .map((userId) => {
-        const user = members.find((member) => member.uid === userId);
-        if (!user) return null;
-
-        // Get read time from readByDetails
-        const readTime = readByDetails[userId];
-        const seenAt = readTime
-          ? (readTime.toDate
-              ? readTime.toDate()
-              : new Date(readTime)
-            ).toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-              day: "2-digit",
-              month: "2-digit",
-            })
-          : "Không xác định";
-
-        return {
-          ...user,
-          seenAt,
-        };
-      })
-      .filter(Boolean);
-
-    setSeenByUsers(seenUsers);
-    setShowSeenByModal(true);
-  };
-
-  const getCurrentContent = () => {
-    if (decryptedContent) {
-      return {
-        text: decryptedContent.text,
-        fileData: decryptedContent.fileData,
-        locationData: decryptedContent.locationData,
-        messageType: decryptedContent.messageType,
-      };
-    }
-
-    // For encrypted messages, text might be null, so provide fallback
-    return {
-      text: text || "",
-      fileData: fileData || null,
-      locationData: locationData || null,
-      messageType: messageType || "text",
-    };
-  };
-
-  const currentContent = getCurrentContent();
-
   const renderMessageContent = () => {
-    // If message is recalled, show recall notice
     if (recalled) {
       const getRecallText = () => {
         if (currentContent.messageType === "file")
@@ -373,7 +353,6 @@ export default function Message({
           return "📍 Vị trí đã được thu hồi";
         return currentContent.text || "💬 Tin nhắn đã được thu hồi";
       };
-
       return (
         <div
           className={`${
@@ -390,8 +369,6 @@ export default function Message({
     const renderContentWithRecallButton = (content) => (
       <div className="relative group">
         {content}
-
-        {/* Menu button */}
         <div
           className={`absolute ${
             isOwn ? "-left-8" : "-right-8"
@@ -416,15 +393,12 @@ export default function Message({
               />
             </svg>
           </button>
-
-          {/* Dropdown menu */}
           {showMenu && (
             <div
               className={`absolute ${
                 isOwn ? "left-full ml-1" : "right-full mr-1"
               } bottom-0 mb-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[120px] z-30`}
             >
-              {/* Reply option */}
               <button
                 onClick={handleReplyMessage}
                 className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
@@ -444,8 +418,6 @@ export default function Message({
                 </svg>
                 Trả lời
               </button>
-
-              {/* Forward option */}
               <button
                 onClick={handleForwardMessage}
                 className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
@@ -465,8 +437,6 @@ export default function Message({
                 </svg>
                 Chuyển tiếp
               </button>
-
-              {/* Recall option - only show for own messages that can be recalled */}
               {canRecall && (
                 <button
                   onClick={() => {
@@ -508,15 +478,12 @@ export default function Message({
         return renderContentWithRecallButton(
           <FilePreview file={currentContent.fileData} />
         );
-
       case "location":
         return renderContentWithRecallButton(
           <LocationPreview location={currentContent.locationData} />
         );
-
       case "text":
       default:
-        // Check if message is emoji-only for special rendering
         const isEmojiOnly =
           currentContent.text &&
           hasEmoji(currentContent.text) &&
@@ -525,14 +492,12 @@ export default function Message({
               part.type === "emoji" ||
               (part.type === "text" && !part.content.trim())
           );
-
         if (isEmojiOnly) {
           return renderContentWithRecallButton(
             <EmojiOnlyMessage text={currentContent.text} />
           );
         }
 
-        // Render text với link preview
         const renderTextWithLinks = () => {
           if (hasLinks && textSegments.length > 0) {
             return (
@@ -579,7 +544,6 @@ export default function Message({
                     }
                   })}
                 </div>
-                {/* Hiển thị link preview cho link đầu tiên */}
                 {links.length > 0 && (
                   <div className="mt-2">
                     <LinkPreview url={links[0].normalized} />
@@ -588,8 +552,6 @@ export default function Message({
               </>
             );
           }
-
-          // Không có link, render như bình thường
           return (
             <div
               className={`${
@@ -610,7 +572,6 @@ export default function Message({
             </div>
           );
         };
-
         return renderContentWithRecallButton(renderTextWithLinks());
     }
   };
@@ -654,7 +615,6 @@ export default function Message({
           isOwn ? "mr-2" : "ml-2"
         }`}
       >
-        {/* Forwarded indicator */}
         {forwarded && originalSender && (
           <div className="mb-1 flex items-center">
             <svg
@@ -673,7 +633,6 @@ export default function Message({
             </span>
           </div>
         )}
-
         <div
           className={`mb-1 flex items-center ${
             isOwn ? "flex-row-reverse" : ""
@@ -690,8 +649,6 @@ export default function Message({
             {formatDate(createdAt?.seconds)}
           </span>
         </div>
-
-        {/* Reply Context */}
         {replyTo && (
           <div className="mb-2 ml-2 pl-3 border-l-2 border-gray-300 dark:border-gray-600">
             <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
@@ -711,10 +668,7 @@ export default function Message({
             </div>
           </div>
         )}
-
         {renderMessageContent()}
-
-        {/* Message Reactions */}
         {!recalled && (
           <MessageReactions
             messageId={id}
@@ -723,18 +677,13 @@ export default function Message({
             disabled={false}
           />
         )}
-
         {renderMessageStatus()}
       </div>
-
-      {/* Seen By Modal */}
       <SeenByModal
         isVisible={showSeenByModal}
         onClose={() => setShowSeenByModal(false)}
         seenUsers={seenByUsers}
       />
-
-      {/* Forward Message Modal */}
       <ForwardMessageModal
         isVisible={showForwardModal}
         onClose={() => setShowForwardModal(false)}
@@ -743,12 +692,14 @@ export default function Message({
           messageType: currentContent.messageType,
           fileData: currentContent.fileData,
           locationData: currentContent.locationData,
-          displayName: displayName,
-          chatType: chatType,
-          chatId: chatId,
+          displayName,
+          chatType,
+          chatId,
         }}
         userCredentials={userCredentials}
       />
     </div>
   );
-}
+});
+
+export default Message;
