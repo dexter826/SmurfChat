@@ -179,7 +179,9 @@ export default function RoomInfoModal({ visible, onClose, room }) {
                   <button
                     className="rounded-md border border-rose-300 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
                     onClick={async () => {
-                      const confirmed = await confirm("Bạn chắc chắn muốn xóa thành viên này?");
+                      const confirmed = await confirm(
+                        "Bạn chắc chắn muốn xóa thành viên này?"
+                      );
                       if (confirmed) {
                         handleRemoveMember(member.uid);
                       }
@@ -194,45 +196,47 @@ export default function RoomInfoModal({ visible, onClose, room }) {
         </div>
 
         <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-800">
-          {showAdminSelection && isCurrentUserAdmin && room?.members?.length > 1 && (
-            <div className="mb-4">
-              <div className="mb-2 font-medium">
-                Chọn quản trị viên mới trước khi rời nhóm:
-              </div>
-              <select
-                className="w-full rounded-md border border-gray-300 bg-transparent px-2 py-1 text-sm dark:border-gray-700"
-                value={selectedNewAdmin || ""}
-                onChange={(e) => setSelectedNewAdmin(e.target.value)}
-              >
-                <option value="" disabled>
-                  Chọn quản trị viên mới
-                </option>
-                {availableAdmins.map((member) => (
-                  <option key={member.uid} value={member.uid}>
-                    {member.displayName}
+          {showAdminSelection &&
+            isCurrentUserAdmin &&
+            room?.members?.length > 1 && (
+              <div className="mb-4">
+                <div className="mb-2 font-medium">
+                  Chọn quản trị viên mới trước khi rời nhóm:
+                </div>
+                <select
+                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-700 dark:bg-slate-800 dark:text-slate-200"
+                  value={selectedNewAdmin || ""}
+                  onChange={(e) => setSelectedNewAdmin(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Chọn quản trị viên mới
                   </option>
-                ))}
-              </select>
-              <div className="mt-2 flex gap-2">
-                <button
-                  className="rounded-md border border-gray-300 px-3 py-1 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
-                  onClick={() => {
-                    setShowAdminSelection(false);
-                    setSelectedNewAdmin(null);
-                  }}
-                >
-                  Hủy
-                </button>
-                <button
-                  className="rounded-md border border-orange-300 bg-orange-600 px-3 py-1 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
-                  onClick={handleLeaveRoom}
-                  disabled={!selectedNewAdmin}
-                >
-                  Xác nhận rời nhóm
-                </button>
+                  {availableAdmins.map((member) => (
+                    <option key={member.uid} value={member.uid}>
+                      {member.displayName}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    className="rounded-md border border-gray-300 px-3 py-1 text-sm font-medium text-slate-700 hover:border-skybrand-500 hover:text-skybrand-600 dark:border-gray-700 dark:text-slate-200"
+                    onClick={() => {
+                      setShowAdminSelection(false);
+                      setSelectedNewAdmin(null);
+                    }}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    className="rounded-md border border-orange-300 bg-orange-600 px-3 py-1 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+                    onClick={handleLeaveRoom}
+                    disabled={!selectedNewAdmin}
+                  >
+                    Xác nhận rời nhóm
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           <div className="flex gap-2">
             {isAdmin && (

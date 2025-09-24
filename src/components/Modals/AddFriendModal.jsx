@@ -33,10 +33,10 @@ export default function AddFriendModal() {
     outgoingRequests,
     friendIds,
     handleSearchChange,
-    clearSearch
-  } = useUserSearch({ 
-    searchType: 'non-friends', 
-    excludeBlocked: true 
+    clearSearch,
+  } = useUserSearch({
+    searchType: "non-friends",
+    excludeBlocked: true,
   });
 
   // Use search results when there's a search term, otherwise show non-friends
@@ -135,14 +135,14 @@ export default function AddFriendModal() {
         <div className="mb-4">
           <div className="relative">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-              <SearchIcon className="h-4 w-4 text-slate-400" />
+              <SearchIcon className="h-4 w-4 text-slate-400 dark:text-slate-500" />
             </div>
             <input
               type="text"
               placeholder="Tìm kiếm người dùng..."
               value={searchTerm}
               onChange={handleSearchChange}
-              className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 transition-all duration-200"
+              className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-500 focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 dark:focus:ring-skybrand-500/30 transition-all duration-200"
               autoFocus
             />
           </div>

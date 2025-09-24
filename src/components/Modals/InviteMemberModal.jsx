@@ -48,7 +48,7 @@ function DebounceSelect({
     <div className="relative">
       <input
         type="text"
-        className="w-full rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700"
+        className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-700 dark:bg-slate-700"
         placeholder={props.placeholder}
         onChange={(e) => debounceFetcher(e.target.value)}
       />
