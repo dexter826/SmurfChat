@@ -196,23 +196,6 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
 }
 ```
 
-#### 10. **notifications** - Thông báo nhắc đến (@mentions)
-
-```javascript
-{
-  id: string,
-  type: 'mention',
-  userId: string,          // Người nhận thông báo
-  senderId: string,        // Người gửi mention
-  senderName: string,
-  messageId: string,
-  roomId: string,
-  messageText: string,
-  read: boolean,
-  createdAt: timestamp
-}
-```
-
 ### 🔐 Bảo Mật & Quy Tắc Truy Cập
 
 - **Authentication bắt buộc**: Tất cả operations yêu cầu Firebase Auth

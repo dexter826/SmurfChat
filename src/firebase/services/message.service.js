@@ -401,33 +401,3 @@ export const forwardMessage = async (collectionName = 'messages', messageData, e
   }
 };
 
-export const sendMentionNotifications = async (messageId, mentions, roomId, senderId, senderName, messageText) => {
-  try {
-    if (!mentions || mentions.length === 0) return;
-
-    const notifications = mentions.map(mentionedUserId => ({
-      type: 'mention',
-      userId: mentionedUserId,
-      senderId: senderId,
-      senderName: senderName,
-      messageId: messageId,
-      roomId: roomId,
-      messageText: messageText,
-      read: false,
-      createdAt: serverTimestamp(),
-    }));
-
-    // Add notifications to database
-    const batch = [];
-    for (const notification of notifications) {
-      const docRef = collection(db, 'notifications');
-      batch.push(addDoc(docRef, notification));
-    }
-
-    await Promise.all(batch);
-    logSuccess('sendMentionNotifications', { count: notifications.length });
-  } catch (error) {
-    const handledError = handleServiceError(error, 'sendMentionNotifications');
-    throw handledError;
-  }
-};

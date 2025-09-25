@@ -23,46 +23,15 @@ export const useMessageHandler = (chatType, chatData, enableEncryption = false, 
     ...additionalData
   });
 
-  // Helper function to parse mentions from text
-  const parseMentions = (text, members = []) => {
-    if (!text || chatType !== 'room') return [];
-
-    const userMap = new Map();
-    if (Array.isArray(members)) {
-      members.forEach(member => {
-        if (member && member.displayName) {
-          userMap.set(member.displayName.toLowerCase(), member.uid);
-        }
-      });
-    }
-
-    const mentions = [];
-    const mentionRegex = /@([^\s@]+)/g;
-    let match;
-
-    while ((match = mentionRegex.exec(text)) !== null) {
-      const displayName = match[1];
-      const userId = userMap.get(displayName.toLowerCase());
-      if (userId && !mentions.includes(userId)) {
-        mentions.push(userId);
-      }
-    }
-
-    return mentions;
-  };
 
   // Xử lý gửi tin nhắn văn bản
   const handleTextMessage = async (members = [], replyContext = null) => {
     if (!inputValue.trim() || !chatData?.id) return;
 
     try {
-      // Parse mentions from text
-      const mentions = parseMentions(inputValue, members);
-
       const messageData = createBaseMessageData({
         text: inputValue,
         messageType: "text",
-        mentions: mentions, // Add mentions array
         // Add reply data if replying to a message
         ...(replyContext && replyContext.id ? {
           replyTo: {
