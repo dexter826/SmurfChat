@@ -15,7 +15,7 @@ function ArchivedChatsModalComponent() {
     conversations,
     setArchivedChatsRefreshTrigger,
   } = useContext(AppContext);
-  const { success, error, confirm } = useAlert();
+  const { error, confirm } = useAlert();
   const { getOtherParticipant } = useUsers();
   const [archivedChatsList, setArchivedChatsList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);

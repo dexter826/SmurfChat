@@ -66,7 +66,7 @@ const Message = React.memo(function Message({
   const { user } = React.useContext(AuthContext);
   const { setSelectedUser, setIsUserProfileVisible } =
     React.useContext(AppContext);
-  const { success, error } = useAlert();
+  const { error } = useAlert();
   const { hasEmoji, parseEmojiText } = useEmoji();
   const [isRecalling, setIsRecalling] = useState(false);
   const [showSeenByModal, setShowSeenByModal] = useState(false);
@@ -146,7 +146,7 @@ const Message = React.memo(function Message({
     } finally {
       setIsRecalling(false);
     }
-  }, [isRecalling, id, user?.uid, chatType, userCredentials, success, error]);
+  }, [isRecalling, id, user?.uid, chatType, userCredentials, error]);
 
   const handleForwardMessage = useCallback(() => {
     setShowForwardModal(true);
@@ -254,7 +254,31 @@ const Message = React.memo(function Message({
       }
     };
     decryptMessageContent();
-  }, [isEncrypted, userCredentials]);
+  }, [
+    isEncrypted,
+    userCredentials,
+    id,
+    text,
+    displayName,
+    createdAt,
+    photoURL,
+    uid,
+    messageType,
+    fileData,
+    locationData,
+    messageStatus,
+    recalled,
+    chatType,
+    isLatestFromSender,
+    members,
+    otherParticipant,
+    readByDetails,
+    reactions,
+    encryptedText,
+    encryptedFileData,
+    encryptedLocationData,
+    contentHash,
+  ]);
 
   const renderMessageStatus = () => {
     if (!isOwn || !isLatestFromSender) return null;

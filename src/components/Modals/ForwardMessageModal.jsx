@@ -13,7 +13,7 @@ export default function ForwardMessageModal({
 }) {
   const { user } = useContext(AuthContext);
   const { rooms, conversations } = useContext(AppContext);
-  const { success, error } = useAlert();
+  const { error } = useAlert();
 
   // Get friends list
   const friendsCondition = useMemo(

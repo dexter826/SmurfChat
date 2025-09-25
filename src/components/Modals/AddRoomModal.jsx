@@ -20,7 +20,6 @@ function DebounceSelect({
 }) {
   const [fetching, setFetching] = useState(false);
   const [options, setOptions] = useState([]);
-  const [cachedFriends, setCachedFriends] = useState([]);
 
   const debounceFetcher = React.useMemo(() => {
     const loadOptions = (value) => {
@@ -45,8 +44,8 @@ function DebounceSelect({
     fetchOptions,
     currentUserId,
     selectedUserIds,
-    setCachedFriends,
-    cachedFriends,
+    setCachedFriendsProp,
+    cachedFriendsProp,
   ]);
 
   const handleFocus = () => {

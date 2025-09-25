@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   FaTimes,
   FaDownload,
@@ -15,6 +15,20 @@ const FileViewerModal = ({
 }) => {
   const [imageError, setImageError] = useState(false);
   const [currentFileIndex, setCurrentFileIndex] = useState(currentIndex || 0);
+
+  const handlePrevious = useCallback(() => {
+    setCurrentFileIndex((prev) =>
+      prev > 0 ? prev - 1 : files?.length - 1 || 0
+    );
+    setImageError(false);
+  }, [files?.length]);
+
+  const handleNext = useCallback(() => {
+    setCurrentFileIndex((prev) =>
+      prev < (files?.length - 1 || 0) ? prev + 1 : 0
+    );
+    setImageError(false);
+  }, [files?.length]);
 
   useEffect(() => {
     if (currentIndex !== undefined) {
@@ -37,21 +51,11 @@ const FileViewerModal = ({
       document.addEventListener("keydown", handleKeyDown);
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
-  }, [isVisible]);
+  }, [isVisible, handleNext, handlePrevious, onClose]);
 
   if (!isVisible || !files || files.length === 0) return null;
 
   const currentFile = files[currentFileIndex];
-
-  const handlePrevious = () => {
-    setCurrentFileIndex((prev) => (prev > 0 ? prev - 1 : files.length - 1));
-    setImageError(false);
-  };
-
-  const handleNext = () => {
-    setCurrentFileIndex((prev) => (prev < files.length - 1 ? prev + 1 : 0));
-    setImageError(false);
-  };
 
   const handleDownload = () => {
     if (onDownload) {

@@ -4,10 +4,9 @@ const useLinkDetector = (text) => {
   const [links, setLinks] = useState([]);
   const [textSegments, setTextSegments] = useState([]);
 
-  // Regex để phát hiện URL
-  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}[^\s]*)/g;
-
   const extractLinks = useCallback((inputText) => {
+    // Regex để phát hiện URL
+    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}[^\s]*)/g;
     if (!inputText) {
       setLinks([]);
       setTextSegments([]);
@@ -22,7 +21,7 @@ const useLinkDetector = (text) => {
     // Tìm tất cả các link trong text
     while ((match = urlRegex.exec(inputText)) !== null) {
       let url = match[0];
-      
+
       // Xử lý các URL không có http/https
       if (url.startsWith('www.')) {
         url = 'https://' + url;
@@ -33,7 +32,7 @@ const useLinkDetector = (text) => {
       // Kiểm tra xem URL có hợp lệ không
       try {
         new URL(url);
-        
+
         // Thêm text trước link vào segments
         if (match.index > lastIndex) {
           segments.push({

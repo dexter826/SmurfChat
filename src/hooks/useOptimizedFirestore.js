@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import listenerManager from '../firebase/utils/listener.manager';
 import queryBuilder from '../firebase/utils/query.builder';
@@ -134,7 +134,7 @@ const useOptimizedFirestore = (
                 currentKeyRef.current = null;
             }
         };
-    }, [collectionName, conditionKey, orderByField, orderDirection, realTime, customKey, query.isLoading, queryClient, queryKey]);
+    }, [collectionName, condition, conditionKey, orderByField, orderDirection, realTime, customKey, query.isLoading, queryClient, queryKey]);
 
     const refresh = async () => {
         if (!collectionName) return;
