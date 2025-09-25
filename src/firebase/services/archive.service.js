@@ -1,4 +1,4 @@
-import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { db } from '../config';
 import { handleServiceError, logSuccess } from '../utils/error.utils';
 
@@ -41,9 +41,9 @@ export const unarchiveChat = async (chatId, userId) => {
 export const isChatArchived = async (chatId, userId) => {
     try {
         const archiveId = `${userId}_${chatId}`;
-        const q = query(collection(db, 'archived_chats'), where('__name__', '==', archiveId));
-        const querySnapshot = await getDocs(q);
-        return !querySnapshot.empty;
+        const archiveRef = doc(db, 'archived_chats', archiveId);
+        const archiveDoc = await getDoc(archiveRef);
+        return archiveDoc.exists();
     } catch (error) {
         console.error('Error checking archived status:', error);
         return false;

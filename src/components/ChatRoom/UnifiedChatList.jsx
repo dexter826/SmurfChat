@@ -146,6 +146,7 @@ export default function UnifiedChatList() {
     selectConversation,
     setSelectedRoomId,
     setSelectedConversationId,
+    setChatType,
     archivedChatsRefreshTrigger,
   } = useContext(AppContext);
   const { user } = useContext(AuthContext);
@@ -301,6 +302,12 @@ export default function UnifiedChatList() {
   };
 
   const handleConversationClick = async (conversationId) => {
+    if (conversationId === "chatbot") {
+      // Handle chatbot selection
+      setSelectedConversationId("chatbot");
+      setChatType("chatbot");
+      return;
+    }
     selectConversation(conversationId);
     try {
       await updateLastSeen(conversationId, user.uid, true);
@@ -423,6 +430,20 @@ export default function UnifiedChatList() {
   const allChats = React.useMemo(() => {
     // Use optimized getOtherParticipant from UserContext instead of local function
 
+    // Add chatbot item
+    const chatbotItem = {
+      id: "chatbot",
+      type: "chatbot",
+      displayName: "SmurfChat AI",
+      description: "Trợ lý AI thông minh",
+      avatar: null, // Will use default AI icon
+      isSelected: selectedConversationId === "chatbot",
+      isMuted: false,
+      hasUnread: false,
+      isPinned: false,
+      createdAt: new Date(0), // Always at top
+    };
+
     const roomItems = rooms
       .filter((room) => !archivedStatus[room.id]) // Filter out archived rooms
       .map((room) => ({
@@ -485,7 +506,11 @@ export default function UnifiedChatList() {
       });
 
     // Sort by pinned first, then by last activity
-    return [...roomItems, ...conversationItems].sort((a, b) => {
+    return [chatbotItem, ...roomItems, ...conversationItems].sort((a, b) => {
+      // Chatbot always first
+      if (a.type === "chatbot") return -1;
+      if (b.type === "chatbot") return 1;
+
       // Pinned items first
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;

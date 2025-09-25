@@ -5,6 +5,7 @@ import { AppContext } from "../../Context/AppProvider";
 // Lazy load các components lớn
 const ChatWindow = lazy(() => import("./ChatWindow.jsx"));
 const ConversationWindow = lazy(() => import("./ConversationWindow.jsx"));
+const ChatbotWindow = lazy(() => import("./ChatbotWindow.jsx"));
 
 export default function ChatRoom() {
   const { chatType } = useContext(AppContext);
@@ -22,7 +23,13 @@ export default function ChatRoom() {
             </div>
           }
         >
-          {chatType === "room" ? <ChatWindow /> : <ConversationWindow />}
+          {chatType === "room" ? (
+            <ChatWindow />
+          ) : chatType === "chatbot" ? (
+            <ChatbotWindow />
+          ) : (
+            <ConversationWindow />
+          )}
         </Suspense>
       </main>
     </div>
