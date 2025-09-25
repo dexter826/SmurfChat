@@ -4,7 +4,7 @@ import { sendMessage, updateRoomLastMessage, updateConversationLastMessage } fro
 import { useEmoji } from './useEmoji';
 
 
-export const useMessageHandler = (chatType, chatData, enableEncryption = false, userCredentials = null) => {
+export const useMessageHandler = (chatType, chatData) => {
   const [inputValue, setInputValue] = useState('');
   const [showQuickReactions, setShowQuickReactions] = useState(false);
   const inputRef = useRef();
@@ -52,10 +52,10 @@ export const useMessageHandler = (chatType, chatData, enableEncryption = false, 
       };
 
       if (chatType === 'room') {
-        await sendMessage('messages', unifiedMessageData, enableEncryption, userCredentials);
+        await sendMessage('messages', unifiedMessageData);
         await updateRoomLastMessage(chatData.id, inputValue, uid);
       } else if (chatType === 'direct') {
-        await sendMessage('messages', unifiedMessageData, enableEncryption, userCredentials);
+        await sendMessage('messages', unifiedMessageData);
         await updateConversationLastMessage(chatData.id, inputValue, uid);
       }
 
@@ -96,10 +96,10 @@ export const useMessageHandler = (chatType, chatData, enableEncryption = false, 
 
     try {
       if (chatType === 'room') {
-        await sendMessage('messages', unifiedMessageData, enableEncryption, userCredentials);
+        await sendMessage('messages', unifiedMessageData);
         await updateRoomLastMessage(chatData.id, lastMessageText, uid);
       } else if (chatType === 'direct') {
-        await sendMessage('messages', unifiedMessageData, enableEncryption, userCredentials);
+        await sendMessage('messages', unifiedMessageData);
         await updateConversationLastMessage(chatData.id, lastMessageText, uid);
       }
     } catch (error) {
@@ -131,10 +131,10 @@ export const useMessageHandler = (chatType, chatData, enableEncryption = false, 
 
     try {
       if (chatType === 'room') {
-        await sendMessage('messages', unifiedMessageData, enableEncryption, userCredentials);
+        await sendMessage('messages', unifiedMessageData);
         await updateRoomLastMessage(chatData.id, lastMessageText, uid);
       } else if (chatType === 'direct') {
-        await sendMessage('messages', unifiedMessageData, enableEncryption, userCredentials);
+        await sendMessage('messages', unifiedMessageData);
         await updateConversationLastMessage(chatData.id, lastMessageText, uid);
       }
     } catch (error) {

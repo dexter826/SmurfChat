@@ -8,26 +8,25 @@
 
 ## 📋 Giới Thiệu Dự Án
 
-SmurfChat là một ứng dụng chat thời gian thực hiện đại được xây dựng với React và Firebase. Ứng dụng cung cấp trải nghiệm chat mượt mà với nhiều tính năng thông minh như quản lý phòng chat, tin nhắn trực tiếp, chatbot AI, chia sẻ file, ghi âm giọng nói, mã hóa tin nhắn và hệ thống kết bạn. Hỗ trợ đầy đủ các tính năng chat hiện đại với giao diện tiếng Việt thân thiện.
+SmurfChat là một ứng dụng chat thời gian thực hiện đại được xây dựng với React và Firebase. Ứng dụng cung cấp trải nghiệm chat mượt mà với nhiều tính năng thông minh như quản lý phòng chat, tin nhắn trực tiếp, chatbot AI, chia sẻ file, ghi âm giọng nói và hệ thống kết bạn. Hỗ trợ đầy đủ các tính năng chat hiện đại với giao diện tiếng Việt thân thiện.
 
 ## ✨ Tính Năng Chính
 
 1. **Chat thời gian thực** với WebSocket và Firebase listeners
-2. **Mã hóa tin nhắn end-to-end** sử dụng CryptoJS
-3. **Chatbot AI** tích hợp OpenAI GPT-4
-4. **Quản lý phòng chat** với phân quyền admin/thành viên
-5. **Tin nhắn trực tiếp** (Direct Messages) 1-1
-6. **Thu hồi tin nhắn** trong vòng 10 phút
-7. **Reactions và emoji** cho tin nhắn
-8. **Chia sẻ file, hình ảnh, vị trí** với Supabase Storage
-9. **Ghi âm và gửi tin nhắn thoại**
-10. **Hệ thống kết bạn và chặn người dùng**
-11. **Tìm kiếm tin nhắn** trong phòng chat
-12. **Mention (@) người dùng**
-13. **Link preview** tự động
-14. **Dark/Light mode** với theme switcher
-15. **Responsive design** cho mọi thiết bị
-16. **PWA support** cho mobile
+2. **Chatbot AI** tích hợp OpenAI GPT-4
+3. **Quản lý phòng chat** với phân quyền admin/thành viên
+4. **Tin nhắn trực tiếp** (Direct Messages) 1-1
+5. **Thu hồi tin nhắn** trong vòng 10 phút
+6. **Reactions và emoji** cho tin nhắn
+7. **Chia sẻ file, hình ảnh, vị trí** với Supabase Storage
+8. **Ghi âm và gửi tin nhắn thoại**
+9. **Hệ thống kết bạn và chặn người dùng**
+10. **Tìm kiếm tin nhắn** trong phòng chat
+11. **Mention (@) người dùng**
+12. **Link preview** tự động
+13. **Dark/Light mode** với theme switcher
+14. **Responsive design** cho mọi thiết bị
+15. **PWA support** cho mobile
 
 ## 🛠️ Công Nghệ Sử Dụng
 
@@ -36,7 +35,6 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 - **Supabase** - File storage
 - **Tailwind CSS** - Styling
 - **OpenAI API** - Chatbot AI
-- **CryptoJS** - Encryption
 - **React Query** - Data fetching
 - **Lottie** - Animations
 
@@ -68,20 +66,15 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
 ```javascript
 {
    id: string,
-   text: string,
-   encryptedText: string|null,     // Nội dung mã hóa
+   text: string,                   // Nội dung text
    uid: string,                    // Người gửi
    displayName: string,
    photoURL: string|null,
    chatType: 'room'|'direct',      // Loại chat
    chatId: string,                 // ID phòng hoặc cuộc trò chuyện
    messageType: 'text'|'file'|'voice'|'location',
-   isEncrypted: boolean,           // Có mã hóa không
-   contentHash: string|null,       // Hash nội dung
-   fileData: object|null,
-   encryptedFileData: string|null,
-   locationData: object|null,
-   encryptedLocationData: string|null,
+   fileData: object|null,          // Dữ liệu file
+   locationData: object|null,      // Dữ liệu vị trí
    readByDetails: object,          // {userId: timestamp}
    reactions: object,              // {emoji: [userIds]}
    recalled: boolean,              // Đã thu hồi
@@ -200,7 +193,7 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
 
 - **Authentication bắt buộc**: Tất cả operations yêu cầu Firebase Auth
 - **Users**: Chỉ đọc/ghi dữ liệu của chính mình, cho phép đọc public để tìm kiếm
-- **Messages**: Tất cả users đã auth có thể truy cập (mã hóa ở application level)
+- **Messages**: Tất cả users đã auth có thể truy cập
 - **Rooms**: Chỉ members mới có thể truy cập
 - **Conversations**: Chỉ participants mới có thể truy cập
 - **Friends/Requests**: Tất cả users đã auth có thể truy cập
@@ -212,13 +205,6 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
 - **Real-time listeners**: Sử dụng onSnapshot cho updates tức thì
 - **Pagination**: Limit queries để tối ưu performance
 - **Composite queries**: Kết hợp where và orderBy cho filtering phức tạp
-
-### 🛡️ Mã Hóa Dữ Liệu
-
-- **End-to-end encryption**: Sử dụng CryptoJS với master key từ credentials
-- **Encrypted fields**: text, fileData, locationData
-- **Content hashing**: Đảm bảo tính toàn vẹn
-- **Application-level**: Firestore chỉ lưu trữ, không xử lý encryption
 
 ## 🚀 Cách Cài Đặt
 

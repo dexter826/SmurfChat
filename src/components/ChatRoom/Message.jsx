@@ -3,12 +3,7 @@ import { formatRelative } from "date-fns/esm";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
 import { AppContext } from "../../Context/AppProvider.jsx";
 import { useAlert } from "../../Context/AlertProvider";
-import {
-  recallMessage,
-  canRecallMessage,
-  getDecryptedMessageContent,
-} from "../../firebase/services";
-import { generateMasterKey } from "../../firebase/utils/encryption.utils";
+import { recallMessage, canRecallMessage } from "../../firebase/services";
 import FilePreview from "../FileUpload/FilePreview";
 import LocationPreview from "../FileUpload/LocationPreview";
 import EmojiText, { EmojiOnlyMessage } from "./EmojiText";
@@ -51,12 +46,6 @@ const Message = React.memo(function Message({
   otherParticipant = null,
   readByDetails = {},
   reactions = {},
-  isEncrypted = false,
-  encryptedText,
-  encryptedFileData = null,
-  encryptedLocationData = null,
-  contentHash,
-  userCredentials = null,
   forwarded = false,
   originalSender,
   originalChatType,
@@ -71,33 +60,22 @@ const Message = React.memo(function Message({
   const [isRecalling, setIsRecalling] = useState(false);
   const [showSeenByModal, setShowSeenByModal] = useState(false);
   const [seenByUsers, setSeenByUsers] = useState([]);
-  const [decryptedContent, setDecryptedContent] = useState(null);
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const isOwn = uid === user?.uid;
 
-  // Memoize decrypted content
+  // Memoize content
   const currentContent = useMemo(() => {
-    if (decryptedContent) {
-      return {
-        text: decryptedContent.text,
-        fileData: decryptedContent.fileData,
-        locationData: decryptedContent.locationData,
-        messageType: decryptedContent.messageType,
-      };
-    }
     return {
       text: text || "",
       fileData: fileData || null,
       locationData: locationData || null,
       messageType: messageType || "text",
     };
-  }, [decryptedContent, text, fileData, locationData, messageType]);
+  }, [text, fileData, locationData, messageType]);
 
   // Memoize link detection
-  const { links, textSegments, hasLinks } = useLinkDetector(
-    isEncrypted && decryptedContent ? decryptedContent.text : text
-  );
+  const { links, textSegments, hasLinks } = useLinkDetector(text);
 
   // Memoize canRecall
   const canRecall = useMemo(
@@ -138,15 +116,14 @@ const Message = React.memo(function Message({
         id,
         "messages",
         user?.uid,
-        chatType === "room" ? "room" : "direct",
-        userCredentials
+        chatType === "room" ? "room" : "direct"
       );
     } catch (err) {
       error(err.message || "Không thể thu hồi tin nhắn");
     } finally {
       setIsRecalling(false);
     }
-  }, [isRecalling, id, user?.uid, chatType, userCredentials, error]);
+  }, [isRecalling, id, user?.uid, chatType, error]);
 
   const handleForwardMessage = useCallback(() => {
     setShowForwardModal(true);
@@ -209,65 +186,6 @@ const Message = React.memo(function Message({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showMenu]);
-
-  // Decrypt content effect
-  React.useEffect(() => {
-    const decryptMessageContent = async () => {
-      if (isEncrypted && userCredentials) {
-        try {
-          const masterKey = generateMasterKey(
-            userCredentials.email,
-            userCredentials.password
-          );
-          const messageData = {
-            id,
-            text,
-            displayName,
-            createdAt,
-            photoURL,
-            uid,
-            messageType,
-            fileData,
-            locationData,
-            messageStatus,
-            recalled,
-            chatType,
-            isLatestFromSender,
-            members,
-            otherParticipant,
-            readByDetails,
-            reactions,
-            isEncrypted,
-            encryptedText,
-            encryptedFileData,
-            encryptedLocationData,
-            contentHash,
-          };
-          const decrypted = getDecryptedMessageContent(messageData, masterKey);
-          setDecryptedContent(decrypted);
-        } catch (err) {
-          console.error("Failed to decrypt message:", err);
-          setDecryptedContent(null);
-        }
-      } else {
-        setDecryptedContent(null);
-      }
-    };
-    decryptMessageContent();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    isEncrypted,
-    userCredentials,
-    id,
-    text,
-    messageType,
-    fileData,
-    locationData,
-    encryptedText,
-    encryptedFileData,
-    encryptedLocationData,
-    contentHash,
-  ]);
 
   const renderMessageStatus = () => {
     if (!isOwn || !isLatestFromSender) return null;
@@ -704,7 +622,6 @@ const Message = React.memo(function Message({
           chatType,
           chatId,
         }}
-        userCredentials={userCredentials}
       />
     </div>
   );

@@ -4,16 +4,6 @@ import { getMutualBlockStatus } from '../utils/block.utils';
 import { updateRoomLastMessage, updateConversationLastMessage } from '../utils/conversation.utils';
 import { handleServiceError, logSuccess, validateRequired, ErrorTypes, SmurfChatError } from '../utils/error.utils';
 import { areUsersFriends } from './friend.service';
-import {
-  encryptContent,
-  decryptContent,
-  encryptFileData,
-  decryptFileData,
-  encryptLocationData,
-  decryptLocationData,
-  hashContent,
-  generateMasterKey
-} from '../utils/encryption.utils';
 
 export const getReadByFromDetails = (readByDetails = {}) => {
   return Object.keys(readByDetails);
@@ -31,7 +21,7 @@ export const deleteMessage = async (messageId, collectionName = 'messages', type
   }
 };
 
-export const recallMessage = async (messageId, collectionName = 'messages', userId, type, userCredentials = null) => {
+export const recallMessage = async (messageId, collectionName = 'messages', userId, type) => {
   try {
     validateRequired(messageId, 'Message ID');
     validateRequired(userId, 'User ID');
@@ -41,10 +31,6 @@ export const recallMessage = async (messageId, collectionName = 'messages', user
       throw new SmurfChatError(ErrorTypes.BUSINESS_NOT_FOUND, 'Tin nhắn không tồn tại');
     }
     const messageData = messageDoc.data();
-    let masterKey = null;
-    if (userCredentials && messageData.isEncrypted) {
-      masterKey = generateMasterKey(userCredentials.email, userCredentials.password);
-    }
     if (messageData.uid !== userId) {
       throw new SmurfChatError(ErrorTypes.BUSINESS_PERMISSION_DENIED, 'Chỉ người gửi mới có thể thu hồi tin nhắn');
     }
@@ -62,39 +48,18 @@ export const recallMessage = async (messageId, collectionName = 'messages', user
       recalledAt: serverTimestamp(),
     };
     if (messageData.messageType === 'text' || !messageData.messageType) {
-      if (messageData.isEncrypted) {
-        recallData.originalText = messageData.encryptedText;
-        recallData.encryptedText = encryptContent('Tin nhắn đã được thu hồi', masterKey);
-      } else {
-        recallData.originalText = messageData.text;
-        recallData.text = 'Tin nhắn đã được thu hồi';
-      }
+      recallData.originalText = messageData.text;
+      recallData.text = 'Tin nhắn đã được thu hồi';
     } else if (messageData.messageType === 'file' || messageData.messageType === 'voice') {
-      if (messageData.isEncrypted) {
-        recallData.originalFileData = messageData.encryptedFileData;
-        recallData.encryptedFileData = null;
-        recallData.encryptedText = encryptContent(`${messageData.messageType === 'voice' ? 'Tin nhắn thoại' : 'File'} đã được thu hồi`, masterKey);
-      } else {
-        recallData.originalFileData = messageData.fileData;
-        recallData.fileData = null;
-        recallData.text = `${messageData.messageType === 'voice' ? 'Tin nhắn thoại' : 'File'} đã được thu hồi`;
-      }
+      recallData.originalFileData = messageData.fileData;
+      recallData.fileData = null;
+      recallData.text = `${messageData.messageType === 'voice' ? 'Tin nhắn thoại' : 'File'} đã được thu hồi`;
     } else if (messageData.messageType === 'location') {
-      if (messageData.isEncrypted) {
-        recallData.originalLocationData = messageData.encryptedLocationData;
-        recallData.encryptedLocationData = null;
-        recallData.encryptedText = encryptContent('Vị trí đã được thu hồi', masterKey);
-      } else {
-        recallData.originalLocationData = messageData.locationData;
-        recallData.locationData = null;
-        recallData.text = 'Vị trí đã được thu hồi';
-      }
+      recallData.originalLocationData = messageData.locationData;
+      recallData.locationData = null;
+      recallData.text = 'Vị trí đã được thu hồi';
     } else {
-      if (messageData.isEncrypted) {
-        recallData.encryptedText = encryptContent('Tin nhắn đã được thu hồi', masterKey);
-      } else {
-        recallData.text = 'Tin nhắn đã được thu hồi';
-      }
+      recallData.text = 'Tin nhắn đã được thu hồi';
     }
     await updateDoc(messageRef, recallData);
     if (type === 'room' && messageData.roomId) {
@@ -141,7 +106,7 @@ export const markMessageAsRead = async (messageId, userId, collectionName = 'mes
   }
 };
 
-export const sendMessage = async (collectionName = 'messages', messageData, encryptMessage = false, userCredentials = null) => {
+export const sendMessage = async (collectionName = 'messages', messageData) => {
   try {
     if (messageData.chatType === 'direct' && messageData.chatId) {
       const participantIds = messageData.chatId.split('_');
@@ -172,53 +137,21 @@ export const sendMessage = async (collectionName = 'messages', messageData, encr
         }
       }
     }
-    let processedMessageData = { ...messageData };
-    if (encryptMessage && userCredentials) {
-      try {
-        const masterKey = generateMasterKey(userCredentials.email, userCredentials.password);
-        const finalMessageData = {
-          ...processedMessageData,
-          isEncrypted: true
-        };
-        if (messageData.text) {
-          const contentHash = hashContent(messageData.text);
-          const encryptedText = encryptContent(messageData.text, masterKey);
-          finalMessageData.encryptedText = encryptedText;
-          finalMessageData.contentHash = contentHash;
-        }
-        if (messageData.fileData) {
-          const encryptedFileData = encryptFileData(messageData.fileData, masterKey);
-          finalMessageData.encryptedFileData = encryptedFileData;
-        }
-        if (messageData.locationData) {
-          const encryptedLocationData = encryptLocationData(messageData.locationData, masterKey);
-          finalMessageData.encryptedLocationData = encryptedLocationData;
-        }
-        processedMessageData = finalMessageData;
-        if (messageData.recalled) {
-          processedMessageData = {
-            ...processedMessageData,
-            originalText: messageData.originalText ? encryptContent(messageData.originalText, masterKey) : null,
-            originalFileData: messageData.originalFileData ? encryptFileData(messageData.originalFileData, masterKey) : null,
-            originalLocationData: messageData.originalLocationData ? encryptLocationData(messageData.originalLocationData, masterKey) : null
-          };
-        }
-      } catch (encryptionError) {
-        throw new Error('Không thể mã hóa tin nhắn: ' + encryptionError.message);
-      }
-    } else {
-      processedMessageData.isEncrypted = false;
-    }
+
+    // Store messages without encryption
+    const processedMessageData = { ...messageData };
+
     const docRef = collection(db, collectionName);
     const result = await addDoc(docRef, {
       ...processedMessageData,
       createdAt: serverTimestamp(),
     });
+
     logSuccess('sendMessage', {
       messageId: result.id,
-      encrypted: encryptMessage,
       messageType: messageData.messageType
     });
+
     return result.id;
   } catch (error) {
     throw error;
@@ -307,48 +240,6 @@ export const toggleReaction = async (messageId, userId, emoji, collectionName = 
   }
 };
 
-export const decryptMessage = (messageData, masterKey) => {
-  if (!messageData || !masterKey) {
-    return messageData;
-  }
-  try {
-    let decryptedData = { ...messageData };
-    if (messageData.isEncrypted && messageData.encryptedText) {
-      decryptedData.text = decryptContent(messageData.encryptedText, masterKey);
-      decryptedData.encryptedText = null;
-    }
-    if (messageData.isEncrypted && messageData.encryptedFileData) {
-      decryptedData.fileData = decryptFileData(messageData.encryptedFileData, masterKey);
-      decryptedData.encryptedFileData = null;
-    }
-    if (messageData.isEncrypted && messageData.encryptedLocationData) {
-      decryptedData.locationData = decryptLocationData(messageData.encryptedLocationData, masterKey);
-      decryptedData.encryptedLocationData = null;
-    }
-    if (messageData.isEncrypted && messageData.recalled) {
-      if (messageData.originalText) {
-        decryptedData.originalText = decryptContent(messageData.originalText, masterKey);
-      }
-      if (messageData.originalFileData) {
-        decryptedData.originalFileData = decryptFileData(messageData.originalFileData, masterKey);
-      }
-      if (messageData.originalLocationData) {
-        decryptedData.originalLocationData = decryptLocationData(messageData.originalLocationData, masterKey);
-      }
-    }
-    decryptedData.isEncrypted = false;
-    return decryptedData;
-  } catch (error) {
-    return messageData;
-  }
-};
-
-export const getDecryptedMessageContent = (messageData, masterKey) => {
-  if (!messageData.isEncrypted) {
-    return messageData;
-  }
-  return decryptMessage(messageData, masterKey);
-};
 
 export const searchMessagesInChat = async (chatId, searchTerm, limitCount = 50) => {
   try {
@@ -387,7 +278,7 @@ export const searchMessagesInChat = async (chatId, searchTerm, limitCount = 50) 
   }
 };
 
-export const forwardMessage = async (collectionName = 'messages', messageData, encryptMessage = false, userCredentials = null) => {
+export const forwardMessage = async (collectionName = 'messages', messageData) => {
   try {
     // Forward message is essentially sending a new message with forwarded flag
     const forwardedMessageData = {
@@ -395,7 +286,7 @@ export const forwardMessage = async (collectionName = 'messages', messageData, e
       forwarded: true,
     };
 
-    return await sendMessage(collectionName, forwardedMessageData, encryptMessage, userCredentials);
+    return await sendMessage(collectionName, forwardedMessageData);
   } catch (error) {
     throw error;
   }

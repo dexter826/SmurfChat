@@ -33,21 +33,14 @@ export default function ConversationWindow() {
   } = useContext(AuthContext);
   const { getOtherParticipant } = useUsers();
 
-  // Encryption settings - enable encryption for all messages
-  const [enableEncryption] = useState(true);
-  const [userCredentials] = useState(() => {
-    // Get user credentials for encryption
-    const storedPassword =
-      localStorage.getItem("userPassword") || "defaultPassword";
-    return { email, password: storedPassword };
-  });
+  // No encryption needed
 
   // Get other user ID from conversation
   const otherUserId = selectedConversation?.participants?.find(
     (id) => id !== uid
   );
 
-  // Use the new message handler hook with encryption
+  // Use the message handler hook
   const {
     inputValue,
     setInputValue,
@@ -56,12 +49,7 @@ export default function ConversationWindow() {
     handleFileMessage,
     handleLocationMessage,
     handleEmojiClick,
-  } = useMessageHandler(
-    "direct",
-    selectedConversation,
-    enableEncryption,
-    userCredentials
-  );
+  } = useMessageHandler("direct", selectedConversation);
 
   // Use the new block status hook
   const { isBlockedByMe, isBlockingMe, canSendMessage } =
@@ -371,13 +359,6 @@ export default function ConversationWindow() {
                       chatId={selectedConversation.id}
                       isLatestFromSender={isLatestFromSender}
                       otherParticipant={otherParticipant} // Pass other participant info for read status display
-                      // Encryption props
-                      isEncrypted={mes.isEncrypted}
-                      encryptedText={mes.encryptedText}
-                      encryptedFileData={mes.encryptedFileData}
-                      encryptedLocationData={mes.encryptedLocationData}
-                      contentHash={mes.contentHash}
-                      userCredentials={userCredentials}
                       // Reply props
                       onReply={handleReply}
                       replyTo={mes.replyTo}

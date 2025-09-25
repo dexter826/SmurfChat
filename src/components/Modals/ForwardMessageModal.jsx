@@ -9,7 +9,6 @@ export default function ForwardMessageModal({
   isVisible,
   onClose,
   messageData,
-  userCredentials = null,
 }) {
   const { user } = useContext(AuthContext);
   const { rooms, conversations } = useContext(AppContext);
@@ -182,12 +181,7 @@ export default function ForwardMessageModal({
           }
         });
 
-        await forwardMessage(
-          "messages",
-          forwardData,
-          !!userCredentials,
-          userCredentials
-        );
+        await forwardMessage("messages", forwardData);
         successCount++;
       }
 
