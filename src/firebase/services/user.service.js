@@ -53,7 +53,6 @@ export const setTypingStatus = async (chatId, userId, isTyping, isConversation =
           ...typingStatus,
           [userId]: isTyping
         },
-        typingUpdatedAt: serverTimestamp(),
       });
     }
   } catch (error) {
