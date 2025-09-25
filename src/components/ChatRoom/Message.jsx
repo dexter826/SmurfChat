@@ -254,6 +254,7 @@ const Message = React.memo(function Message({
       }
     };
     decryptMessageContent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     isEncrypted,
     userCredentials,

@@ -25,7 +25,17 @@ export const generateChatbotResponse = async (message, conversationHistory = [])
     try {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
-        let context = 'You are SmurfChat AI, a helpful assistant in this chat application. Be friendly, helpful, and engaging. Keep responses concise but informative.';
+        let context = `You are SmurfChat AI, a helpful assistant in this chat application. Be friendly, helpful, and engaging. Keep responses concise but informative.
+
+Current date and time: ${new Date().toLocaleString('vi-VN', {
+            timeZone: 'Asia/Ho_Chi_Minh',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        })}`;
 
         if (conversationHistory.length > 0) {
             context += '\n\nConversation history:\n';

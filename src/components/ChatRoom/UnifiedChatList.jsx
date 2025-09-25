@@ -436,7 +436,7 @@ export default function UnifiedChatList() {
       type: "chatbot",
       displayName: "SmurfChat AI",
       description: "Trợ lý AI thông minh",
-      avatar: null, // Will use default AI icon
+      avatar: "/smurfchat_ai.png",
       isSelected: selectedConversationId === "chatbot",
       isMuted: false,
       hasUnread: false,
