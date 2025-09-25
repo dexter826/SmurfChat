@@ -68,8 +68,6 @@ const VoteModal = () => {
         roomId: selectedRoom.id,
         createdBy: uid,
         creatorName: displayName,
-        allowMultiple: false, // For now, single choice only
-        anonymous: false, // For now, non-anonymous
       };
 
       await createVote(voteData);

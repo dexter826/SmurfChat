@@ -4,7 +4,7 @@ import {
   FaTrash,
   FaChartBar,
   FaUser,
-  FaTimes
+  FaTimes,
 } from "react-icons/fa";
 import { castVote, deleteVote } from "../../firebase/services";
 import { AuthContext } from "../../Context/AuthProvider.jsx";
@@ -13,7 +13,9 @@ import { useAlert } from "../../Context/AlertProvider";
 import useOptimizedFirestore from "../../hooks/useOptimizedFirestore";
 
 const VoteMessage = ({ vote }) => {
-  const { user: { uid } } = useContext(AuthContext);
+  const {
+    user: { uid },
+  } = useContext(AuthContext);
   const { members } = useContext(AppContext);
   const { success, error, confirm } = useAlert();
   const [loading, setLoading] = useState(false);
@@ -22,16 +24,22 @@ const VoteMessage = ({ vote }) => {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(null);
 
   // Real-time vote data with optimized condition
-  const { documents: voteDataArray } = useOptimizedFirestore("votes", useMemo(() => ({
-    fieldName: "__name__",
-    operator: "==",
-    compareValue: vote.id,
-  }), [vote.id]));
+  const { documents: voteDataArray } = useOptimizedFirestore(
+    "votes",
+    useMemo(
+      () => ({
+        fieldName: "__name__",
+        operator: "==",
+        compareValue: vote.id,
+      }),
+      [vote.id]
+    )
+  );
   const voteData = voteDataArray?.[0] || vote;
 
   const userVote = voteData.votes?.[uid];
   const hasVoted = userVote !== undefined;
-  const isCreator = voteData.createdBy === uid;
+  const isCreator = voteData.creatorId === uid;
   const totalVotes = Object.keys(voteData.votes || {}).length;
 
   // Initialize selected options from existing vote
@@ -44,11 +52,17 @@ const VoteMessage = ({ vote }) => {
   }, [userVote]);
 
   // Get all users for voter information
-  const { documents: allUsersData } = useOptimizedFirestore("users", useMemo(() => ({
-    fieldName: 'displayName',
-    operator: '!=',
-    compareValue: ''
-  }), []));
+  const { documents: allUsersData } = useOptimizedFirestore(
+    "users",
+    useMemo(
+      () => ({
+        fieldName: "displayName",
+        operator: "!=",
+        compareValue: "",
+      }),
+      []
+    )
+  );
 
   // Filter to get all users excluding current user logic if needed
   const allUsers = useMemo(() => allUsersData || [], [allUsersData]);
@@ -58,42 +72,46 @@ const VoteMessage = ({ vote }) => {
     const votes = voteData.votes || {};
     const stats = voteData.options.map((option, index) => {
       const voters = Object.entries(votes).filter(([, userVotes]) => {
-        return Array.isArray(userVotes) ? userVotes.includes(index) : userVotes === index;
+        return Array.isArray(userVotes)
+          ? userVotes.includes(index)
+          : userVotes === index;
       });
-      
+
       return {
         option,
         count: voters.length,
-        percentage: totalVotes > 0 ? Math.round((voters.length / totalVotes) * 100) : 0,
+        percentage:
+          totalVotes > 0 ? Math.round((voters.length / totalVotes) * 100) : 0,
         voters: voters.map(([userId]) => {
           // Try to find user in members first (room members), then in allUsers
-          let user = members.find(u => u.uid === userId);
+          let user = members.find((u) => u.uid === userId);
           if (!user) {
-            user = allUsers.find(u => u.uid === userId);
+            user = allUsers.find((u) => u.uid === userId);
           }
-          return { 
-            uid: userId, 
-            displayName: user?.displayName || user?.email || `User ${userId.substring(0, 6)}...` 
+          return {
+            uid: userId,
+            displayName:
+              user?.displayName ||
+              user?.email ||
+              `User ${userId.substring(0, 6)}...`,
           };
-        })
+        }),
       };
     });
-    
+
     return stats;
   }, [voteData.options, voteData.votes, totalVotes, allUsers, members]);
 
   const handleOptionToggle = (optionIndex) => {
-    if (hasVoted && !voteData.allowChangeVote) return;
-    
-    // Auto-submit vote when option is selected
-    const newSelectedOptions = voteData.multipleChoice 
-      ? (selectedOptions.includes(optionIndex)
-          ? selectedOptions.filter(i => i !== optionIndex)
-          : [...selectedOptions, optionIndex])
-      : [optionIndex];
-    
+    // Allow changing votes
+
+    // Auto-submit vote when option is selected (always multiple choice)
+    const newSelectedOptions = selectedOptions.includes(optionIndex)
+      ? selectedOptions.filter((i) => i !== optionIndex)
+      : [...selectedOptions, optionIndex];
+
     setSelectedOptions(newSelectedOptions);
-    
+
     // Auto-submit the vote immediately
     if (newSelectedOptions.length > 0) {
       handleSubmitVote(newSelectedOptions);
@@ -108,8 +126,7 @@ const VoteMessage = ({ vote }) => {
 
     setLoading(true);
     try {
-      const voteValue = voteData.multipleChoice ? optionsToSubmit : optionsToSubmit[0];
-      await castVote(vote.id, uid, voteValue);
+      await castVote(vote.id, uid, optionsToSubmit);
       // Don't show success modal - removed as requested
     } catch (err) {
       console.error("Error casting vote:", err);
@@ -124,7 +141,7 @@ const VoteMessage = ({ vote }) => {
       "Xác nhận xóa",
       "Bạn có chắc chắn muốn xóa cuộc vote này? Hành động này không thể hoàn tác."
     );
-    
+
     if (!confirmed) return;
 
     setLoading(true);
@@ -152,7 +169,7 @@ const VoteMessage = ({ vote }) => {
           <div className="flex items-center gap-2">
             <FaChartBar className="text-blue-600 dark:text-blue-400" />
             <h4 className="font-semibold text-slate-800 dark:text-slate-200">
-              {voteData.question}
+              {voteData.title}
             </h4>
           </div>
           {isCreator && (
@@ -178,17 +195,13 @@ const VoteMessage = ({ vote }) => {
         <div className="space-y-2">
           {voteStats.map((stat, index) => {
             const isSelected = selectedOptions.includes(index);
-            const maxCount = Math.max(...voteStats.map(s => s.count));
+            const maxCount = Math.max(...voteStats.map((s) => s.count));
             const isWinning = stat.count > 0 && stat.count === maxCount;
-            
+
             return (
               <div
                 key={index}
-                className={`relative overflow-hidden rounded-lg border p-3 transition-all duration-200 ${
-                  hasVoted && !voteData.allowChangeVote
-                    ? "cursor-default"
-                    : "cursor-pointer hover:shadow-md"
-                } ${
+                className={`relative overflow-hidden rounded-lg border p-3 transition-all duration-200 cursor-pointer hover:shadow-md ${
                   isSelected
                     ? "border-blue-400 bg-blue-100 dark:border-blue-600 dark:bg-blue-900/30"
                     : "border-gray-200 bg-white dark:border-gray-700 dark:bg-slate-800"
@@ -204,16 +217,20 @@ const VoteMessage = ({ vote }) => {
                   className="absolute inset-0 bg-gradient-to-r from-blue-200/40 to-blue-300/40 transition-all duration-300 dark:from-blue-800/20 dark:to-blue-700/20"
                   style={{ width: `${stat.percentage}%` }}
                 />
-                
+
                 {/* Content */}
                 <div className="relative flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
-                      isSelected
-                        ? "border-blue-500 bg-blue-500"
-                        : "border-gray-300 dark:border-gray-600"
-                    }`}>
-                      {isSelected && <FaCheckCircle className="text-xs text-white" />}
+                    <div
+                      className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                        isSelected
+                          ? "border-blue-500 bg-blue-500"
+                          : "border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
+                      {isSelected && (
+                        <FaCheckCircle className="text-xs text-white" />
+                      )}
                     </div>
                     <span className="font-medium text-slate-800 dark:text-slate-200">
                       {stat.option}
@@ -224,7 +241,7 @@ const VoteMessage = ({ vote }) => {
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-semibold text-slate-700 dark:text-slate-300">
                       {stat.count} ({stat.percentage}%)
@@ -250,7 +267,7 @@ const VoteMessage = ({ vote }) => {
         {/* Vote Summary */}
         <div className="mt-3 flex justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>Tổng cộng: {totalVotes} người vote</span>
-          <span>Tạo bởi: {voteData.createdByName}</span>
+          <span>Tạo bởi: {voteData.creatorName}</span>
         </div>
       </div>
 
@@ -271,7 +288,10 @@ const VoteMessage = ({ vote }) => {
             </div>
             <div className="max-h-60 space-y-2 overflow-y-auto">
               {voteStats[selectedOptionIndex]?.voters.map((voter) => (
-                <div key={voter.uid} className="flex items-center gap-2 rounded p-2 bg-gray-50 dark:bg-gray-700">
+                <div
+                  key={voter.uid}
+                  className="flex items-center gap-2 rounded p-2 bg-gray-50 dark:bg-gray-700"
+                >
                   <FaUser className="text-gray-500" />
                   <span className="text-sm">{voter.displayName}</span>
                 </div>

@@ -21,7 +21,7 @@ export const createVote = async (voteData) => {
 };
 
 // Cast a vote or change existing vote
-export const castVote = async (voteId, userId, optionIndex) => {
+export const castVote = async (voteId, userId, selectedOptions) => {
   const voteRef = doc(db, 'votes', voteId);
 
   try {
@@ -35,15 +35,30 @@ export const castVote = async (voteId, userId, optionIndex) => {
     const currentVotes = voteData.votes || {};
     const currentCounts = [...(voteData.voteCounts || [])];
 
-    // Remove previous vote if exists
+    // Ensure selectedOptions is an array
+    const optionsArray = Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions];
+
+    // Remove previous votes if exist
     if (currentVotes[userId] !== undefined) {
-      const previousOption = currentVotes[userId];
-      currentCounts[previousOption] = Math.max(0, currentCounts[previousOption] - 1);
+      const previousOptions = Array.isArray(currentVotes[userId])
+        ? currentVotes[userId]
+        : [currentVotes[userId]];
+
+      previousOptions.forEach(optionIndex => {
+        if (optionIndex >= 0 && optionIndex < currentCounts.length) {
+          currentCounts[optionIndex] = Math.max(0, currentCounts[optionIndex] - 1);
+        }
+      });
     }
 
-    // Add new vote
-    currentVotes[userId] = optionIndex;
-    currentCounts[optionIndex] = (currentCounts[optionIndex] || 0) + 1;
+    // Add new votes
+    currentVotes[userId] = optionsArray;
+
+    optionsArray.forEach(optionIndex => {
+      if (optionIndex >= 0 && optionIndex < currentCounts.length) {
+        currentCounts[optionIndex] = (currentCounts[optionIndex] || 0) + 1;
+      }
+    });
 
     await updateDoc(voteRef, {
       votes: currentVotes,

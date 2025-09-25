@@ -165,15 +165,16 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
 
 ```javascript
 {
-  id: string,
-  roomId: string,
-  creatorId: string,
-  question: string,
-  options: string[],
-  votes: object,              // {userId: optionIndex}
-  voteCounts: object,         // {optionIndex: count}
-  createdAt: timestamp,
-  updatedAt: timestamp
+   id: string,
+   roomId: string,
+   creatorId: string,
+   title: string,
+   description: string,
+   options: string[],
+   votes: object,              // {userId: optionIndex[]}
+   voteCounts: object,         // {optionIndex: count}
+   createdAt: timestamp,
+   updatedAt: timestamp
 }
 ```
 
