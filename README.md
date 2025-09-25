@@ -42,19 +42,24 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 
 ## 🗄️ Thiết Kế CSDL Firestore
 
+_Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình phát triển, có thể có thêm các field bổ sung tùy theo logic nghiệp vụ của ứng dụng._
+
 ### 📊 Cấu Trúc Collections
 
 #### 1. **users** - Thông tin người dùng
 
 ```javascript
 {
-  uid: string,              // Firebase Auth UID
-  displayName: string,      // Tên hiển thị
-  email: string,           // Email
-  photoURL: string|null,   // Avatar URL
-  keywords: string[],      // Từ khóa tìm kiếm
-  createdAt: timestamp,
-  lastSeen: timestamp
+   uid: string,              // Firebase Auth UID
+   displayName: string,      // Tên hiển thị
+   email: string,           // Email
+   photoURL: string|null,   // Avatar URL
+   providerId: string,      // Provider đăng nhập ('password', 'google', etc.)
+   keywords: string[],      // Từ khóa tìm kiếm
+   isOnline: boolean,       // Trạng thái online
+   lastSeen: timestamp,     // Thời gian hoạt động cuối
+   createdAt: timestamp,
+   updatedAt: timestamp     // Thời gian cập nhật cuối
 }
 ```
 
@@ -62,28 +67,32 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 
 ```javascript
 {
-  id: string,
-  text: string,
-  encryptedText: string|null,     // Nội dung mã hóa
-  uid: string,                    // Người gửi
-  displayName: string,
-  photoURL: string|null,
-  chatType: 'room'|'direct',      // Loại chat
-  chatId: string,                 // ID phòng hoặc cuộc trò chuyện
-  messageType: 'text'|'file'|'voice'|'location',
-  status: 'sent'|'recalled',
-  isEncrypted: boolean,           // Có mã hóa không
-  contentHash: string|null,       // Hash nội dung
-  fileData: object|null,
-  encryptedFileData: string|null,
-  locationData: object|null,
-  encryptedLocationData: string|null,
-  readByDetails: object,          // {userId: timestamp}
-  recalled: boolean,
-  recalledAt: timestamp|null,
-  originalText: string|null,      // Nội dung gốc khi thu hồi
-  createdAt: timestamp,
-  updatedAt: timestamp|null
+   id: string,
+   text: string,
+   encryptedText: string|null,     // Nội dung mã hóa
+   uid: string,                    // Người gửi
+   displayName: string,
+   photoURL: string|null,
+   chatType: 'room'|'direct',      // Loại chat
+   chatId: string,                 // ID phòng hoặc cuộc trò chuyện
+   messageType: 'text'|'file'|'voice'|'location',
+   isEncrypted: boolean,           // Có mã hóa không
+   contentHash: string|null,       // Hash nội dung
+   fileData: object|null,
+   encryptedFileData: string|null,
+   locationData: object|null,
+   encryptedLocationData: string|null,
+   readByDetails: object,          // {userId: timestamp}
+   reactions: object,              // {emoji: [userIds]}
+   recalled: boolean,              // Đã thu hồi
+   recalledAt: timestamp|null,     // Thời gian thu hồi
+   originalText: string|null,      // Text gốc
+   originalFileData: object|null,  // File data gốc
+   originalLocationData: object|null, // Location data gốc
+   lastReadAt: timestamp|null,     // Thời gian đọc cuối
+   forwarded: boolean,             // Đã forward
+   createdAt: timestamp,
+   updatedAt: timestamp            // Thời gian cập nhật
 }
 ```
 
@@ -91,19 +100,19 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 
 ```javascript
 {
-  id: string,
-  name: string,
-  description: string,
-  admin: string,              // UID admin
-  members: string[],          // Array UID thành viên
-  avatar: string|null,
-  lastMessage: string,
-  lastMessageAt: timestamp,
-  dissolved: boolean,
-  pinned: boolean,
-  mutedBy: object,            // {userId: boolean}
-  lastSeen: object,           // {userId: timestamp}
-  typingStatus: object        // {userId: boolean}
+   id: string,
+   name: string,
+   admin: string,              // UID admin
+   members: string[],          // Array UID thành viên
+   avatar: string|null,
+   lastMessage: string,
+   lastMessageAt: timestamp,
+   lastSeen: object,           // {userId: timestamp}
+   typingStatus: object,       // {userId: boolean}
+   pinned: boolean,            // Đã pin
+   pinnedAt: timestamp|null,   // Thời gian pin
+   updatedAt: timestamp,       // Thời gian cập nhật
+   updatedBy: string           // UID người cập nhật
 }
 ```
 
@@ -111,13 +120,16 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 
 ```javascript
 {
-  id: string,
-  participants: string[],     // [uid1, uid2] sorted
-  lastMessage: string,
-  lastMessageAt: timestamp,
-  createdAt: timestamp,
-  lastSeen: object,           // {userId: timestamp}
-  typingStatus: object        // {userId: boolean}
+   id: string,
+   participants: string[],     // [uid1, uid2] sorted
+   lastMessage: string,
+   lastMessageAt: timestamp,
+   lastSeen: object,           // {userId: timestamp}
+   typingStatus: object,       // {userId: boolean}
+   pinned: boolean,            // Đã pin
+   pinnedAt: timestamp|null,   // Thời gian pin
+   updatedAt: timestamp,       // Thời gian cập nhật
+   updatedBy: string           // UID người cập nhật
 }
 ```
 
@@ -138,8 +150,10 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
   id: string,
   from: string,               // UID người gửi
   to: string,                 // UID người nhận
-  status: 'pending'|'accepted'|'declined',
-  createdAt: timestamp
+  participants: string,       // Combined key for queries
+  status: 'pending'|'accepted'|'declined'|'cancelled',
+  createdAt: timestamp,
+  updatedAt: timestamp
 }
 ```
 
@@ -147,10 +161,10 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 
 ```javascript
 {
-  id: string,
-  blockerId: string,          // UID người chặn
-  blockedId: string,          // UID bị chặn
-  createdAt: timestamp
+   id: string,
+   blocker: string,          // UID người chặn
+   blocked: string,          // UID bị chặn
+   createdAt: timestamp
 }
 ```
 
@@ -164,7 +178,9 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
   question: string,
   options: string[],
   votes: object,              // {userId: optionIndex}
-  createdAt: timestamp
+  voteCounts: object,         // {optionIndex: count}
+  createdAt: timestamp,
+  updatedAt: timestamp
 }
 ```
 
@@ -172,10 +188,28 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 
 ```javascript
 {
-  userId: string,        // UID người dùng lưu trữ
-  chatId: string,        // ID của chat (room hoặc conversation)
-  isConversation: boolean, // true nếu là conversation, false nếu là room
-  archivedAt: timestamp  // Thời gian lưu trữ
+   id: string,
+   userId: string,
+   chatId: string,
+   isConversation: boolean,
+   archivedAt: timestamp
+}
+```
+
+#### 10. **notifications** - Thông báo nhắc đến (@mentions)
+
+```javascript
+{
+  id: string,
+  type: 'mention',
+  userId: string,          // Người nhận thông báo
+  senderId: string,        // Người gửi mention
+  senderName: string,
+  messageId: string,
+  roomId: string,
+  messageText: string,
+  read: boolean,
+  createdAt: timestamp
 }
 ```
 
