@@ -10,29 +10,6 @@ const client = new OpenAI({
     },
 });
 
-export const generateAIResponse = async (userMessage, context = '') => {
-    try {
-        const messages = [
-            {
-                role: 'user',
-                content: context
-                    ? `${context}\n\n${userMessage}`
-                    : `You are a helpful AI assistant in a chat application. Respond naturally and helpfully.\n\n${userMessage}`
-            }
-        ];
-
-        const completion = await client.chat.completions.create({
-            model: 'openai/gpt-4o-mini',
-            messages,
-        });
-
-        return completion.choices[0].message.content.trim();
-    } catch (error) {
-        console.error('OpenRouter API error:', error);
-        throw new Error('Không thể tạo phản hồi từ AI. Vui lòng thử lại sau.');
-    }
-};
-
 export const generateChatbotResponse = async (message, conversationHistory = []) => {
     try {
         const systemMessage = `You are SmurfChat AI, a helpful assistant in this chat application. Be friendly, helpful, and engaging. Keep responses concise but informative.
