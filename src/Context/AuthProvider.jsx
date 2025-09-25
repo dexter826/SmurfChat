@@ -15,7 +15,7 @@ export default function AuthProvider({ children }) {
 
   React.useEffect(() => {
     const unsubscibed = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && user.emailVerified) {
         const { displayName, email, uid, photoURL } = user;
         setUser({
           displayName,
@@ -28,10 +28,15 @@ export default function AuthProvider({ children }) {
         return;
       }
 
-      // Đặt lại thông tin người dùng
+      // Đặt lại thông tin người dùng nếu chưa verify email hoặc chưa đăng nhập
       setUser({});
       setIsLoading(false);
-      history.push("/login");
+      if (user && !user.emailVerified) {
+        // Người dùng đã đăng ký nhưng chưa verify email
+        history.push("/login");
+      } else {
+        history.push("/login");
+      }
     });
 
     // Hàm dọn dẹp

@@ -65,7 +65,7 @@ class QueryBuilder {
 
     const parts = [collectionName];
 
-    if (condition) {
+    if (condition && this.isValidCondition(condition)) {
       parts.push(`${condition.fieldName}_${condition.operator}_${condition.compareValue}`);
     }
 

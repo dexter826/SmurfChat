@@ -82,6 +82,8 @@ const useOptimizedFirestore = (
     useEffect(() => {
         if (!realTime || !collectionName || query.isLoading) return;
 
+        let isSubscribed = true;
+
         const setupListener = async () => {
             try {
                 const { getAuth } = await import('firebase/auth');
@@ -113,6 +115,8 @@ const useOptimizedFirestore = (
             );
 
             const handleDataUpdate = (docs, err = null) => {
+                if (!isSubscribed) return; // Don't update if unsubscribed
+
                 if (err) {
                     console.error('❌ Firestore real-time error:', err);
                     return;
@@ -129,6 +133,7 @@ const useOptimizedFirestore = (
         setupListener();
 
         return () => {
+            isSubscribed = false;
             if (currentKeyRef.current) {
                 listenerManager.unsubscribe(currentKeyRef.current, () => { });
                 currentKeyRef.current = null;
