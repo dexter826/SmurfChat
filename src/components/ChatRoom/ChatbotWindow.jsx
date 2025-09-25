@@ -5,7 +5,7 @@ export default function ChatbotWindow() {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Xin chào! Tôi là SmurfChat AI, trợ lý AI thông minh của bạn. Tôi có thể giúp bạn trả lời câu hỏi, trò chuyện, hoặc hỗ trợ các tác vụ khác. Hãy hỏi tôi bất cứ điều gì!",
+      text: "Xin chào! Tôi là SmurfChat AI 🤖, trợ lý AI thông minh của bạn. Tôi có thể giúp bạn trả lời câu hỏi, trò chuyện, hoặc hỗ trợ các tác vụ khác. Hãy hỏi tôi bất cứ điều gì!",
       sender: "bot",
       timestamp: new Date(),
     },
@@ -89,7 +89,7 @@ export default function ChatbotWindow() {
         />
         <div>
           <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            SmurfChat AI
+            SmurfChat AI 🤖
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Trợ lý AI thông minh

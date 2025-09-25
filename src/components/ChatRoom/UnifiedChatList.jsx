@@ -434,7 +434,7 @@ export default function UnifiedChatList() {
     const chatbotItem = {
       id: "chatbot",
       type: "chatbot",
-      displayName: "SmurfChat AI",
+      displayName: "SmurfChat AI 🤖",
       description: "Trợ lý AI thông minh",
       avatar: "/smurfchat_ai.png",
       isSelected: selectedConversationId === "chatbot",
