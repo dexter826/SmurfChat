@@ -28,6 +28,8 @@ export * from './block.service';
 
 export * from './storage.service';
 
+export * from './archive.service';
+
 export const addDocument = (collectionName, data) => {
   const docRef = collection(db, collectionName);
   return addDoc(docRef, {

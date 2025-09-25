@@ -19,6 +19,9 @@ function AppProviderInner({ children }) {
   const [isUserProfileVisible, setIsUserProfileVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isBlockedUsersVisible, setIsBlockedUsersVisible] = useState(false);
+  const [isArchivedChatsVisible, setIsArchivedChatsVisible] = useState(false);
+  const [archivedChatsRefreshTrigger, setArchivedChatsRefreshTrigger] =
+    useState(0);
   const [preSelectedMembers, setPreSelectedMembers] = useState([]);
 
   const {
@@ -500,6 +503,10 @@ function AppProviderInner({ children }) {
         setSelectedUser,
         isBlockedUsersVisible,
         setIsBlockedUsersVisible,
+        isArchivedChatsVisible,
+        setIsArchivedChatsVisible,
+        archivedChatsRefreshTrigger,
+        setArchivedChatsRefreshTrigger,
         preSelectedMembers,
         setPreSelectedMembers,
         clearState,

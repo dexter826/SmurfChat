@@ -12,6 +12,7 @@ import NewMessageModal from "./components/Modals/NewMessageModal.jsx";
 import AddFriendModal from "./components/Modals/AddFriendModal.jsx";
 import UserProfileModal from "./components/Modals/UserProfileModal.jsx";
 import BlockedUsersModal from "./components/Modals/BlockedUsersModal.jsx";
+import ArchivedChatsModal from "./components/Modals/ArchivedChatsModal.jsx";
 import SplashScreen from "./components/SplashScreen";
 import listenerManager from "./firebase/utils/listener.manager";
 
@@ -73,6 +74,7 @@ function App() {
                   <AddFriendModal />
                   <UserProfileModal />
                   <BlockedUsersModal />
+                  <ArchivedChatsModal />
                 </AppProvider>
               </AuthProvider>
             </div>

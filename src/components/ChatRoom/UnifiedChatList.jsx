@@ -11,6 +11,9 @@ import {
   updateLastSeen,
   blockUser,
   unblockUser,
+  archiveChat,
+  unarchiveChat,
+  isChatArchived,
 } from "../../firebase/services";
 import { isUserBlockedOptimized } from "../../firebase/utils/block.utils";
 import {
@@ -104,6 +107,22 @@ const BlockIcon = () => (
   </svg>
 );
 
+const ArchiveIcon = () => (
+  <svg
+    className="h-3 w-3"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+    />
+  </svg>
+);
+
 const OnlineStatusIndicator = ({ userId }) => {
   const { isOnline } = useUserOnlineStatus(userId);
 
@@ -127,12 +146,14 @@ export default function UnifiedChatList() {
     selectConversation,
     setSelectedRoomId,
     setSelectedConversationId,
+    archivedChatsRefreshTrigger,
   } = useContext(AppContext);
   const { user } = useContext(AuthContext);
   const { success, error, confirm } = useAlert();
   const { getOtherParticipant } = useUsers(); // Use optimized user lookup
   const [openMenuId, setOpenMenuId] = useState(null);
   const [blockStatus, setBlockStatus] = useState({}); // Track block status for each conversation
+  const [archivedStatus, setArchivedStatus] = useState({}); // Track archived status for each chat
 
   // REMOVED: Duplicate user loading - now using UserContext
   // const allUsersCondition = React.useMemo(
@@ -192,6 +213,29 @@ export default function UnifiedChatList() {
 
     checkAllBlockStatuses();
   }, [conversations, user?.uid, checkBlockStatus]);
+
+  // Check archived status for all chats when component mounts or chats change
+  React.useEffect(() => {
+    const checkAllArchivedStatuses = async () => {
+      if (!user?.uid || (!rooms.length && !conversations.length)) return;
+
+      const allChats = [...rooms, ...conversations];
+      const statusChecks = allChats.map(async (chat) => {
+        const archived = await isChatArchived(chat.id, user.uid);
+        return { chatId: chat.id, archived };
+      });
+
+      const results = await Promise.all(statusChecks);
+      const newArchivedStatus = {};
+      results.forEach((result) => {
+        newArchivedStatus[result.chatId] = result.archived;
+      });
+
+      setArchivedStatus(newArchivedStatus);
+    };
+
+    checkAllArchivedStatuses();
+  }, [rooms, conversations, user?.uid, archivedChatsRefreshTrigger]);
 
   // Real-time listener for block status changes
   React.useEffect(() => {
@@ -352,38 +396,67 @@ export default function UnifiedChatList() {
     }
   };
 
+  // Handle archive/unarchive chat
+  const handleArchiveChat = async (chatId, isConversation) => {
+    const isArchived = archivedStatus[chatId];
+    try {
+      if (isArchived) {
+        await unarchiveChat(chatId, user.uid);
+        setArchivedStatus((prev) => ({
+          ...prev,
+          [chatId]: false,
+        }));
+        success("Đã bỏ lưu trữ đoạn chat");
+      } else {
+        await archiveChat(chatId, isConversation, user.uid);
+        setArchivedStatus((prev) => ({
+          ...prev,
+          [chatId]: true,
+        }));
+        success("Đã lưu trữ đoạn chat");
+      }
+    } catch (err) {
+      console.error("Error toggling archive:", err);
+      error("Không thể thay đổi trạng thái lưu trữ");
+    }
+  };
+
   // Combine rooms and conversations into a single list
   const allChats = React.useMemo(() => {
     // Use optimized getOtherParticipant from UserContext instead of local function
 
-    const roomItems = rooms.map((room) => ({
-      ...room,
-      type: "room",
-      displayName: room.name,
-      description: room.lastMessage || "Chưa có tin nhắn",
-      avatar: room.avatar,
-      isSelected: selectedRoomId === room.id,
-      isMuted: !!(room.mutedBy && room.mutedBy[user.uid]),
-      hasUnread: !!(
-        room.lastMessageAt &&
-        room.lastSeen &&
-        room.lastSeen[user.uid] &&
-        room.lastMessage &&
-        room.lastMessage.trim() !== "" &&
-        (room.lastMessageAt?.toDate
-          ? room.lastMessageAt.toDate()
-          : new Date(room.lastMessageAt)) >
-          (room.lastSeen[user.uid]?.toDate
-            ? room.lastSeen[user.uid].toDate()
-            : new Date(room.lastSeen[user.uid]))
-      ),
-      isPinned: room.pinned || false,
-    }));
+    const roomItems = rooms
+      .filter((room) => !archivedStatus[room.id]) // Filter out archived rooms
+      .map((room) => ({
+        ...room,
+        type: "room",
+        displayName: room.name,
+        description: room.lastMessage || "Chưa có tin nhắn",
+        avatar: room.avatar,
+        isSelected: selectedRoomId === room.id,
+        isMuted: !!(room.mutedBy && room.mutedBy[user.uid]),
+        hasUnread: !!(
+          room.lastMessageAt &&
+          room.lastSeen &&
+          room.lastSeen[user.uid] &&
+          room.lastMessage &&
+          room.lastMessage.trim() !== "" &&
+          (room.lastMessageAt?.toDate
+            ? room.lastMessageAt.toDate()
+            : new Date(room.lastMessageAt)) >
+            (room.lastSeen[user.uid]?.toDate
+              ? room.lastSeen[user.uid].toDate()
+              : new Date(room.lastSeen[user.uid]))
+        ),
+        isPinned: room.pinned || false,
+      }));
 
     const conversationItems = conversations
       .filter((conversation) => {
-        // Filter out conversations with blocked users
-        return !blockStatus[conversation.id]; // Hide if the other user is blocked
+        // Filter out conversations with blocked users or archived chats
+        return (
+          !blockStatus[conversation.id] && !archivedStatus[conversation.id]
+        ); // Hide if the other user is blocked or chat is archived
       })
       .map((conversation) => {
         const otherUser = getOtherParticipant(conversation);
@@ -434,6 +507,7 @@ export default function UnifiedChatList() {
     getOtherParticipant, // Use optimized function from UserContext
     user.uid,
     blockStatus,
+    archivedStatus,
   ]);
 
   return (
@@ -542,6 +616,11 @@ export default function UnifiedChatList() {
                         <MuteIcon />
                       </div>
                     )}
+                    {archivedStatus[chat.id] && (
+                      <div className="text-slate-400" title="Đã lưu trữ">
+                        <ArchiveIcon />
+                      </div>
+                    )}
                     {chat.type === "room" && (
                       <div className="flex items-center gap-1 rounded-full bg-skybrand-100 px-2 py-0.5 text-skybrand-700 dark:bg-skybrand-900/30 dark:text-skybrand-300">
                         <GroupIcon />
@@ -624,6 +703,24 @@ export default function UnifiedChatList() {
                       >
                         <MuteIcon />
                         {chat.isMuted ? "Bật thông báo" : "Tắt thông báo"}
+                      </button>
+
+                      {/* Archive chat option */}
+                      <button
+                        className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors duration-150"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(null);
+                          handleArchiveChat(
+                            chat.id,
+                            chat.type === "conversation"
+                          );
+                        }}
+                      >
+                        <ArchiveIcon />
+                        {archivedStatus[chat.id]
+                          ? "Bỏ lưu trữ"
+                          : "Lưu trữ đoạn chat"}
                       </button>
 
                       {/* Block/Unblock option - only for direct conversations */}
