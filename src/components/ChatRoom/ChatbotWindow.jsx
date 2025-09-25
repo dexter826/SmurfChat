@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { generateChatbotResponse } from "../../firebase/services/gemini.service";
+import { generateChatbotResponse } from "../../firebase/services/chatbot.service";
 
 export default function ChatbotWindow() {
   const [messages, setMessages] = useState([
