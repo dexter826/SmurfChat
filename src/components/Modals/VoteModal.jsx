@@ -65,7 +65,7 @@ const VoteModal = () => {
         title: form.title,
         options: validOptions,
         roomId: selectedRoom.id,
-        createdBy: uid,
+        creatorId: uid,
         creatorName: displayName,
       };
 
