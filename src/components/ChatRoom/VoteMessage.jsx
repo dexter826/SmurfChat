@@ -38,7 +38,6 @@ const VoteMessage = ({ vote }) => {
   const voteData = voteDataArray?.[0] || vote;
 
   const userVote = voteData.votes?.[uid];
-  const hasVoted = userVote !== undefined;
   const isCreator = voteData.creatorId === uid;
   const totalVotes = Object.keys(voteData.votes || {}).length;
 
@@ -183,13 +182,6 @@ const VoteMessage = ({ vote }) => {
             </button>
           )}
         </div>
-
-        {/* Description */}
-        {voteData.description && (
-          <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
-            {voteData.description}
-          </p>
-        )}
 
         {/* Vote Options */}
         <div className="space-y-2">

@@ -169,7 +169,6 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
    roomId: string,
    creatorId: string,
    title: string,
-   description: string,
    options: string[],
    votes: object,              // {userId: optionIndex[]}
    voteCounts: object,         // {optionIndex: count}

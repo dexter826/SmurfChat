@@ -9,7 +9,7 @@ import { useAlert } from "../../Context/AlertProvider";
 const VoteModal = () => {
   const { isVoteModalVisible, setIsVoteModalVisible } = useContext(AppContext);
   const { warning, error, success } = useAlert();
-  const [form, setForm] = useState({ title: "", description: "" });
+  const [form, setForm] = useState({ title: "" });
   const [options, setOptions] = useState(["", ""]);
   const [loading, setLoading] = useState(false);
 
@@ -63,7 +63,6 @@ const VoteModal = () => {
 
       const voteData = {
         title: form.title,
-        description: form.description || "",
         options: validOptions,
         roomId: selectedRoom.id,
         createdBy: uid,
@@ -74,7 +73,7 @@ const VoteModal = () => {
       success("Tạo vote thành công!");
 
       // Reset form and close modal
-      setForm({ title: "", description: "" });
+      setForm({ title: "" });
       setOptions(["", ""]);
       setIsVoteModalVisible(false);
     } catch (err) {
@@ -86,7 +85,7 @@ const VoteModal = () => {
   };
 
   const handleCancel = () => {
-    setForm({ title: "", description: "" });
+    setForm({ title: "" });
     setOptions(["", ""]);
     setIsVoteModalVisible(false);
   };
@@ -119,21 +118,6 @@ const VoteModal = () => {
               placeholder="Ví dụ: Chọn địa điểm họp nhóm"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium">
-              Mô tả (tùy chọn)
-            </label>
-            <textarea
-              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-skybrand-500 focus:outline-none focus:ring-2 focus:ring-skybrand-500/20 dark:border-gray-700 dark:bg-slate-700 dark:text-slate-200"
-              rows={3}
-              placeholder="Mô tả chi tiết về cuộc vote (tùy chọn)"
-              value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
             />
           </div>
 
