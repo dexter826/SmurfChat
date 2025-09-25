@@ -11,21 +11,27 @@ export const sendFriendRequest = async (fromUserId, toUserId) => {
     if (fromUserId === toUserId) {
       throw new SmurfChatError('Không thể kết bạn với chính mình', ErrorTypes.VALIDATION_ERROR);
     }
-    
+
     // Check if either user has blocked the other (optimized)
     const blockStatus = await getMutualBlockStatus(fromUserId, toUserId);
-    
+
     if (blockStatus.aBlockedB) {
       throw new SmurfChatError('Bạn đã chặn người dùng này', ErrorTypes.PERMISSION_ERROR);
     }
-    
+
     if (blockStatus.bBlockedA) {
       throw new SmurfChatError('Không thể gửi lời mời kết bạn đến người dùng này', ErrorTypes.PERMISSION_ERROR);
     }
-  
+
     const requestsRef = collection(db, 'friend_requests');
 
-    // Check existing pending or accepted
+    // Check if users are already friends
+    const alreadyFriends = await areUsersFriends(fromUserId, toUserId);
+    if (alreadyFriends) {
+      throw new SmurfChatError('Hai người dùng đã là bạn bè', ErrorTypes.VALIDATION_ERROR);
+    }
+
+    // Check existing pending requests only (not accepted, since friendship might be removed)
     const q = query(
       requestsRef,
       where('participants', 'in', [
@@ -33,8 +39,8 @@ export const sendFriendRequest = async (fromUserId, toUserId) => {
       ])
     );
     const snapshot = await getDocs(q);
-    const exists = snapshot.docs.find(d => !d.data().deleted && d.data().status !== 'declined');
-    if (exists) return exists.id;
+    const pendingRequest = snapshot.docs.find(d => !d.data().deleted && d.data().status === 'pending');
+    if (pendingRequest) return pendingRequest.id;
 
     const docRef = await addDoc(requestsRef, {
       from: fromUserId,

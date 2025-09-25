@@ -3,6 +3,7 @@ import { db } from '../config';
 import { getMutualBlockStatus } from '../utils/block.utils';
 import { updateRoomLastMessage, updateConversationLastMessage } from '../utils/conversation.utils';
 import { handleServiceError, logSuccess, validateRequired, ErrorTypes, SmurfChatError } from '../utils/error.utils';
+import { areUsersFriends } from './friend.service';
 import {
   encryptContent,
   decryptContent,
@@ -149,6 +150,7 @@ export const sendMessage = async (collectionName = 'messages', messageData, encr
         const senderId = messageData.uid;
         const recipientId = participantIds.find(id => id !== senderId);
         if (recipientId) {
+          // Check block status
           const blockStatus = await getMutualBlockStatus(senderId, recipientId);
           if (blockStatus.isBlocked) {
             if (blockStatus.aBlockedB && senderId === userA) {
@@ -160,6 +162,12 @@ export const sendMessage = async (collectionName = 'messages', messageData, encr
             } else if (blockStatus.bBlockedA && senderId === userA) {
               throw new Error('Không thể gửi tin nhắn - người dùng này đã chặn bạn');
             }
+          }
+
+          // Check friendship status for direct messages
+          const isFriends = await areUsersFriends(senderId, recipientId);
+          if (!isFriends) {
+            throw new Error('Không thể gửi tin nhắn - chỉ có thể nhắn tin với bạn bè');
           }
         }
       }

@@ -164,8 +164,7 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
   question: string,
   options: string[],
   votes: object,              // {userId: optionIndex}
-  createdAt: timestamp,
-  expiresAt: timestamp|null
+  createdAt: timestamp
 }
 ```
 
@@ -173,11 +172,10 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 
 ```javascript
 {
-  id: string,
-  userId: string,
-  chatType: 'room'|'direct',
-  chatId: string,
-  archivedAt: timestamp
+  userId: string,        // UID người dùng lưu trữ
+  chatId: string,        // ID của chat (room hoặc conversation)
+  isConversation: boolean, // true nếu là conversation, false nếu là room
+  archivedAt: timestamp  // Thời gian lưu trữ
 }
 ```
 
