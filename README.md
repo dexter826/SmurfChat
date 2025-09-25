@@ -52,7 +52,6 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
   displayName: string,      // Tên hiển thị
   email: string,           // Email
   photoURL: string|null,   // Avatar URL
-  searchVisibility: 'public'|'friends'|'private',
   keywords: string[],      // Từ khóa tìm kiếm
   createdAt: timestamp,
   lastSeen: timestamp

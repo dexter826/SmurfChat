@@ -30,7 +30,6 @@ export const registerWithEmailAndPassword = async (email, password, displayName)
       photoURL: user.photoURL || null,
       uid: user.uid,
       providerId: 'password',
-      searchVisibility: 'public',
       keywords: [
         ...generateKeywords(displayName?.toLowerCase()),
         ...generateKeywords(user.email?.toLowerCase()),
