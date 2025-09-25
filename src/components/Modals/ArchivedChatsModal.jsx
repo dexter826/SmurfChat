@@ -100,7 +100,6 @@ function ArchivedChatsModalComponent() {
         prev.filter((item) => item.chatId !== archivedChat.chatId)
       );
 
-      success("Đã bỏ lưu trữ cuộc trò chuyện");
       // Trigger refresh of archived status in chat list
       setArchivedChatsRefreshTrigger((prev) => prev + 1);
     } catch (err) {

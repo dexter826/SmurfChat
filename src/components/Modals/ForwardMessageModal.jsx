@@ -192,7 +192,6 @@ export default function ForwardMessageModal({
       }
 
       if (successCount > 0) {
-        success(`Đã chuyển tiếp tin nhắn đến ${successCount} cuộc trò chuyện`);
         if (isMounted) {
           onClose();
           setSelectedChats([]);

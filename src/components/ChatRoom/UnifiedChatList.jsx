@@ -406,14 +406,12 @@ export default function UnifiedChatList() {
           ...prev,
           [chatId]: false,
         }));
-        success("Đã bỏ lưu trữ đoạn chat");
       } else {
         await archiveChat(chatId, isConversation, user.uid);
         setArchivedStatus((prev) => ({
           ...prev,
           [chatId]: true,
         }));
-        success("Đã lưu trữ đoạn chat");
       }
     } catch (err) {
       console.error("Error toggling archive:", err);

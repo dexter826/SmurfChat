@@ -141,7 +141,6 @@ const Message = React.memo(function Message({
         chatType === "room" ? "room" : "direct",
         userCredentials
       );
-      success("Tin nhắn đã được thu hồi");
     } catch (err) {
       error(err.message || "Không thể thu hồi tin nhắn");
     } finally {
