@@ -56,7 +56,7 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
    keywords: string[],      // Từ khóa tìm kiếm
    isOnline: boolean,       // Trạng thái online
    lastSeen: timestamp,     // Thời gian hoạt động cuối
-   createdAt: timestamp,
+   createdAt: timestamp,    // Thời gian tạo tài khoản
    updatedAt: timestamp     // Thời gian cập nhật cuối
 }
 ```

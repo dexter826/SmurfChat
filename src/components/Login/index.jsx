@@ -5,7 +5,7 @@ import {
   signInWithPopup,
   getAdditionalUserInfo,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../firebase/config";
 import { generateKeywords } from "../../firebase/utils/keywords";
 import {
@@ -60,6 +60,7 @@ export default function Login() {
             ...generateKeywords(user.displayName?.toLowerCase()),
             ...generateKeywords(user.email?.toLowerCase()),
           ],
+          createdAt: serverTimestamp(),
         });
       }
     } catch (error) {
