@@ -679,132 +679,139 @@ export default function UnifiedChatList() {
                 </p>
               </div>
 
-              {/* Actions menu */}
-              <div className="chat-menu ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-skybrand-500 focus:ring-offset-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenMenuId(isOpen ? null : chat.id);
-                  }}
-                  title="Tùy chọn"
-                >
-                  <MoreIcon />
-                </button>
+              {/* Actions menu - hide for chatbot */}
+              {chat.type !== "chatbot" && (
+                <div className="chat-menu ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <button
+                    className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-skybrand-500 focus:ring-offset-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId(isOpen ? null : chat.id);
+                    }}
+                    title="Tùy chọn"
+                  >
+                    <MoreIcon />
+                  </button>
 
-                {isOpen && (
-                  <>
-                    {/* Backdrop to close menu */}
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setOpenMenuId(null)}
-                    />
-                    <div className="absolute right-0 top-10 z-20 w-48 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800 py-1">
-                      <button
-                        className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors duration-150"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(null);
-                          handlePinChat(
-                            chat.id,
-                            chat.isPinned,
-                            chat.type === "conversation"
-                          );
-                        }}
-                      >
-                        <PinIcon />
-                        {chat.isPinned ? "Bỏ ghim" : "Ghim cuộc trò chuyện"}
-                      </button>
-
-                      <button
-                        className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors duration-150"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(null);
-                          handleToggleMute(chat, chat.type === "conversation");
-                        }}
-                      >
-                        <MuteIcon />
-                        {chat.isMuted ? "Bật thông báo" : "Tắt thông báo"}
-                      </button>
-
-                      {/* Archive chat option */}
-                      <button
-                        className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors duration-150"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(null);
-                          handleArchiveChat(
-                            chat.id,
-                            chat.type === "conversation"
-                          );
-                        }}
-                      >
-                        <ArchiveIcon />
-                        {archivedStatus[chat.id]
-                          ? "Bỏ lưu trữ"
-                          : "Lưu trữ đoạn chat"}
-                      </button>
-
-                      {/* Block/Unblock option - only for direct conversations */}
-                      {chat.type === "conversation" && (
+                  {isOpen && (
+                    <>
+                      {/* Backdrop to close menu */}
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setOpenMenuId(null)}
+                      />
+                      <div className="absolute right-0 top-10 z-20 w-48 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800 py-1">
                         <button
-                          className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 transition-colors duration-150"
+                          className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors duration-150"
                           onClick={(e) => {
                             e.stopPropagation();
                             setOpenMenuId(null);
-                            const otherUser = getOtherParticipant(chat);
-                            if (otherUser) {
-                              handleToggleBlock(chat, otherUser);
-                            }
+                            handlePinChat(
+                              chat.id,
+                              chat.isPinned,
+                              chat.type === "conversation"
+                            );
                           }}
                         >
-                          <BlockIcon />
-                          {blockStatus[chat.id] ? "Bỏ chặn" : "Chặn người dùng"}
+                          <PinIcon />
+                          {chat.isPinned ? "Bỏ ghim" : "Ghim cuộc trò chuyện"}
                         </button>
-                      )}
 
-                      <div className="border-t border-slate-200 dark:border-slate-600 my-1"></div>
+                        <button
+                          className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors duration-150"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(null);
+                            handleToggleMute(
+                              chat,
+                              chat.type === "conversation"
+                            );
+                          }}
+                        >
+                          <MuteIcon />
+                          {chat.isMuted ? "Bật thông báo" : "Tắt thông báo"}
+                        </button>
 
-                      <button
-                        className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors duration-150"
-                        onClick={async () => {
-                          const confirmed = await confirm(
-                            `Bạn có chắc muốn xóa ${
-                              chat.type === "room"
-                                ? "phòng chat"
-                                : "cuộc trò chuyện"
-                            } này?`
-                          );
-                          if (confirmed) {
-                            handleDeleteChat(
+                        {/* Archive chat option */}
+                        <button
+                          className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors duration-150"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(null);
+                            handleArchiveChat(
                               chat.id,
                               chat.type === "conversation"
                             );
-                          }
-                        }}
-                      >
-                        <svg
-                          className="h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                          }}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                        {chat.type === "room"
-                          ? "Xóa phòng chat"
-                          : "Xóa cuộc trò chuyện"}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+                          <ArchiveIcon />
+                          {archivedStatus[chat.id]
+                            ? "Bỏ lưu trữ"
+                            : "Lưu trữ đoạn chat"}
+                        </button>
+
+                        {/* Block/Unblock option - only for direct conversations */}
+                        {chat.type === "conversation" && (
+                          <button
+                            className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 transition-colors duration-150"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(null);
+                              const otherUser = getOtherParticipant(chat);
+                              if (otherUser) {
+                                handleToggleBlock(chat, otherUser);
+                              }
+                            }}
+                          >
+                            <BlockIcon />
+                            {blockStatus[chat.id]
+                              ? "Bỏ chặn"
+                              : "Chặn người dùng"}
+                          </button>
+                        )}
+
+                        <div className="border-t border-slate-200 dark:border-slate-600 my-1"></div>
+
+                        <button
+                          className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors duration-150"
+                          onClick={async () => {
+                            const confirmed = await confirm(
+                              `Bạn có chắc muốn xóa ${
+                                chat.type === "room"
+                                  ? "phòng chat"
+                                  : "cuộc trò chuyện"
+                              } này?`
+                            );
+                            if (confirmed) {
+                              handleDeleteChat(
+                                chat.id,
+                                chat.type === "conversation"
+                              );
+                            }
+                          }}
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                          {chat.type === "room"
+                            ? "Xóa phòng chat"
+                            : "Xóa cuộc trò chuyện"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           );
         })

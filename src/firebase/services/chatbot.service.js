@@ -10,7 +10,7 @@ const client = new OpenAI({
     },
 });
 
-export const generateGeminiResponse = async (userMessage, context = '') => {
+export const generateAIResponse = async (userMessage, context = '') => {
     try {
         const messages = [
             {
