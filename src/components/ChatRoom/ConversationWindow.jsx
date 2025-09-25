@@ -29,7 +29,7 @@ export default function ConversationWindow() {
   const { selectedConversation, setIsAddRoomVisible, setPreSelectedMembers } =
     useContext(AppContext);
   const {
-    user: { uid, email },
+    user: { uid },
   } = useContext(AuthContext);
   const { getOtherParticipant } = useUsers();
 

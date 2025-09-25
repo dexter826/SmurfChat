@@ -37,7 +37,7 @@ export default function ChatWindow() {
     members,
   } = useContext(AppContext);
   const {
-    user: { uid, email },
+    user: { uid },
   } = useContext(AuthContext);
 
   // No encryption needed
