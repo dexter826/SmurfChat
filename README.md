@@ -40,6 +40,172 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 - **React Query** - Data fetching
 - **Lottie** - Animations
 
+## 🗄️ Thiết Kế CSDL Firestore
+
+### 📊 Cấu Trúc Collections
+
+#### 1. **users** - Thông tin người dùng
+
+```javascript
+{
+  uid: string,              // Firebase Auth UID
+  displayName: string,      // Tên hiển thị
+  email: string,           // Email
+  photoURL: string|null,   // Avatar URL
+  searchVisibility: 'public'|'friends'|'private',
+  keywords: string[],      // Từ khóa tìm kiếm
+  createdAt: timestamp,
+  lastSeen: timestamp
+}
+```
+
+#### 2. **messages** - Tin nhắn thống nhất
+
+```javascript
+{
+  id: string,
+  text: string,
+  encryptedText: string|null,     // Nội dung mã hóa
+  uid: string,                    // Người gửi
+  displayName: string,
+  photoURL: string|null,
+  chatType: 'room'|'direct',      // Loại chat
+  chatId: string,                 // ID phòng hoặc cuộc trò chuyện
+  messageType: 'text'|'file'|'voice'|'location',
+  status: 'sent'|'recalled',
+  isEncrypted: boolean,           // Có mã hóa không
+  contentHash: string|null,       // Hash nội dung
+  fileData: object|null,
+  encryptedFileData: string|null,
+  locationData: object|null,
+  encryptedLocationData: string|null,
+  readByDetails: object,          // {userId: timestamp}
+  recalled: boolean,
+  recalledAt: timestamp|null,
+  originalText: string|null,      // Nội dung gốc khi thu hồi
+  createdAt: timestamp,
+  updatedAt: timestamp|null
+}
+```
+
+#### 3. **rooms** - Phòng chat nhóm
+
+```javascript
+{
+  id: string,
+  name: string,
+  description: string,
+  admin: string,              // UID admin
+  members: string[],          // Array UID thành viên
+  avatar: string|null,
+  lastMessage: string,
+  lastMessageAt: timestamp,
+  dissolved: boolean,
+  pinned: boolean,
+  mutedBy: object,            // {userId: boolean}
+  lastSeen: object,           // {userId: timestamp}
+  typingStatus: object        // {userId: boolean}
+}
+```
+
+#### 4. **conversations** - Cuộc trò chuyện trực tiếp
+
+```javascript
+{
+  id: string,
+  participants: string[],     // [uid1, uid2] sorted
+  lastMessage: string,
+  lastMessageAt: timestamp,
+  createdAt: timestamp,
+  lastSeen: object,           // {userId: timestamp}
+  typingStatus: object        // {userId: boolean}
+}
+```
+
+#### 5. **friends** - Danh sách bạn bè
+
+```javascript
+{
+  id: string,
+  participants: string[],     // [uid1, uid2] sorted
+  createdAt: timestamp
+}
+```
+
+#### 6. **friend_requests** - Lời mời kết bạn
+
+```javascript
+{
+  id: string,
+  from: string,               // UID người gửi
+  to: string,                 // UID người nhận
+  status: 'pending'|'accepted'|'declined',
+  createdAt: timestamp
+}
+```
+
+#### 7. **blocked_users** - Người dùng bị chặn
+
+```javascript
+{
+  id: string,
+  blockerId: string,          // UID người chặn
+  blockedId: string,          // UID bị chặn
+  createdAt: timestamp
+}
+```
+
+#### 8. **votes** - Voting trong phòng
+
+```javascript
+{
+  id: string,
+  roomId: string,
+  creatorId: string,
+  question: string,
+  options: string[],
+  votes: object,              // {userId: optionIndex}
+  createdAt: timestamp,
+  expiresAt: timestamp|null
+}
+```
+
+#### 9. **archived_chats** - Chat đã lưu trữ
+
+```javascript
+{
+  id: string,
+  userId: string,
+  chatType: 'room'|'direct',
+  chatId: string,
+  archivedAt: timestamp
+}
+```
+
+### 🔐 Bảo Mật & Quy Tắc Truy Cập
+
+- **Authentication bắt buộc**: Tất cả operations yêu cầu Firebase Auth
+- **Users**: Chỉ đọc/ghi dữ liệu của chính mình, cho phép đọc public để tìm kiếm
+- **Messages**: Tất cả users đã auth có thể truy cập (mã hóa ở application level)
+- **Rooms**: Chỉ members mới có thể truy cập
+- **Conversations**: Chỉ participants mới có thể truy cập
+- **Friends/Requests**: Tất cả users đã auth có thể truy cập
+- **Archived chats**: Chỉ owner mới có thể truy cập
+
+### 🔍 Chiến Lược Query
+
+- **Query Builder**: Class hỗ trợ build queries với conditions và orderBy
+- **Real-time listeners**: Sử dụng onSnapshot cho updates tức thì
+- **Pagination**: Limit queries để tối ưu performance
+- **Composite queries**: Kết hợp where và orderBy cho filtering phức tạp
+
+### 🛡️ Mã Hóa Dữ Liệu
+
+- **End-to-end encryption**: Sử dụng CryptoJS với master key từ credentials
+- **Encrypted fields**: text, fileData, locationData
+- **Content hashing**: Đảm bảo tính toàn vẹn
+- **Application-level**: Firestore chỉ lưu trữ, không xử lý encryption
+
 ## 🚀 Cách Cài Đặt
 
 ### Yêu Cầu Hệ Thống
