@@ -3,7 +3,7 @@
 <div align="center">
   <img src="public/gui.png" alt="SmurfChat Demo" width="800"/>
   <br>
-  *Giao diện chính của ứng dụng SmurfChat*
+  *Giao diện đăng nhập của ứng dụng SmurfChat*
 </div>
 
 ## 📋 Giới Thiệu Dự Án
@@ -12,8 +12,8 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 
 ## ✨ Tính Năng Chính
 
-1. **Chat thời gian thực** với WebSocket và Firebase listeners
-2. **Chatbot AI** tích hợp OpenAI GPT-4
+1. **Chat thời gian thực** với Firebase Firestore listeners
+2. **Chatbot AI** tích hợp OpenRouterAPI
 3. **Quản lý phòng chat** với phân quyền admin/thành viên
 4. **Tin nhắn trực tiếp** (Direct Messages) 1-1
 5. **Thu hồi tin nhắn** trong vòng 10 phút
@@ -25,8 +25,6 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 11. **Mention (@) người dùng**
 12. **Link preview** tự động
 13. **Dark/Light mode** với theme switcher
-14. **Responsive design** cho mọi thiết bị
-15. **PWA support** cho mobile
 
 ## 🛠️ Công Nghệ Sử Dụng
 
@@ -40,7 +38,7 @@ SmurfChat là một ứng dụng chat thời gian thực hiện đại được 
 
 ## 🗄️ Thiết Kế CSDL Firestore
 
-_Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình phát triển, có thể có thêm các field bổ sung tùy theo logic nghiệp vụ của ứng dụng._
+_Lưu ý: Bao gồm 9 collections_
 
 ### 📊 Cấu Trúc Collections
 
@@ -68,11 +66,11 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
    id: string,
    text: string,                   // Nội dung text
    uid: string,                    // Người gửi
-   displayName: string,
-   photoURL: string|null,
+   displayName: string,          // Tên người gửi
+   photoURL: string|null,       // Avatar người gửi
    chatType: 'room'|'direct',      // Loại chat
    chatId: string,                 // ID phòng hoặc cuộc trò chuyện
-   messageType: 'text'|'file'|'voice'|'location',
+   messageType: 'text'|'file'|'voice'|'location', // Loại tin nhắn
    fileData: object|null,          // Dữ liệu file
    locationData: object|null,      // Dữ liệu vị trí
    readByDetails: object,          // {userId: timestamp}
@@ -84,8 +82,8 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
    originalLocationData: object|null, // Location data gốc
    lastReadAt: timestamp|null,     // Thời gian đọc cuối
    forwarded: boolean,             // Đã forward
-   createdAt: timestamp,
-   updatedAt: timestamp            // Thời gian cập nhật
+   createdAt: timestamp,           // Thời gian tạo
+   updatedAt: timestamp            // Thời gian cập nhật (khi add reaction)
 }
 ```
 
@@ -94,18 +92,18 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
 ```javascript
 {
    id: string,
-   name: string,
+   name: string,               // Tên phòng
    admin: string,              // UID admin
    members: string[],          // Array UID thành viên
-   avatar: string|null,
-   lastMessage: string,
-   lastMessageAt: timestamp,
+   avatar: string|null,        // Avatar phòng
+   lastMessage: string,        // Tin nhắn cuối
+   lastMessageAt: timestamp,   // Thời gian gửi tin nhắn cuối
    lastSeen: object,           // {userId: timestamp}
    typingStatus: object,       // {userId: boolean}
    pinned: boolean,            // Đã pin
    pinnedAt: timestamp|null,   // Thời gian pin
    updatedAt: timestamp,       // Thời gian cập nhật
-   updatedBy: string           // UID người cập nhật
+   updatedBy: string           // UID người cập nhật lastMessage
 }
 ```
 
@@ -115,14 +113,14 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
 {
    id: string,
    participants: string[],     // [uid1, uid2] sorted
-   lastMessage: string,
-   lastMessageAt: timestamp,
+   lastMessage: string,       // Tin nhắn cuối
+   lastMessageAt: timestamp,  // Thời gian gửi tin nhắn cuối
    lastSeen: object,           // {userId: timestamp}
    typingStatus: object,       // {userId: boolean}
    pinned: boolean,            // Đã pin
    pinnedAt: timestamp|null,   // Thời gian pin
    updatedAt: timestamp,       // Thời gian cập nhật
-   updatedBy: string           // UID người cập nhật
+   updatedBy: string           // UID người cập nhật lastMessage
 }
 ```
 
@@ -132,7 +130,7 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
 {
   id: string,
   participants: string[],     // [uid1, uid2] sorted
-  createdAt: timestamp
+  createdAt: timestamp       // Thời gian tạo
 }
 ```
 
@@ -144,9 +142,9 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
   from: string,               // UID người gửi
   to: string,                 // UID người nhận
   participants: string,       // Combined key for queries
-  status: 'pending'|'accepted'|'declined'|'cancelled',
-  createdAt: timestamp,
-  updatedAt: timestamp
+  status: 'pending'|'accepted'|'declined'|'cancelled', // Trạng thái
+  createdAt: timestamp,      // Thời gian tạo
+  updatedAt: timestamp       // Thời gian cập nhật
 }
 ```
 
@@ -166,12 +164,12 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
 ```javascript
 {
    id: string,
-   roomId: string,
-   creatorId: string,
-   title: string,
-   options: string[],
-   votes: object,              // {userId: optionIndex[]}
-   voteCounts: object,         // {optionIndex: count}
+   roomId: string,             // ID phòng chat
+   creatorId: string,          // UID người tạo vote
+   title: string,              // Tiêu đề vote
+   options: string[],          // Mảng các lựa chọn
+   votes: object,              // {userId: optionIndex[]} - votes của từng user
+   voteCounts: object,         // {optionIndex: count} - số lượng vote cho mỗi option
    createdAt: timestamp,
    updatedAt: timestamp
 }
@@ -182,10 +180,10 @@ _Lưu ý: Đây là schema cơ bản của các collections. Trong quá trình p
 ```javascript
 {
    id: string,
-   userId: string,
-   chatId: string,
-   isConversation: boolean,
-   archivedAt: timestamp
+   userId: string,             // UID người archive
+   chatId: string,             // ID room/conversation
+   isConversation: boolean,    // true nếu là conversation, false nếu là room
+   archivedAt: timestamp       // Thời gian archive
 }
 ```
 
@@ -281,6 +279,7 @@ SmurfChat không chỉ là một ứng dụng chat thông thường, mà là m�
 
 <div align="center">
   <strong>🎓 Đồ án môn học NoSQL - Trường Đại học Công Thương TP.HCM</strong><br>
+  Năm học 2025-2026<br>
   <em>Khoa Công Nghệ Thông Tin</em><br>
-  <em>Nhóm: Trần Công Minh, Lê Đức Trung, Nguyễn Chí Tài, Tạ Nguyên Vũ</em>
+  <em>Nhóm 15: Trần Công Minh, Lê Đức Trung, Tạ Nguyên Vũ</em>
 </div>
