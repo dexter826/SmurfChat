@@ -367,12 +367,12 @@ const Message = React.memo(function Message({
     }
 
     const renderContentWithRecallButton = (content) => (
-      <div className="relative group">
+      <div className="relative">
         {content}
         <div
           className={`absolute ${
             isOwn ? "-left-8" : "-right-8"
-          } top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 message-menu`}
+          } top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 message-menu`}
         >
           <button
             onClick={handleMenuToggle}
@@ -578,7 +578,7 @@ const Message = React.memo(function Message({
 
   return (
     <div
-      className={`mb-2 flex items-start message-group ${
+      className={`mb-2 flex items-start message-group group relative ${
         isOwn ? "flex-row-reverse" : ""
       }`}
       data-message-id={id}
@@ -610,11 +610,7 @@ const Message = React.memo(function Message({
           </div>
         )}
       </div>
-      <div
-        className={`flex max-w-[70%] flex-col overflow-hidden ${
-          isOwn ? "mr-2" : "ml-2"
-        }`}
-      >
+      <div className={`flex max-w-[70%] flex-col ${isOwn ? "mr-2" : "ml-2"}`}>
         {forwarded && originalSender && (
           <div className="mb-1 flex items-center">
             <svg
