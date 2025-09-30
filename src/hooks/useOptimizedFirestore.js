@@ -22,11 +22,11 @@ const useOptimizedFirestore = (
         return ['firestore', collectionName, conditionKey, orderByField, orderDirection, customKey];
     }, [collectionName, conditionKey, orderByField, orderDirection, customKey]);
 
-    // Hàm fetch dữ liệu từ Firestore
+    // Hàm lấy dữ liệu từ Firestore
     const fetchData = async () => {
         if (!collectionName) return [];
 
-        // Kiểm tra condition hợp lệ
+        // Kiểm tra điều kiện hợp lệ
         if (condition) {
             if (condition.compareValue === undefined || condition.compareValue === null) {
                 return [];
@@ -50,7 +50,7 @@ const useOptimizedFirestore = (
                 }
             }
         } catch (authError) {
-            console.warn('Auth check failed, proceeding with query:', authError);
+            console.warn('Kiểm tra xác thực thất bại, tiếp tục truy vấn:', authError);
         }
 
         const query = await queryBuilder.buildQuery(
@@ -72,13 +72,13 @@ const useOptimizedFirestore = (
         queryKey,
         queryFn: fetchData,
         enabled: !!collectionName,
-        staleTime: realTime ? 0 : 5 * 60 * 1000, // Real-time data không cache, static data cache 5 phút
+        staleTime: realTime ? 0 : 5 * 60 * 1000, // Dữ liệu thời gian thực không cache, dữ liệu tĩnh cache 5 phút
         cacheTime: 10 * 60 * 1000, // Cache trong 10 phút
         refetchOnWindowFocus: false,
-        refetchOnMount: !realTime, // Chỉ refetch khi mount nếu không phải real-time
+        refetchOnMount: !realTime, // Chỉ refetch khi mount nếu không phải thời gian thực
     });
 
-    // Setup real-time listener khi cần
+    // Thiết lập listener thời gian thực khi cần
     useEffect(() => {
         if (!realTime || !collectionName || query.isLoading) return;
 
@@ -96,7 +96,7 @@ const useOptimizedFirestore = (
                     }
                 }
             } catch (authError) {
-                console.warn('Auth check failed, proceeding with query:', authError);
+                console.warn('Kiểm tra xác thực thất bại, tiếp tục truy vấn:', authError);
             }
 
             const key = queryBuilder.generateKey(
@@ -115,14 +115,14 @@ const useOptimizedFirestore = (
             );
 
             const handleDataUpdate = (docs, err = null) => {
-                if (!isSubscribed) return; // Don't update if unsubscribed
+                if (!isSubscribed) return; // Không cập nhật nếu đã hủy đăng ký
 
                 if (err) {
-                    console.error('❌ Firestore real-time error:', err);
+                    console.error('❌ Lỗi thời gian thực Firestore:', err);
                     return;
                 }
 
-                // Cập nhật cache của React Query với dữ liệu real-time
+                // Cập nhật cache của React Query với dữ liệu thời gian thực
                 queryClient.setQueryData(queryKey, docs);
             };
 
@@ -144,7 +144,7 @@ const useOptimizedFirestore = (
     const refresh = async () => {
         if (!collectionName) return;
 
-        // Invalidate và refetch query
+        // Hủy bỏ và refetch truy vấn
         await queryClient.invalidateQueries({ queryKey });
     };
 

@@ -5,20 +5,28 @@ import useOptimizedFirestore from './useOptimizedFirestore';
 import { useBlockStatus } from './useBlockStatus';
 import { debounce } from 'lodash';
 
+// Hook để tìm kiếm người dùng với các tùy chọn như loại tìm kiếm, loại trừ người bị chặn, và thời gian debounce
 export const useUserSearch = (options = {}) => {
   const {
-    searchType = 'all',
-    excludeBlocked = true,
-    debounceMs = 300,
+    searchType = 'all', // Loại tìm kiếm: 'all', 'friends', 'non-friends'
+    excludeBlocked = true, // Có loại trừ người dùng bị chặn không
+    debounceMs = 300, // Thời gian debounce cho tìm kiếm (ms)
   } = options;
 
+  // Lấy thông tin người dùng hiện tại từ AuthContext
   const { user: currentUser } = useContext(AuthContext);
+  // Lấy danh sách tất cả người dùng từ UserContext
   const { allUsers } = useUsers();
+  // State cho từ khóa tìm kiếm
   const [searchTerm, setSearchTerm] = useState('');
+  // State cho kết quả tìm kiếm
   const [searchResults, setSearchResults] = useState([]);
+  // State cho trạng thái loading
   const [loading, setLoading] = useState(false);
+  // State cho lỗi
   const [error, setError] = useState(null);
 
+  // Điều kiện để lấy danh sách bạn bè từ Firestore
   const friendsCondition = useMemo(
     () => currentUser?.uid ? {
       fieldName: 'participants',
@@ -28,11 +36,13 @@ export const useUserSearch = (options = {}) => {
     [currentUser?.uid]
   );
 
+  // Lấy danh sách các mối quan hệ bạn bè
   const { documents: friendEdges } = useOptimizedFirestore(
     currentUser?.uid ? 'friends' : null,
     friendsCondition
   );
 
+  // Điều kiện để lấy yêu cầu kết bạn đến (incoming)
   const incomingReqsCondition = useMemo(
     () => currentUser?.uid ? {
       fieldName: 'to',
@@ -42,6 +52,7 @@ export const useUserSearch = (options = {}) => {
     [currentUser?.uid]
   );
 
+  // Điều kiện để lấy yêu cầu kết bạn đi (outgoing)
   const outgoingReqsCondition = useMemo(
     () => currentUser?.uid ? {
       fieldName: 'from',
@@ -51,18 +62,23 @@ export const useUserSearch = (options = {}) => {
     [currentUser?.uid]
   );
 
+  // Lấy danh sách yêu cầu kết bạn đến
   const { documents: incomingRequestsRaw } = useOptimizedFirestore(
     currentUser?.uid ? 'friend_requests' : null,
     incomingReqsCondition
   );
+  // Lọc chỉ lấy yêu cầu đang chờ
   const incomingRequests = incomingRequestsRaw.filter(r => r.status === 'pending');
 
+  // Lấy danh sách yêu cầu kết bạn đi
   const { documents: outgoingRequestsRaw } = useOptimizedFirestore(
     currentUser?.uid ? 'friend_requests' : null,
     outgoingReqsCondition
   );
+  // Lọc chỉ lấy yêu cầu đang chờ
   const outgoingRequests = outgoingRequestsRaw.filter(r => r.status === 'pending');
 
+  // Tạo danh sách ID của bạn bè
   const friendIds = useMemo(() => {
     if (!currentUser?.uid) return [];
     return friendEdges
@@ -70,14 +86,17 @@ export const useUserSearch = (options = {}) => {
       .filter(Boolean);
   }, [friendEdges, currentUser?.uid]);
 
+  // Danh sách bạn bè
   const friends = useMemo(() => {
     return allUsers.filter(user => friendIds.includes(user.uid));
   }, [allUsers, friendIds]);
 
+  // Danh sách người không phải bạn bè
   const nonFriends = useMemo(() => {
     return allUsers.filter(user => !friendIds.includes(user.uid));
   }, [allUsers, friendIds]);
 
+  // Danh sách người dùng cơ sở dựa trên loại tìm kiếm
   const baseUserList = useMemo(() => {
     switch (searchType) {
       case 'friends':
@@ -90,6 +109,7 @@ export const useUserSearch = (options = {}) => {
     }
   }, [searchType, friends, nonFriends, allUsers]);
 
+  // Hàm lọc người dùng dựa trên từ khóa tìm kiếm
   const filterUsersBySearch = useCallback((users, term) => {
     if (typeof term !== 'string') term = String(term || '');
     if (!term.trim()) return users;
@@ -110,8 +130,10 @@ export const useUserSearch = (options = {}) => {
     });
   }, []);
 
+  // Hook để kiểm tra trạng thái chặn
   const { checkIsBlocked } = useBlockStatus();
 
+  // Hàm lọc người dùng bị chặn
   const filterBlockedUsers = useCallback(async (users) => {
     if (!excludeBlocked || !currentUser?.uid) return users;
     const filteredUsers = [];
@@ -128,6 +150,7 @@ export const useUserSearch = (options = {}) => {
     return filteredUsers;
   }, [excludeBlocked, currentUser?.uid, checkIsBlocked]);
 
+  // Hàm tìm kiếm với debounce
   const debouncedSearch = useMemo(
     () => debounce(async (term) => {
       if (!currentUser?.uid) return;
@@ -138,6 +161,7 @@ export const useUserSearch = (options = {}) => {
         if (excludeBlocked) {
           results = await filterBlockedUsers(results);
         }
+        // Định dạng kết quả tìm kiếm
         const formattedResults = results.map(user => ({
           id: user.uid,
           uid: user.uid,
@@ -151,7 +175,7 @@ export const useUserSearch = (options = {}) => {
         }));
         setSearchResults(formattedResults);
       } catch (err) {
-        setError(err.message || 'Failed to search users');
+        setError(err.message || 'Không thể tìm kiếm người dùng');
         setSearchResults([]);
       } finally {
         setLoading(false);
@@ -168,6 +192,7 @@ export const useUserSearch = (options = {}) => {
     ]
   );
 
+  // Hàm xử lý thay đổi từ khóa tìm kiếm
   const handleSearchChange = useCallback((term) => {
     let value = term;
     if (typeof value !== 'string') {
@@ -181,12 +206,14 @@ export const useUserSearch = (options = {}) => {
     debouncedSearch(value);
   }, [debouncedSearch]);
 
+  // Hàm xóa tìm kiếm
   const clearSearch = useCallback(() => {
     setSearchTerm('');
     setSearchResults([]);
     setError(null);
   }, []);
 
+  // Hàm lấy yêu cầu kết bạn
   const getFriendRequests = useCallback(() => {
     return {
       incoming: incomingRequests,
@@ -194,6 +221,7 @@ export const useUserSearch = (options = {}) => {
     };
   }, [incomingRequests, outgoingRequests]);
 
+  // Hàm tìm kiếm bạn bè
   const searchFriends = useCallback(async (term = '') => {
     if (!currentUser?.uid) return [];
     setLoading(true);
@@ -215,6 +243,7 @@ export const useUserSearch = (options = {}) => {
     }
   }, [currentUser?.uid, friends, excludeBlocked, filterUsersBySearch, filterBlockedUsers]);
 
+  // Trả về các giá trị và hàm từ hook
   return {
     searchTerm,
     searchResults,

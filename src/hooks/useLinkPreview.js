@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 const linkPreviewCache = new Map();
 
-// Hàm fetch preview từ API
+// Hàm lấy preview từ API
 const fetchLinkPreview = async (url) => {
     if (!url) return null;
 
@@ -22,7 +22,7 @@ const fetchLinkPreview = async (url) => {
         );
 
         if (!response.ok) {
-            throw new Error("Không thể lấy thông tin preview");
+            throw new Error('Không thể lấy thông tin preview');
         }
 
         const data = await response.json();
@@ -30,18 +30,18 @@ const fetchLinkPreview = async (url) => {
         let preview;
         if (data.title || data.description || data.image) {
             preview = {
-                title: data.title || "Không có tiêu đề",
-                description: data.description || "",
-                image: data.image || "",
+                title: data.title || 'Không có tiêu đề',
+                description: data.description || '',
+                image: data.image || '',
                 url: url,
                 domain: new URL(url).hostname,
             };
         } else {
-            // Fallback: Tạo preview cơ bản từ URL
+            // Dự phòng: Tạo preview cơ bản từ URL
             preview = {
                 title: new URL(url).hostname,
                 description: url,
-                image: "",
+                image: '',
                 url: url,
                 domain: new URL(url).hostname,
             };
@@ -52,21 +52,21 @@ const fetchLinkPreview = async (url) => {
         return preview;
 
     } catch (err) {
-        console.error("Lỗi khi lấy preview:", err);
-        // Fallback: Tạo preview cơ bản
+        console.error('Lỗi khi lấy preview:', err);
+        // Dự phòng: Tạo preview cơ bản
         try {
             const domain = new URL(url).hostname;
             const fallbackPreview = {
                 title: domain,
                 description: url,
-                image: "",
+                image: '',
                 url: url,
                 domain: domain,
             };
             linkPreviewCache.set(url, fallbackPreview);
             return fallbackPreview;
         } catch (urlError) {
-            throw new Error("URL không hợp lệ");
+            throw new Error('URL không hợp lệ');
         }
     }
 };
@@ -83,12 +83,12 @@ export const useLinkPreview = (url) => {
     });
 };
 
-// Utility function để clear cache
+// Hàm tiện ích để xóa cache
 export const clearLinkPreviewCache = () => {
     linkPreviewCache.clear();
 };
 
-// Utility function để get cache size
+// Hàm tiện ích để lấy kích thước cache
 export const getLinkPreviewCacheSize = () => {
     return linkPreviewCache.size;
 };

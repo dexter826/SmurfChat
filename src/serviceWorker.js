@@ -1,5 +1,5 @@
-// Service worker registration for offline capabilities and faster loading.
-// See: https://bit.ly/CRA-PWA for details.
+// Đăng ký service worker để hỗ trợ khả năng offline và tải nhanh hơn.
+// Xem: https://bit.ly/CRA-PWA để biết chi tiết.
 
 const isLocalhost = Boolean(
     window.location.hostname === 'localhost' ||
@@ -20,16 +20,16 @@ export function register(config) {
             const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
 
             if (isLocalhost) {
-                // Check if a service worker exists on localhost.
+                // Kiểm tra xem service worker có tồn tại trên localhost không.
                 checkValidServiceWorker(swUrl, config);
 
                 navigator.serviceWorker.ready.then(() => {
                     console.log(
-                        'App is served cache-first by a service worker. See https://bit.ly/CRA-PWA'
+                        'Ứng dụng được phục vụ cache-first bởi service worker. Xem https://bit.ly/CRA-PWA'
                     );
                 });
             } else {
-                // Register service worker for production.
+                // Đăng ký service worker cho production.
                 registerValidSW(swUrl, config);
             }
         });
@@ -48,16 +48,16 @@ function registerValidSW(swUrl, config) {
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed') {
                         if (navigator.serviceWorker.controller) {
-                            // New content available after all tabs are closed.
+                            // Nội dung mới có sẵn sau khi tất cả các tab được đóng.
                             console.log(
-                                'New content is available and will be used when all tabs are closed. See https://bit.ly/CRA-PWA.'
+                                'Nội dung mới có sẵn và sẽ được sử dụng khi tất cả các tab được đóng. Xem https://bit.ly/CRA-PWA.'
                             );
                             if (config && config.onUpdate) {
                                 config.onUpdate(registration);
                             }
                         } else {
-                            // Content cached for offline use.
-                            console.log('Content is cached for offline use.');
+                            // Nội dung được lưu cache để sử dụng offline.
+                            console.log('Nội dung được lưu cache để sử dụng offline.');
                             if (config && config.onSuccess) {
                                 config.onSuccess(registration);
                             }
@@ -67,12 +67,12 @@ function registerValidSW(swUrl, config) {
             };
         })
         .catch((error) => {
-            console.error('Error during service worker registration:', error);
+            console.error('Lỗi trong quá trình đăng ký service worker:', error);
         });
 }
 
 function checkValidServiceWorker(swUrl, config) {
-    // Check if the service worker exists. Reload if not found.
+    // Kiểm tra xem service worker có tồn tại không. Tải lại nếu không tìm thấy.
     fetch(swUrl, {
         headers: { 'Service-Worker': 'script' },
     })
@@ -92,7 +92,7 @@ function checkValidServiceWorker(swUrl, config) {
             }
         })
         .catch(() => {
-            console.log('No internet connection found. App is running in offline mode.');
+            console.log('Không tìm thấy kết nối internet. Ứng dụng đang chạy ở chế độ offline.');
         });
 }
 

@@ -1,11 +1,5 @@
 /**
- * useBlockStatus - Custom Hook for Block Status Management
- * 
- * Centralizes all block checking logic to eliminate redundancy.
- * Provides unified interface for checking block status between users.
- * 
- * Created: August 30, 2025
- * Purpose: Eliminate block check duplication (Issue 2.2)
+ * useBlockStatus - Hook Tùy Chỉnh cho Quản Lý Trạng Thái Chặn
  */
 
 import { useState, useCallback, useEffect, useContext } from 'react';
@@ -24,7 +18,7 @@ export const useBlockStatus = (targetUserId = null) => {
     error: null
   });
 
-  // Check single direction block (currentUser blocked targetUser)
+  // Kiểm tra chặn một chiều (người dùng hiện tại chặn người dùng đích)
   const checkIsBlocked = useCallback(async (fromUserId, toUserId) => {
     try {
       if (!fromUserId || !toUserId || fromUserId === toUserId) {
@@ -33,12 +27,12 @@ export const useBlockStatus = (targetUserId = null) => {
 
       return await isUserBlockedOptimized(fromUserId, toUserId);
     } catch (error) {
-      console.error('Error checking block status:', error);
+      console.error('Lỗi khi kiểm tra trạng thái chặn:', error);
       return false;
     }
   }, []);
 
-  // Check mutual block status between two users
+  // Kiểm tra trạng thái chặn lẫn nhau giữa hai người dùng
   const checkMutualBlockStatus = useCallback(async (userA, userB) => {
     try {
       if (!userA || !userB || userA === userB) {
@@ -51,7 +45,7 @@ export const useBlockStatus = (targetUserId = null) => {
 
       return await getMutualBlockStatus(userA, userB);
     } catch (error) {
-      console.error('Error checking mutual block status:', error);
+      console.error('Lỗi khi kiểm tra trạng thái chặn lẫn nhau:', error);
       return {
         aBlockedB: false,
         bBlockedA: false,
@@ -60,7 +54,7 @@ export const useBlockStatus = (targetUserId = null) => {
     }
   }, []);
 
-  // Refresh block status for target user
+  // Làm mới trạng thái chặn cho người dùng đích
   const refreshBlockStatus = useCallback(async (userId = targetUserId) => {
     if (!user?.uid || !userId || user.uid === userId) {
       setBlockStatus({
@@ -86,23 +80,23 @@ export const useBlockStatus = (targetUserId = null) => {
         error: null
       });
     } catch (error) {
-      console.error('Error refreshing block status:', error);
+      console.error('Lỗi khi làm mới trạng thái chặn:', error);
       setBlockStatus(prev => ({
         ...prev,
         loading: false,
-        error: error.message || 'Failed to check block status'
+        error: error.message || 'Không thể kiểm tra trạng thái chặn'
       }));
     }
   }, [user?.uid, targetUserId, checkMutualBlockStatus]);
 
-  // Real-time listener for block status changes
+  // Trình nghe thời gian thực cho các thay đổi trạng thái chặn
   useEffect(() => {
     if (!user?.uid) return;
 
-    // Set up listener for block changes involving current user and target user
+    // Thiết lập trình nghe cho các thay đổi chặn liên quan đến người dùng hiện tại và người dùng đích
     const blockedUsersRef = collection(db, 'blocked_users');
 
-    // Query for documents where current user or target user is involved
+    // Truy vấn cho các tài liệu nơi người dùng hiện tại hoặc người dùng đích bị liên quan
     const conditions = [where('blocker', '==', user.uid), where('blocked', '==', user.uid)];
     if (targetUserId) {
       conditions.push(where('blocker', '==', targetUserId), where('blocked', '==', targetUserId));
@@ -111,40 +105,40 @@ export const useBlockStatus = (targetUserId = null) => {
     const q = query(blockedUsersRef, or(...conditions));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      // Clear cache when changes occur
+      // Xóa bộ nhớ cache khi có thay đổi
       clearBlockCache(user.uid, targetUserId);
 
-      // Refresh block status
+      // Làm mới trạng thái chặn
       if (targetUserId) {
         refreshBlockStatus(targetUserId);
       }
     }, (error) => {
-      console.error('Error listening to block changes:', error);
+      console.error('Lỗi khi lắng nghe các thay đổi chặn:', error);
     });
 
-    // Cleanup listener on unmount or when dependencies change
+    // Dọn dẹp trình nghe khi unmount hoặc khi dependencies thay đổi
     return () => unsubscribe();
   }, [user?.uid, targetUserId, refreshBlockStatus]);
 
-  // Utility functions for common use cases
+  // Các hàm tiện ích cho các trường hợp sử dụng phổ biến
   const canSendMessage = useCallback((recipientId = targetUserId) => {
     if (!user?.uid || !recipientId || user.uid === recipientId) return true;
 
-    // Can't send if either user blocked the other
+    // Không thể gửi nếu một trong hai người dùng chặn người kia
     return !blockStatus.isMutuallyBlocked;
   }, [user?.uid, targetUserId, blockStatus.isMutuallyBlocked]);
 
   const canViewProfile = useCallback((profileUserId = targetUserId) => {
     if (!user?.uid || !profileUserId || user.uid === profileUserId) return true;
 
-    // Can view if not blocking me
+    // Có thể xem nếu không bị chặn bởi tôi
     return !blockStatus.isBlockingMe;
   }, [user?.uid, targetUserId, blockStatus.isBlockingMe]);
 
   const canStartConversation = useCallback((otherUserId = targetUserId) => {
     if (!user?.uid || !otherUserId || user.uid === otherUserId) return false;
 
-    // Can start if no blocks exist
+    // Có thể bắt đầu nếu không có chặn nào
     return !blockStatus.isMutuallyBlocked;
   }, [user?.uid, targetUserId, blockStatus.isMutuallyBlocked]);
 
@@ -170,15 +164,15 @@ export const useBlockStatus = (targetUserId = null) => {
   }, [blockStatus]);
 
   return {
-    // Status
+    // Trạng thái
     ...blockStatus,
 
-    // Actions
+    // Hành động
     checkIsBlocked,
     checkMutualBlockStatus,
     refreshBlockStatus,
 
-    // Utility functions
+    // Các hàm tiện ích
     canSendMessage,
     canViewProfile,
     canStartConversation,

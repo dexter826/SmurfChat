@@ -1,19 +1,6 @@
 import { serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config';
 
-// Cập nhật cài đặt người dùng (ví dụ: tùy chọn quyền riêng tư)
-export const updateUserSettings = async (userId, data) => {
-  try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      ...data,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error('Lỗi cập nhật cài đặt người dùng:', error);
-    throw error;
-  }
-};
 
 // Cập nhật thời gian cuối cùng thấy người dùng trong phòng/cuộc trò chuyện
 export const updateLastSeen = async (roomId, userId, isConversation = false) => {

@@ -1,6 +1,12 @@
 import { supabase } from './config';
 
-// Upload file to Supabase Storage
+/**
+ * Tải file lên Supabase Storage
+ * @param {File} file - File cần tải lên
+ * @param {string} folder - Thư mục đích (mặc định: 'files')
+ * @param {string} userId - ID của người dùng
+ * @returns {Promise<Object>} Thông tin file đã tải lên
+ */
 export const uploadFile = async (file, folder = 'files', userId) => {
   try {
     if (!supabase) {
@@ -54,7 +60,14 @@ export const uploadFile = async (file, folder = 'files', userId) => {
   }
 };
 
-// Upload image with compression
+/**
+ * Tải ảnh lên với nén
+ * @param {File} file - File ảnh cần tải lên
+ * @param {string} userId - ID của người dùng
+ * @param {number} maxWidth - Chiều rộng tối đa (mặc định: 1920)
+ * @param {number} quality - Chất lượng nén (mặc định: 0.8)
+ * @returns {Promise<Object>} Thông tin ảnh đã tải lên
+ */
 export const uploadImage = async (file, userId, maxWidth = 1920, quality = 0.8) => {
   try {
     if (!file.type.startsWith('image/')) {
@@ -68,7 +81,13 @@ export const uploadImage = async (file, userId, maxWidth = 1920, quality = 0.8) 
   }
 };
 
-// Compress image before upload
+/**
+ * Nén ảnh trước khi tải lên
+ * @param {File} file - File ảnh cần nén
+ * @param {number} maxWidth - Chiều rộng tối đa
+ * @param {number} quality - Chất lượng nén
+ * @returns {Promise<File>} File ảnh đã nén
+ */
 const compressImage = (file, maxWidth = 1920, quality = 0.8) => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
@@ -100,7 +119,13 @@ const compressImage = (file, maxWidth = 1920, quality = 0.8) => {
   });
 };
 
-// Upload voice recording
+/**
+ * Tải bản ghi âm giọng nói
+ * @param {Blob} audioBlob - Blob âm thanh
+ * @param {string} userId - ID của người dùng
+ * @param {number} duration - Thời lượng âm thanh
+ * @returns {Promise<Object>} Thông tin bản ghi âm đã tải lên
+ */
 export const uploadVoiceRecording = async (audioBlob, userId, duration) => {
   try {
     const timestamp = Date.now();
@@ -118,7 +143,11 @@ export const uploadVoiceRecording = async (audioBlob, userId, duration) => {
   }
 };
 
-// Capture and upload camera photo
+/**
+ * Chụp và tải ảnh từ camera
+ * @param {string} userId - ID của người dùng
+ * @returns {Promise<Object>} Thông tin ảnh đã tải lên
+ */
 export const captureAndUploadPhoto = async (userId) => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -203,7 +232,11 @@ export const captureAndUploadPhoto = async (userId) => {
   }
 };
 
-// Get user location and create location data
+/**
+ * Lấy vị trí người dùng và tạo dữ liệu vị trí
+ * @param {string} userId - ID của người dùng
+ * @returns {Promise<Object>} Dữ liệu vị trí
+ */
 export const shareLocation = async (userId) => {
   try {
     const position = await new Promise((resolve, reject) => {
@@ -232,7 +265,12 @@ export const shareLocation = async (userId) => {
   }
 };
 
-// Reverse geocoding to get address from coordinates
+/**
+ * Đảo ngược mã hóa địa lý để lấy địa chỉ từ tọa độ
+ * @param {number} lat - Vĩ độ
+ * @param {number} lng - Kinh độ
+ * @returns {Promise<string>} Địa chỉ
+ */
 const reverseGeocode = async (lat, lng) => {
   try {
     // Using OpenStreetMap Nominatim API (free alternative to Google Maps)
@@ -246,7 +284,11 @@ const reverseGeocode = async (lat, lng) => {
   }
 };
 
-// Delete file from storage
+/**
+ * Xóa file khỏi bộ lưu trữ
+ * @param {string} filePath - Đường dẫn file
+ * @returns {Promise<boolean>} Kết quả xóa
+ */
 export const deleteFile = async (filePath) => {
   try {
     const { error } = await supabase.storage
@@ -260,7 +302,11 @@ export const deleteFile = async (filePath) => {
   }
 };
 
-// Get file type category
+/**
+ * Lấy danh mục loại file
+ * @param {string} fileType - Loại file (MIME type)
+ * @returns {string} Danh mục file
+ */
 export const getFileCategory = (fileType) => {
   if (fileType.startsWith('image/')) return 'image';
   if (fileType.startsWith('video/')) return 'video';
@@ -273,7 +319,11 @@ export const getFileCategory = (fileType) => {
   return 'file';
 };
 
-// Format file size
+/**
+ * Định dạng kích thước file
+ * @param {number} bytes - Kích thước file tính bằng byte
+ * @returns {string} Kích thước đã định dạng
+ */
 export const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;

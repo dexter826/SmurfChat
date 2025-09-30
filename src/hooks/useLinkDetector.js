@@ -18,22 +18,22 @@ const useLinkDetector = (text) => {
     let lastIndex = 0;
     let match;
 
-    // Tìm tất cả các link trong text
+    // Duyệt qua tất cả các link trong văn bản
     while ((match = urlRegex.exec(inputText)) !== null) {
       let url = match[0];
 
-      // Xử lý các URL không có http/https
+      // Xử lý các URL không có giao thức http/https
       if (url.startsWith('www.')) {
         url = 'https://' + url;
       } else if (!url.startsWith('http')) {
         url = 'https://' + url;
       }
 
-      // Kiểm tra xem URL có hợp lệ không
+      // Kiểm tra tính hợp lệ của URL
       try {
         new URL(url);
 
-        // Thêm text trước link vào segments
+        // Thêm văn bản trước link vào segments
         if (match.index > lastIndex) {
           segments.push({
             type: 'text',
@@ -61,7 +61,7 @@ const useLinkDetector = (text) => {
       }
     }
 
-    // Thêm phần text còn lại
+    // Thêm phần văn bản còn lại
     if (lastIndex < inputText.length) {
       segments.push({
         type: 'text',

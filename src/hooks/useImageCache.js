@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-// Cache cho images để tránh load lại
+// Cache cho hình ảnh để tránh tải lại
 const imageCache = new Map();
 
 export const useImageCache = (src, fallbackSrc = null) => {
@@ -57,7 +57,7 @@ export const useImageCache = (src, fallbackSrc = null) => {
     return { imageSrc, loading, error };
 };
 
-// Hook để preload images
+// Hook để preload hình ảnh
 export const useImagePreload = (srcs) => {
     const [loadedCount, setLoadedCount] = useState(0);
     const [totalCount] = useState(srcs.length);
@@ -96,12 +96,12 @@ export const useImagePreload = (srcs) => {
     };
 };
 
-// Utility function để clear cache
+// Hàm tiện ích để xóa cache
 export const clearImageCache = () => {
     imageCache.clear();
 };
 
-// Utility function để get cache size
+// Hàm tiện ích để lấy kích thước cache
 export const getImageCacheSize = () => {
     return imageCache.size;
 };

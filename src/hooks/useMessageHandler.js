@@ -3,7 +3,6 @@ import { AuthContext } from '../Context/AuthProvider';
 import { sendMessage, updateRoomLastMessage, updateConversationLastMessage } from '../firebase/services';
 import { useEmoji } from './useEmoji';
 
-
 export const useMessageHandler = (chatType, chatData) => {
   const [inputValue, setInputValue] = useState('');
   const [showQuickReactions, setShowQuickReactions] = useState(false);
@@ -23,7 +22,6 @@ export const useMessageHandler = (chatType, chatData) => {
     ...additionalData
   });
 
-
   // Xử lý gửi tin nhắn văn bản
   const handleTextMessage = async (members = [], replyContext = null) => {
     if (!inputValue.trim() || !chatData?.id) return;
@@ -32,7 +30,7 @@ export const useMessageHandler = (chatType, chatData) => {
       const messageData = createBaseMessageData({
         text: inputValue,
         messageType: "text",
-        // Add reply data if replying to a message
+        // Thêm dữ liệu trả lời nếu đang trả lời tin nhắn
         ...(replyContext && replyContext.id ? {
           replyTo: {
             messageId: replyContext.id,
@@ -47,8 +45,8 @@ export const useMessageHandler = (chatType, chatData) => {
 
       const unifiedMessageData = {
         ...messageData,
-        chatType: chatType, // 'room' or 'direct'
-        chatId: chatData.id, // roomId or conversationId
+        chatType: chatType, // 'room' hoặc 'direct'
+        chatId: chatData.id, // roomId hoặc conversationId
       };
 
       if (chatType === 'room') {
@@ -83,7 +81,7 @@ export const useMessageHandler = (chatType, chatData) => {
     const messageData = createBaseMessageData({
       messageType: fileData.messageType,
       fileData: fileData,
-      text: '', // Empty text for file messages
+      text: '', // Text trống cho tin nhắn file
     });
 
     const lastMessageText = getFileMessageText(fileData);
@@ -118,7 +116,7 @@ export const useMessageHandler = (chatType, chatData) => {
     const messageData = createBaseMessageData({
       messageType: 'location',
       locationData: locationData,
-      text: '', // Empty text for location messages
+      text: '', // Text trống cho tin nhắn vị trí
     });
 
     const lastMessageText = '📍 Vị trí được chia sẻ';
@@ -147,7 +145,7 @@ export const useMessageHandler = (chatType, chatData) => {
     setInputValue(prev => prev + emoji);
     addToRecent(emoji);
 
-    // Focus back to input
+    // Focus lại vào input
     if (inputRef?.current) {
       inputRef.current.focus();
     }

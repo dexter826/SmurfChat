@@ -32,29 +32,29 @@ export const useEmoji = () => {
     return stored ? JSON.parse(stored) : [];
   });
 
-  // Add emoji to recent list
+  // Thêm emoji vào danh sách gần đây
   const addToRecent = useCallback((emoji) => {
     setRecentEmojis(prev => {
       const filtered = prev.filter(e => e !== emoji);
-      const newRecent = [emoji, ...filtered].slice(0, 20); // Keep last 20
+      const newRecent = [emoji, ...filtered].slice(0, 20); // Giữ lại 20 emoji gần nhất
       localStorage.setItem('smurfchat_recent_emojis', JSON.stringify(newRecent));
       return newRecent;
     });
   }, []);
 
-  // Check if text contains emoji
+  // Kiểm tra xem văn bản có chứa emoji không
   const hasEmoji = useCallback((text) => {
     const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu;
     return emojiRegex.test(text);
   }, []);
 
-  // Extract emojis from text
+  // Trích xuất emoji từ văn bản
   const extractEmojis = useCallback((text) => {
     const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu;
     return text.match(emojiRegex) || [];
   }, []);
 
-  // Parse text with emojis for better rendering
+  // Phân tích văn bản với emoji để hiển thị tốt hơn
   const parseEmojiText = useCallback((text) => {
     if (!text) return [];
 
@@ -64,7 +64,7 @@ export const useEmoji = () => {
     let match;
 
     while ((match = emojiRegex.exec(text)) !== null) {
-      // Add text before emoji
+      // Thêm văn bản trước emoji
       if (match.index > lastIndex) {
         parts.push({
           type: 'text',
@@ -72,7 +72,7 @@ export const useEmoji = () => {
         });
       }
 
-      // Add emoji
+      // Thêm emoji
       parts.push({
         type: 'emoji',
         content: match[0]
@@ -81,7 +81,7 @@ export const useEmoji = () => {
       lastIndex = match.index + match[0].length;
     }
 
-    // Add remaining text
+    // Thêm văn bản còn lại
     if (lastIndex < text.length) {
       parts.push({
         type: 'text',

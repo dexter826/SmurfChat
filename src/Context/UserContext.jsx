@@ -2,7 +2,7 @@ import React, { createContext, useContext, useMemo } from "react";
 import useOptimizedFirestore from "../hooks/useOptimizedFirestore";
 import { AuthContext } from "./AuthProvider";
 
-// Global User Context để tránh N+1 queries
+// Ngữ cảnh người dùng toàn cục để tránh truy vấn N+1
 const UserContext = createContext({});
 
 export const useUsers = () => {
@@ -16,23 +16,23 @@ export const useUsers = () => {
 export function UserProvider({ children }) {
   const { user: currentUser } = useContext(AuthContext);
 
-  // Single source of truth cho tất cả users - fetch all without condition
+  // Nguồn chân lý duy nhất cho tất cả người dùng - lấy tất cả mà không có điều kiện
   const { documents: allUsers } = useOptimizedFirestore(
-    currentUser?.uid ? "users" : null, // Only fetch if user is authenticated and has uid
-    null, // No condition - fetch all users
-    null, // No order by
+    currentUser?.uid ? "users" : null, // Chỉ lấy nếu người dùng đã xác thực và có uid
+    null, // Không có điều kiện - lấy tất cả người dùng
+    null, // Không sắp xếp theo
     "asc",
-    true, // Real-time
-    "all_users" // Custom key to avoid conflicts
+    true, // Thời gian thực
+    "all_users" // Khóa tùy chỉnh để tránh xung đột
   );
 
-  // Filter out current user from the result
+  // Lọc bỏ người dùng hiện tại khỏi kết quả
   const filteredUsers = useMemo(
     () => allUsers?.filter((user) => user.uid !== currentUser?.uid) || [],
     [allUsers, currentUser?.uid]
   );
 
-  // Optimized user lookup với Map để O(1) performance
+  // Tra cứu người dùng được tối ưu hóa với Map để hiệu suất O(1)
   const usersMap = useMemo(() => {
     const map = new Map();
     filteredUsers.forEach((user) => {
@@ -40,21 +40,21 @@ export function UserProvider({ children }) {
         map.set(user.uid, user);
       }
     });
-    // Include current user
+    // Bao gồm người dùng hiện tại
     if (currentUser?.uid) {
       map.set(currentUser.uid, currentUser);
     }
     return map;
   }, [filteredUsers, currentUser]);
 
-  // Fast lookup functions
+  // Các hàm tra cứu nhanh
   const getUserById = useMemo(
     () => (uid) => {
       if (!uid) return null;
       return (
         usersMap.get(uid) || {
           uid,
-          displayName: "Unknown User",
+          displayName: "Người dùng không xác định",
           photoURL: "",
           email: "",
         }
@@ -71,11 +71,15 @@ export function UserProvider({ children }) {
     [getUserById]
   );
 
-  // Get other participant in a conversation (optimized)
+  // Lấy người tham gia khác trong cuộc trò chuyện (được tối ưu hóa)
   const getOtherParticipant = useMemo(
     () => (conversation) => {
       if (!conversation?.participants || !currentUser?.uid) {
-        return { displayName: "Unknown User", photoURL: "", uid: "" };
+        return {
+          displayName: "Người dùng không xác định",
+          photoURL: "",
+          uid: "",
+        };
       }
 
       const otherUid = conversation.participants.find(
@@ -83,7 +87,7 @@ export function UserProvider({ children }) {
       );
       return (
         getUserById(otherUid) || {
-          displayName: "Unknown User",
+          displayName: "Người dùng không xác định",
           photoURL: "",
           uid: otherUid,
         }
@@ -92,7 +96,7 @@ export function UserProvider({ children }) {
     [getUserById, currentUser?.uid]
   );
 
-  // Batch user lookups để giảm re-renders
+  // Tra cứu người dùng hàng loạt để giảm re-renders
   const batchGetUsers = useMemo(
     () =>
       (requests = []) => {
@@ -107,17 +111,17 @@ export function UserProvider({ children }) {
 
   const contextValue = useMemo(
     () => ({
-      // Core data
+      // Dữ liệu cốt lõi
       allUsers: filteredUsers,
       usersMap,
 
-      // Fast lookup functions
+      // Các hàm tra cứu nhanh
       getUserById,
       getUsersByIds,
       getOtherParticipant,
       batchGetUsers,
 
-      // Performance stats
+      // Thống kê hiệu suất
       totalUsers: filteredUsers.length,
       isLoading: filteredUsers.length === 0,
     }),
