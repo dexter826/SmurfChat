@@ -5,10 +5,12 @@ import { updateRoomLastMessage, updateConversationLastMessage } from '../utils/c
 import { handleServiceError, logSuccess, validateRequired, ErrorTypes, SmurfChatError } from '../utils/error.utils';
 import { areUsersFriends } from './friend.service';
 
+// Lấy danh sách người dùng đã đọc tin nhắn từ chi tiết readByDetails
 export const getReadByFromDetails = (readByDetails = {}) => {
   return Object.keys(readByDetails);
 };
 
+// Xóa tin nhắn khỏi cơ sở dữ liệu
 export const deleteMessage = async (messageId, collectionName = 'messages', type) => {
   try {
     validateRequired(messageId, 'Message ID');
@@ -21,6 +23,7 @@ export const deleteMessage = async (messageId, collectionName = 'messages', type
   }
 };
 
+// Thu hồi tin nhắn nếu người dùng là người gửi và trong vòng 10 phút
 export const recallMessage = async (messageId, collectionName = 'messages', userId, type) => {
   try {
     validateRequired(messageId, 'Message ID');
@@ -75,6 +78,7 @@ export const recallMessage = async (messageId, collectionName = 'messages', user
   }
 };
 
+// Kiểm tra xem người dùng có thể thu hồi tin nhắn hay không
 export const canRecallMessage = (message, userId) => {
   if (!message || message.uid !== userId) return false;
   if (message.recalled) return false;
@@ -84,6 +88,7 @@ export const canRecallMessage = (message, userId) => {
   return timeDiff <= 600;
 };
 
+// Đánh dấu tin nhắn là đã đọc bởi người dùng
 export const markMessageAsRead = async (messageId, userId, collectionName = 'messages', type) => {
   try {
     const messageRef = doc(db, collectionName, messageId);
@@ -106,6 +111,7 @@ export const markMessageAsRead = async (messageId, userId, collectionName = 'mes
   }
 };
 
+// Gửi tin nhắn mới, kiểm tra trạng thái chặn và tình trạng bạn bè cho tin nhắn trực tiếp
 export const sendMessage = async (collectionName = 'messages', messageData) => {
   try {
     if (messageData.chatType === 'direct' && messageData.chatId) {
@@ -115,7 +121,7 @@ export const sendMessage = async (collectionName = 'messages', messageData) => {
         const senderId = messageData.uid;
         const recipientId = participantIds.find(id => id !== senderId);
         if (recipientId) {
-          // Check block status
+          // Kiểm tra trạng thái chặn
           const blockStatus = await getMutualBlockStatus(senderId, recipientId);
           if (blockStatus.isBlocked) {
             if (blockStatus.aBlockedB && senderId === userA) {
@@ -129,7 +135,7 @@ export const sendMessage = async (collectionName = 'messages', messageData) => {
             }
           }
 
-          // Check friendship status for direct messages
+          // Kiểm tra tình trạng bạn bè cho tin nhắn trực tiếp
           const isFriends = await areUsersFriends(senderId, recipientId);
           if (!isFriends) {
             throw new Error('Không thể gửi tin nhắn - chỉ có thể nhắn tin với bạn bè');
@@ -138,7 +144,7 @@ export const sendMessage = async (collectionName = 'messages', messageData) => {
       }
     }
 
-    // Store messages without encryption
+    // Lưu trữ tin nhắn mà không mã hóa
     const processedMessageData = { ...messageData };
 
     const docRef = collection(db, collectionName);
@@ -158,6 +164,7 @@ export const sendMessage = async (collectionName = 'messages', messageData) => {
   }
 };
 
+// Thêm phản ứng emoji vào tin nhắn
 export const addReaction = async (messageId, userId, emoji, collectionName = 'messages') => {
   try {
     validateRequired(messageId, 'Message ID');
@@ -186,6 +193,7 @@ export const addReaction = async (messageId, userId, emoji, collectionName = 'me
   }
 };
 
+// Xóa phản ứng emoji khỏi tin nhắn
 export const removeReaction = async (messageId, userId, emoji, collectionName = 'messages') => {
   try {
     validateRequired(messageId, 'Message ID');
@@ -216,6 +224,7 @@ export const removeReaction = async (messageId, userId, emoji, collectionName = 
   }
 };
 
+// Chuyển đổi phản ứng emoji (thêm hoặc xóa)
 export const toggleReaction = async (messageId, userId, emoji, collectionName = 'messages') => {
   try {
     const messageRef = doc(db, collectionName, messageId);
@@ -240,7 +249,7 @@ export const toggleReaction = async (messageId, userId, emoji, collectionName = 
   }
 };
 
-
+// Tìm kiếm tin nhắn trong cuộc trò chuyện dựa trên từ khóa
 export const searchMessagesInChat = async (chatId, searchTerm, limitCount = 50) => {
   try {
     validateRequired(chatId, 'Chat ID');
@@ -278,9 +287,10 @@ export const searchMessagesInChat = async (chatId, searchTerm, limitCount = 50) 
   }
 };
 
+// Chuyển tiếp tin nhắn bằng cách gửi tin nhắn mới với cờ forwarded
 export const forwardMessage = async (collectionName = 'messages', messageData) => {
   try {
-    // Forward message is essentially sending a new message with forwarded flag
+    // Chuyển tiếp tin nhắn là gửi tin nhắn mới với cờ forwarded
     const forwardedMessageData = {
       ...messageData,
       forwarded: true,
@@ -291,4 +301,3 @@ export const forwardMessage = async (collectionName = 'messages', messageData) =
     throw error;
   }
 };
-

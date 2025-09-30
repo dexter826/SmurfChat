@@ -2,9 +2,9 @@ import { collection, serverTimestamp, doc, updateDoc, getDoc, getDocs, query, wh
 import { db } from '../config';
 import { handleServiceError } from '../utils/error.utils';
 
-// Room management services
+// Dịch vụ quản lý phòng
 
-// Leave a room
+// Rời khỏi phòng
 export const leaveRoom = async (roomId, userId) => {
   try {
     const roomRef = doc(db, 'rooms', roomId);
@@ -24,7 +24,7 @@ export const leaveRoom = async (roomId, userId) => {
   }
 };
 
-// Transfer room admin rights to another user
+// Chuyển quyền quản trị phòng cho người dùng khác
 export const transferRoomAdmin = async (roomId, newAdminId) => {
   try {
     const roomRef = doc(db, 'rooms', roomId);
@@ -37,7 +37,7 @@ export const transferRoomAdmin = async (roomId, newAdminId) => {
   }
 };
 
-// Update room avatar
+// Cập nhật avatar phòng
 export const updateRoomAvatar = async (roomId, avatarUrl) => {
   try {
     const roomRef = doc(db, 'rooms', roomId);
@@ -51,10 +51,10 @@ export const updateRoomAvatar = async (roomId, avatarUrl) => {
   }
 };
 
-// Dissolve room (hard delete with cleanup)
+// Giải tán phòng
 export const dissolveRoom = async (roomId) => {
   try {
-    // Delete all messages in the room first
+    // Xóa tất cả tin nhắn trong phòng trước
     const messagesQuery = query(
       collection(db, 'messages'),
       where('chatType', '==', 'room'),
@@ -64,14 +64,13 @@ export const dissolveRoom = async (roomId) => {
     const messageDeletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(messageDeletePromises);
 
-
-    // Delete all votes in the room
+    // Xóa tất cả phiếu bầu trong phòng
     const votesQuery = query(collection(db, 'votes'), where('roomId', '==', roomId));
     const votesSnapshot = await getDocs(votesQuery);
     const voteDeletePromises = votesSnapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(voteDeletePromises);
 
-    // Finally delete the room itself
+    // Cuối cùng xóa chính phòng đó
     const roomRef = doc(db, 'rooms', roomId);
     await deleteDoc(roomRef);
 

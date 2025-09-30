@@ -3,16 +3,16 @@ import { db } from '../config';
 import { getMutualBlockStatus } from '../utils/block.utils';
 import { handleServiceError, SmurfChatError, ErrorTypes } from '../utils/error.utils';
 
-// Friends system services
+// Dịch vụ hệ thống bạn bè
 
-// Send a friend request (if not existing)
+// Gửi lời mời kết bạn (nếu chưa tồn tại)
 export const sendFriendRequest = async (fromUserId, toUserId) => {
   try {
     if (fromUserId === toUserId) {
       throw new SmurfChatError('Không thể kết bạn với chính mình', ErrorTypes.VALIDATION_ERROR);
     }
 
-    // Check if either user has blocked the other (optimized)
+    // Kiểm tra xem người dùng nào đã chặn người kia
     const blockStatus = await getMutualBlockStatus(fromUserId, toUserId);
 
     if (blockStatus.aBlockedB) {
@@ -25,18 +25,16 @@ export const sendFriendRequest = async (fromUserId, toUserId) => {
 
     const requestsRef = collection(db, 'friend_requests');
 
-    // Check if users are already friends
+    // Kiểm tra xem hai người dùng đã là bạn bè chưa
     const alreadyFriends = await areUsersFriends(fromUserId, toUserId);
     if (alreadyFriends) {
       throw new SmurfChatError('Hai người dùng đã là bạn bè', ErrorTypes.VALIDATION_ERROR);
     }
 
-    // Check existing pending requests only (not accepted, since friendship might be removed)
+    // Chỉ kiểm tra các yêu cầu đang chờ xử lý (không phải đã chấp nhận, vì tình bạn có thể bị xóa)
     const q = query(
       requestsRef,
-      where('participants', 'in', [
-        [fromUserId, toUserId].sort().join('_'),
-      ])
+      where('participants', '==', [fromUserId, toUserId].sort().join('_'))
     );
     const snapshot = await getDocs(q);
     const pendingRequest = snapshot.docs.find(d => !d.data().deleted && d.data().status === 'pending');
@@ -56,7 +54,7 @@ export const sendFriendRequest = async (fromUserId, toUserId) => {
   }
 };
 
-// Cancel a friend request
+// Hủy lời mời kết bạn
 export const cancelFriendRequest = async (requestId, byUserId) => {
   const reqRef = doc(db, 'friend_requests', requestId);
   const req = await getDoc(reqRef);
@@ -69,7 +67,7 @@ export const cancelFriendRequest = async (requestId, byUserId) => {
   });
 };
 
-// Accept a friend request
+// Chấp nhận lời mời kết bạn
 export const acceptFriendRequest = async (requestId, byUserId) => {
   const reqRef = doc(db, 'friend_requests', requestId);
   const req = await getDoc(reqRef);
@@ -82,7 +80,7 @@ export const acceptFriendRequest = async (requestId, byUserId) => {
     updatedAt: serverTimestamp(),
   });
 
-  // Add to friends collection (bidirectional via two docs or single edge)
+  // Thêm vào bộ sưu tập bạn bè (hai chiều qua hai tài liệu hoặc một cạnh duy nhất)
   const edgeId = [data.from, data.to].sort().join('_');
   await setDoc(doc(db, 'friends', edgeId), {
     id: edgeId,
@@ -91,7 +89,7 @@ export const acceptFriendRequest = async (requestId, byUserId) => {
   }, { merge: true });
 };
 
-// Decline a friend request
+// Từ chối lời mời kết bạn
 export const declineFriendRequest = async (requestId, byUserId) => {
   const reqRef = doc(db, 'friend_requests', requestId);
   const req = await getDoc(reqRef);
@@ -104,13 +102,13 @@ export const declineFriendRequest = async (requestId, byUserId) => {
   });
 };
 
-// Remove friendship between two users
+// Xóa tình bạn giữa hai người dùng
 export const removeFriendship = async (userA, userB) => {
   const edgeId = [userA, userB].sort().join('_');
   await deleteDoc(doc(db, 'friends', edgeId));
 };
 
-// Check if two users are friends
+// Kiểm tra xem hai người dùng có phải là bạn bè không
 export const areUsersFriends = async (userA, userB) => {
   const edgeId = [userA, userB].sort().join('_');
   const ref = doc(db, 'friends', edgeId);
@@ -118,7 +116,7 @@ export const areUsersFriends = async (userA, userB) => {
   return snap.exists();
 };
 
-// Get pending friend request between two users
+// Lấy yêu cầu kết bạn đang chờ xử lý giữa hai người dùng
 export const getPendingFriendRequest = async (userA, userB) => {
   const requestsRef = collection(db, 'friend_requests');
   const q = query(

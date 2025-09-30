@@ -4,10 +4,10 @@ import { db, auth } from '../config';
 import { generateKeywords } from '../utils/keywords';
 import { handleFirebaseError, logSuccess, validateRequired, validateEmail, validateLength } from '../utils/error.utils';
 
-// Authentication services
+// Dịch vụ xác thực
 export const registerWithEmailAndPassword = async (email, password, displayName) => {
   try {
-    // Validations
+    // Xác thực
     validateRequired(email, 'Email');
     validateRequired(password, 'Mật khẩu');
     validateRequired(displayName, 'Tên hiển thị');
@@ -17,12 +17,12 @@ export const registerWithEmailAndPassword = async (email, password, displayName)
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Update user profile with display name
+    // Cập nhật hồ sơ người dùng với tên hiển thị
     await updateProfile(user, {
       displayName: displayName
     });
 
-    // Create user document in Firestore
+    // Tạo tài liệu người dùng trong Firestore
     const userDocRef = doc(db, 'users', user.uid);
     await setDoc(userDocRef, {
       displayName: displayName,
@@ -37,12 +37,12 @@ export const registerWithEmailAndPassword = async (email, password, displayName)
       createdAt: serverTimestamp(),
     });
 
-    // Send email verification
+    // Gửi xác minh email
     try {
       await sendEmailVerification(user);
     } catch (verificationError) {
-      console.error('Error sending email verification:', verificationError);
-      // Continue anyway, as user account is created
+      console.error('Lỗi gửi xác minh email:', verificationError);
+      // Tiếp tục dù sao, vì tài khoản người dùng đã được tạo
     }
 
     logSuccess('registerWithEmailAndPassword', { uid: user.uid, email: user.email });
@@ -55,14 +55,14 @@ export const registerWithEmailAndPassword = async (email, password, displayName)
 
 export const loginWithEmailAndPassword = async (email, password) => {
   try {
-    // Validations
+    // Xác thực
     validateRequired(email, 'Email');
     validateRequired(password, 'Mật khẩu');
     validateEmail(email);
 
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-    // Check if email is verified
+    // Kiểm tra xem email có được xác minh không
     if (!userCredential.user.emailVerified) {
       return { user: null, error: 'Email chưa được xác nhận. Vui lòng kiểm tra email và xác nhận trước khi đăng nhập.' };
     }
@@ -77,12 +77,12 @@ export const loginWithEmailAndPassword = async (email, password) => {
 
 export const logoutUser = async () => {
   try {
-    // Clear all Firestore listeners before signing out
+    // Xóa tất cả trình nghe Firestore trước khi đăng xuất
     try {
       const listenerManager = (await import('../utils/listener.manager')).default;
       listenerManager.cleanupAll();
     } catch (listenerError) {
-      console.warn('Failed to clear listeners:', listenerError);
+      console.warn('Không thể xóa trình nghe:', listenerError);
     }
 
     await signOut(auth);

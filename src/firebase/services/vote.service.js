@@ -1,44 +1,44 @@
 import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config';
 
-// Vote management services
+// Dịch vụ quản lý bình chọn
 
-// Create a new vote
+// Tạo một bình chọn mới
 export const createVote = async (voteData) => {
   try {
     const docRef = await addDoc(collection(db, 'votes'), {
       ...voteData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      votes: {}, // Object to store user votes: { userId: optionIndex }
-      voteCounts: voteData.options.map(() => 0), // Array of vote counts for each option
+      votes: {}, // Đối tượng lưu trữ bình chọn của người dùng: { userId: optionIndex }
+      voteCounts: voteData.options.map(() => 0), // Mảng số lượng bình chọn cho mỗi tùy chọn
     });
     return docRef.id;
   } catch (error) {
-    console.error('Error creating vote:', error);
+    console.error('Lỗi tạo bình chọn:', error);
     throw error;
   }
 };
 
-// Cast a vote or change existing vote
+// Đưa ra bình chọn hoặc thay đổi bình chọn hiện có
 export const castVote = async (voteId, userId, selectedOptions) => {
   const voteRef = doc(db, 'votes', voteId);
 
   try {
-    // Get current vote data
+    // Lấy dữ liệu bình chọn hiện tại
     const voteDoc = await getDoc(voteRef);
     if (!voteDoc.exists()) {
-      throw new Error('Vote not found');
+      throw new Error('Không tìm thấy bình chọn');
     }
 
     const voteData = voteDoc.data();
     const currentVotes = voteData.votes || {};
     const currentCounts = [...(voteData.voteCounts || [])];
 
-    // Ensure selectedOptions is an array
+    // Đảm bảo selectedOptions là một mảng
     const optionsArray = Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions];
 
-    // Remove previous votes if exist
+    // Xóa bình chọn trước đó nếu tồn tại
     if (currentVotes[userId] !== undefined) {
       const previousOptions = Array.isArray(currentVotes[userId])
         ? currentVotes[userId]
@@ -51,7 +51,7 @@ export const castVote = async (voteId, userId, selectedOptions) => {
       });
     }
 
-    // Add new votes
+    // Thêm bình chọn mới
     currentVotes[userId] = optionsArray;
 
     optionsArray.forEach(optionIndex => {
@@ -68,19 +68,19 @@ export const castVote = async (voteId, userId, selectedOptions) => {
 
     return true;
   } catch (error) {
-    console.error('Error casting vote:', error);
+    console.error('Lỗi đưa ra bình chọn:', error);
     throw error;
   }
 };
 
-// Delete vote (hard delete)
+// Xóa bình chọn
 export const deleteVote = async (voteId) => {
   const voteRef = doc(db, 'votes', voteId);
 
   try {
     await deleteDoc(voteRef);
   } catch (error) {
-    console.error('Error deleting vote:', error);
+    console.error('Lỗi xóa bình chọn:', error);
     throw error;
   }
 };

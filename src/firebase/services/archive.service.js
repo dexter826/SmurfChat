@@ -2,7 +2,7 @@ import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, where, getD
 import { db } from '../config';
 import { handleServiceError, logSuccess } from '../utils/error.utils';
 
-// Archive a chat (conversation or room)
+// Lưu trữ một cuộc trò chuyện (conversation hoặc room)
 export const archiveChat = async (chatId, isConversation, userId) => {
     try {
         const archiveId = `${userId}_${chatId}`;
@@ -23,7 +23,7 @@ export const archiveChat = async (chatId, isConversation, userId) => {
     }
 };
 
-// Unarchive a chat
+// Hủy lưu trữ một cuộc trò chuyện
 export const unarchiveChat = async (chatId, userId) => {
     try {
         const archiveId = `${userId}_${chatId}`;
@@ -37,7 +37,7 @@ export const unarchiveChat = async (chatId, userId) => {
     }
 };
 
-// Check if a chat is archived by user
+// Kiểm tra xem một cuộc trò chuyện có được lưu trữ bởi người dùng không
 export const isChatArchived = async (chatId, userId) => {
     try {
         const archiveId = `${userId}_${chatId}`;
@@ -45,12 +45,12 @@ export const isChatArchived = async (chatId, userId) => {
         const archiveDoc = await getDoc(archiveRef);
         return archiveDoc.exists();
     } catch (error) {
-        console.error('Error checking archived status:', error);
+        console.error('Lỗi khi kiểm tra trạng thái lưu trữ:', error);
         return false;
     }
 };
 
-// Get all archived chats for a user
+// Lấy tất cả các cuộc trò chuyện đã lưu trữ cho một người dùng
 export const getArchivedChats = async (userId) => {
     try {
         const q = query(collection(db, 'archived_chats'), where('userId', '==', userId));

@@ -3,28 +3,28 @@ import { db } from '../config';
 import { handleServiceError, logSuccess, validateUserAction, ErrorTypes, SmurfChatError } from '../utils/error.utils';
 import { getMutualBlockStatus, isUserBlockedOptimized, clearBlockCache } from '../utils/block.utils';
 
-// Block user services
+// Dịch vụ chặn người dùng
 
-// Block a user
+// Chặn một người dùng
 export const blockUser = async (blockerUserId, blockedUserId) => {
   try {
     validateUserAction(blockerUserId, blockedUserId, 'chặn');
 
-    // Check if already blocked using optimized function
+    // Kiểm tra xem đã chặn chưa bằng hàm tối ưu
     const isBlocked = await isUserBlockedOptimized(blockerUserId, blockedUserId);
     if (isBlocked) {
       throw new SmurfChatError(ErrorTypes.BUSINESS_ALREADY_EXISTS, 'Người dùng đã bị chặn');
     }
 
     const blockedUsersRef = collection(db, 'blocked_users');
-    
+
     const docRef = await addDoc(blockedUsersRef, {
       blocker: blockerUserId,
       blocked: blockedUserId,
       createdAt: serverTimestamp(),
     });
 
-    // Clear cache after blocking
+    // Xóa cache sau khi chặn
     clearBlockCache(blockerUserId, blockedUserId);
 
     logSuccess('blockUser', { blocker: blockerUserId, blocked: blockedUserId, docId: docRef.id });
@@ -35,7 +35,7 @@ export const blockUser = async (blockerUserId, blockedUserId) => {
   }
 };
 
-// Unblock a user
+// Bỏ chặn một người dùng
 export const unblockUser = async (blockerUserId, blockedUserId) => {
   try {
     const blockedUsersRef = collection(db, 'blocked_users');
@@ -46,18 +46,18 @@ export const unblockUser = async (blockerUserId, blockedUserId) => {
     );
 
     const snapshot = await getDocs(q);
-    
+
     if (snapshot.empty) {
       throw new SmurfChatError(ErrorTypes.BUSINESS_NOT_FOUND, 'Người dùng không bị chặn');
     }
 
-    // Delete the block record
+    // Xóa bản ghi chặn
     const blockDoc = snapshot.docs[0];
     await deleteDoc(doc(db, 'blocked_users', blockDoc.id));
-    
-    // Clear cache after unblocking
+
+    // Xóa cache sau khi bỏ chặn
     clearBlockCache(blockerUserId, blockedUserId);
-    
+
     logSuccess('unblockUser', { blocker: blockerUserId, blocked: blockedUserId });
   } catch (error) {
     const handledError = handleServiceError(error, 'unblockUser');
@@ -65,12 +65,12 @@ export const unblockUser = async (blockerUserId, blockedUserId) => {
   }
 };
 
-// Check if a user is blocked (backward compatibility)
+// Kiểm tra xem người dùng có bị chặn không (tương thích ngược)
 export const isUserBlocked = async (blockerUserId, blockedUserId) => {
   return await isUserBlockedOptimized(blockerUserId, blockedUserId);
 };
 
-// Get list of users blocked by current user
+// Lấy danh sách người dùng bị chặn bởi người dùng hiện tại
 export const getBlockedUsers = async (userId) => {
   const blockedUsersRef = collection(db, 'blocked_users');
   const q = query(
@@ -85,7 +85,7 @@ export const getBlockedUsers = async (userId) => {
   }));
 };
 
-// Get list of users who blocked current user
+// Lấy danh sách người dùng đã chặn người dùng hiện tại
 export const getUsersWhoBlockedMe = async (userId) => {
   const blockedUsersRef = collection(db, 'blocked_users');
   const q = query(
@@ -100,7 +100,7 @@ export const getUsersWhoBlockedMe = async (userId) => {
   }));
 };
 
-// Check if two users have blocked each other (optimized)
+// Kiểm tra xem hai người dùng có chặn lẫn nhau không
 export const areMutuallyBlocked = async (userA, userB) => {
   return await getMutualBlockStatus(userA, userB);
 };

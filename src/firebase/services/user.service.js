@@ -1,7 +1,7 @@
 import { serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config';
 
-// Update user settings (e.g., privacy options)
+// Cập nhật cài đặt người dùng (ví dụ: tùy chọn quyền riêng tư)
 export const updateUserSettings = async (userId, data) => {
   try {
     const userRef = doc(db, 'users', userId);
@@ -10,12 +10,12 @@ export const updateUserSettings = async (userId, data) => {
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
-    console.error('Error updating user settings:', error);
+    console.error('Lỗi cập nhật cài đặt người dùng:', error);
     throw error;
   }
 };
 
-// Update last seen timestamp for user in room/conversation
+// Cập nhật thời gian cuối cùng thấy người dùng trong phòng/cuộc trò chuyện
 export const updateLastSeen = async (roomId, userId, isConversation = false) => {
   try {
     const collectionName = isConversation ? 'conversations' : 'rooms';
@@ -34,12 +34,12 @@ export const updateLastSeen = async (roomId, userId, isConversation = false) => 
       });
     }
   } catch (error) {
-    console.error('Error updating last seen:', error);
+    console.error('Lỗi cập nhật thời gian cuối cùng thấy:', error);
     throw error;
   }
 };
 
-// Typing status helpers
+// Trợ giúp trạng thái đang nhập
 export const setTypingStatus = async (chatId, userId, isTyping, isConversation = false) => {
   try {
     const collectionName = isConversation ? 'conversations' : 'rooms';
@@ -56,7 +56,7 @@ export const setTypingStatus = async (chatId, userId, isTyping, isConversation =
       });
     }
   } catch (error) {
-    console.error('Error updating typing status:', error);
+    console.error('Lỗi cập nhật trạng thái đang nhập:', error);
     throw error;
   }
 };

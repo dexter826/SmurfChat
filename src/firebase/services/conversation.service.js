@@ -4,18 +4,18 @@ import { getMutualBlockStatus } from '../utils/block.utils';
 import { updateConversationLastMessage, updateRoomLastMessage } from '../utils/conversation.utils';
 import { handleServiceError, logSuccess, SmurfChatError, ErrorTypes } from '../utils/error.utils';
 
-// Re-export utility functions for backward compatibility
+// Xuất lại các hàm tiện ích để tương thích ngược
 export { updateConversationLastMessage, updateRoomLastMessage };
 
-// Create or update conversation
+// Tạo hoặc cập nhật cuộc trò chuyện
 export const createOrUpdateConversation = async (conversationData) => {
   const { id, participants, ...data } = conversationData;
-  
-  // Check if it's a direct conversation (2 participants)
+
+  // Kiểm tra nếu là cuộc trò chuyện trực tiếp (2 người tham gia)
   if (participants && participants.length === 2) {
     const [userA, userB] = participants;
     const blockStatus = await getMutualBlockStatus(userA, userB);
-    
+
     if (blockStatus.isBlocked) {
       if (blockStatus.aBlockedB && blockStatus.bBlockedA) {
         throw new SmurfChatError(ErrorTypes.BUSINESS_PERMISSION_DENIED, 'Không thể tạo cuộc trò chuyện - cả hai người dùng đã chặn lẫn nhau');
@@ -26,7 +26,7 @@ export const createOrUpdateConversation = async (conversationData) => {
       }
     }
   }
-  
+
   const conversationRef = doc(db, 'conversations', id);
 
   try {
@@ -43,22 +43,22 @@ export const createOrUpdateConversation = async (conversationData) => {
   }
 };
 
-// Delete conversation
+// Xóa cuộc trò chuyện
 export const deleteConversation = async (conversationId) => {
   try {
-    // Delete all messages in this conversation first
+    // Xóa tất cả tin nhắn trong cuộc trò chuyện này trước
     const messagesQuery = query(
       collection(db, 'messages'),
       where('chatType', '==', 'direct'),
       where('chatId', '==', conversationId)
     );
     const messagesSnapshot = await getDocs(messagesQuery);
-    
-    // Delete all messages in batches
+
+    // Xóa tất cả tin nhắn theo lô
     const deletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(deletePromises);
-    
-    // Then delete the conversation itself
+
+    // Sau đó xóa chính cuộc trò chuyện
     const conversationRef = doc(db, 'conversations', conversationId);
     await deleteDoc(conversationRef);
   } catch (error) {
@@ -67,7 +67,7 @@ export const deleteConversation = async (conversationId) => {
   }
 };
 
-// Pin/Unpin conversation or room
+// Ghim/Bỏ ghim cuộc trò chuyện hoặc phòng
 export const togglePinChat = async (chatId, isPinned, isConversation = false) => {
   try {
     const collectionName = isConversation ? 'conversations' : 'rooms';
@@ -76,7 +76,7 @@ export const togglePinChat = async (chatId, isPinned, isConversation = false) =>
       pinned: !isPinned,
       pinnedAt: !isPinned ? serverTimestamp() : null,
     });
-    
+
     logSuccess('togglePinChat', { chatId, isPinned, isConversation });
   } catch (error) {
     const handledError = handleServiceError(error, 'togglePinChat');
