@@ -91,21 +91,3 @@ export const useUserOnlineStatus = (userId) => {
   return userStatus;
 };
 
-export const formatLastSeen = (lastSeen) => {
-  if (!lastSeen) return 'Chưa xác định';
-
-  const now = new Date();
-  const lastSeenDate = lastSeen.toDate ? lastSeen.toDate() : new Date(lastSeen);
-  const diffInMinutes = Math.floor((now - lastSeenDate) / (1000 * 60));
-
-  if (diffInMinutes < 1) return 'Vừa xong';
-  if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours} giờ trước`;
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 7) return `${diffInDays} ngày trước`;
-
-  return lastSeenDate.toLocaleDateString('vi-VN');
-};

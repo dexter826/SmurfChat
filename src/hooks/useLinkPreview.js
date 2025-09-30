@@ -82,13 +82,3 @@ export const useLinkPreview = (url) => {
         refetchOnWindowFocus: false,
     });
 };
-
-// Hàm tiện ích để xóa cache
-export const clearLinkPreviewCache = () => {
-    linkPreviewCache.clear();
-};
-
-// Hàm tiện ích để lấy kích thước cache
-export const getLinkPreviewCacheSize = () => {
-    return linkPreviewCache.size;
-};
