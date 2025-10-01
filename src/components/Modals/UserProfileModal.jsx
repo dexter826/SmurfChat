@@ -1,17 +1,38 @@
-import React, { useState, useContext } from 'react';
-import { AuthContext } from '../../Context/AuthProvider';
-import { AppContext } from '../../Context/AppProvider';
-import { useAlert } from '../../Context/AlertProvider';
-import { uploadImage, sendFriendRequest, createOrUpdateConversation, blockUser, unblockUser } from '../../firebase/services';
-import { updateProfile } from 'firebase/auth';
-import { auth, db } from '../../firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
-import { FaCamera, FaTimes, FaEnvelope, FaCalendarAlt, FaCircle, FaBan } from 'react-icons/fa';
-import { useOnlineStatus } from '../../hooks/useOnlineStatus';
-import { useBlockStatus } from '../../hooks/useBlockStatus';
-import useOptimizedFirestore from '../../hooks/useOptimizedFirestore';
+import React, { useState, useContext } from "react";
+import { AuthContext } from "../../Context/AuthProvider";
+import { AppContext } from "../../Context/AppProvider";
+import { useAlert } from "../../Context/AlertProvider";
+import {
+  uploadImage,
+  sendFriendRequest,
+  createOrUpdateConversation,
+  blockUser,
+  unblockUser,
+} from "../../firebase/services";
+import { updateProfile } from "firebase/auth";
+import { auth, db } from "../../firebase/config";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import {
+  FaCamera,
+  FaTimes,
+  FaEnvelope,
+  FaCalendarAlt,
+  FaCircle,
+  FaBan,
+  FaEdit,
+  FaCheck,
+  FaTimes as FaTimesIcon,
+} from "react-icons/fa";
+import { useOnlineStatus } from "../../hooks/useOnlineStatus";
+import { useBlockStatus } from "../../hooks/useBlockStatus";
+import useOptimizedFirestore from "../../hooks/useOptimizedFirestore";
 
-function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile = false }) {
+function UserProfileModalComponent({
+  visible,
+  onClose,
+  targetUser,
+  isOwnProfile = false,
+}) {
   const { user: currentUser } = useContext(AuthContext);
   const { selectConversation, setChatType } = useContext(AppContext);
   const { success, error, confirm } = useAlert();
@@ -19,25 +40,45 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
   const [isAddingFriend, setIsAddingFriend] = useState(false);
   const [isBlockingUser, setIsBlockingUser] = useState(false);
   const [fullUserData, setFullUserData] = useState(null);
+
+  // Edit states for own profile
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingName, setEditingName] = useState("");
+  const [isEditingAvatar, setIsEditingAvatar] = useState(false);
+  const [previewAvatar, setPreviewAvatar] = useState(null);
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState(null);
   const { isOnline } = useOnlineStatus(targetUser?.uid);
 
   // Check if users are friends
-  const friendsCondition = React.useMemo(() => ({
-    fieldName: 'participants',
-    operator: 'array-contains',
-    compareValue: currentUser?.uid,
-  }), [currentUser?.uid]);
-  
-  const { documents: friendEdges } = useOptimizedFirestore('friends', friendsCondition);
-  
+  const friendsCondition = React.useMemo(
+    () => ({
+      fieldName: "participants",
+      operator: "array-contains",
+      compareValue: currentUser?.uid,
+    }),
+    [currentUser?.uid]
+  );
+
+  const { documents: friendEdges } = useOptimizedFirestore(
+    "friends",
+    friendsCondition
+  );
+
   // Check if there's a pending friend request
-  const outgoingReqsCondition = React.useMemo(() => ({
-    fieldName: 'from',
-    operator: '==',
-    compareValue: currentUser?.uid,
-  }), [currentUser?.uid]);
-  
-  const { documents: outgoingRequests } = useOptimizedFirestore('friend_requests', outgoingReqsCondition);
+  const outgoingReqsCondition = React.useMemo(
+    () => ({
+      fieldName: "from",
+      operator: "==",
+      compareValue: currentUser?.uid,
+    }),
+    [currentUser?.uid]
+  );
+
+  const { documents: outgoingRequests } = useOptimizedFirestore(
+    "friend_requests",
+    outgoingReqsCondition
+  );
 
   const { isBlockedByMe, refreshBlockStatus } = useBlockStatus(targetUser?.uid);
 
@@ -52,7 +93,7 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
   React.useEffect(() => {
     const fetchUserData = async () => {
       if (!visible || !targetUser?.uid || isOwnProfile) return;
-      
+
       // Nếu đã có email thì không cần fetch lại
       if (targetUser.email) {
         setFullUserData(targetUser);
@@ -60,18 +101,18 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
       }
 
       try {
-        const userDoc = await getDoc(doc(db, 'users', targetUser.uid));
+        const userDoc = await getDoc(doc(db, "users", targetUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setFullUserData({
             ...targetUser,
-            ...userData
+            ...userData,
           });
         } else {
           setFullUserData(targetUser);
         }
       } catch (err) {
-        console.error('Error fetching user data:', err);
+        console.error("Error fetching user data:", err);
         setFullUserData(targetUser);
       }
     };
@@ -83,73 +124,55 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
   if (!visible || !targetUser) return null;
 
   // Xác định dữ liệu user để hiển thị
-  const displayUser = isOwnProfile ? currentUser : (fullUserData || targetUser);
-  
-  const isFriend = friendEdges.some(edge => 
-    edge.participants?.includes(targetUser.uid) && 
-    edge.participants?.includes(currentUser.uid)
+  const displayUser = isOwnProfile ? currentUser : fullUserData || targetUser;
+
+  const isFriend = friendEdges.some(
+    (edge) =>
+      edge.participants?.includes(targetUser.uid) &&
+      edge.participants?.includes(currentUser.uid)
   );
 
-  const hasPendingRequest = outgoingRequests.some(req => 
-    req.to === targetUser.uid && req.status === 'pending'
+  const hasPendingRequest = outgoingRequests.some(
+    (req) => req.to === targetUser.uid && req.status === "pending"
   );
-
-  // Xử lý upload avatar (chỉ cho profile của mình)
-  const handleAvatarUpload = async (file) => {
-    if (!isOwnProfile) return;
-    
-    setIsUploading(true);
-    try {
-      const uploadResult = await uploadImage(file, currentUser.uid);
-      await updateProfile(auth.currentUser, {
-        photoURL: uploadResult.url
-      });
-      success('Đã cập nhật avatar!');
-    } catch (err) {
-      console.error('Lỗi upload avatar:', err);
-      error('Không thể cập nhật avatar');
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   // Xử lý gửi tin nhắn
   const handleSendMessage = async () => {
     try {
-      const conversationId = [currentUser.uid, targetUser.uid].sort().join('_');
+      const conversationId = [currentUser.uid, targetUser.uid].sort().join("_");
       await createOrUpdateConversation({
         id: conversationId,
         participants: [currentUser.uid, targetUser.uid],
-        type: 'direct',
-        lastMessage: '',
+        type: "direct",
+        lastMessage: "",
         lastMessageAt: null,
-        createdBy: currentUser.uid
+        createdBy: currentUser.uid,
       });
-      setChatType('direct');
+      setChatType("direct");
       selectConversation(conversationId);
       onClose();
-      success('Đã mở cuộc trò chuyện!');
+      success("Đã mở cuộc trò chuyện!");
     } catch (err) {
-      console.error('Error creating conversation:', err);
-      error(err.message || 'Không thể mở cuộc trò chuyện');
+      console.error("Error creating conversation:", err);
+      error(err.message || "Không thể mở cuộc trò chuyện");
     }
   };
 
   // Xử lý kết bạn
   const handleAddFriend = async () => {
     if (hasPendingRequest) {
-      error('Đã gửi lời mời kết bạn trước đó');
+      error("Đã gửi lời mời kết bạn trước đó");
       return;
     }
 
     setIsAddingFriend(true);
     try {
       await sendFriendRequest(currentUser.uid, targetUser.uid);
-      success('Đã gửi lời mời kết bạn!');
+      success("Đã gửi lời mời kết bạn!");
       onClose();
     } catch (err) {
-      console.error('Error sending friend request:', err);
-      error(err.message || 'Không thể gửi lời mời kết bạn');
+      console.error("Error sending friend request:", err);
+      error(err.message || "Không thể gửi lời mời kết bạn");
     } finally {
       setIsAddingFriend(false);
     }
@@ -157,18 +180,18 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
 
   // Format ngày tham gia
   const formatJoinDate = (timestamp) => {
-    if (!timestamp) return 'Chưa rõ';
+    if (!timestamp) return "Chưa rõ";
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('vi-VN');
+    return date.toLocaleDateString("vi-VN");
   };
 
   // Xử lý chặn/bỏ chặn người dùng
   const handleToggleBlock = async () => {
-    const actionText = isBlockedByMe ? 'bỏ chặn' : 'chặn';
+    const actionText = isBlockedByMe ? "bỏ chặn" : "chặn";
     const confirmed = await confirm(
       `Bạn có chắc muốn ${actionText} ${targetUser.displayName}?`
     );
-    
+
     if (!confirmed) return;
 
     setIsBlockingUser(true);
@@ -181,41 +204,189 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
         success(`Đã chặn ${targetUser.displayName}`);
         onClose(); // Đóng modal sau khi chặn
       }
-      
+
       // Refresh block status after action
       refreshBlockStatus();
     } catch (err) {
-      console.error('Error toggling block:', err);
+      console.error("Error toggling block:", err);
       error(err.message || `Không thể ${actionText} người dùng`);
     } finally {
       setIsBlockingUser(false);
     }
   };
 
+  // Xử lý kích hoạt edit mode
+  const handleStartEdit = () => {
+    setIsEditMode(true);
+    setEditingName(displayUser.displayName || "");
+    setIsEditingName(false);
+    setIsEditingAvatar(false);
+    setPreviewAvatar(null);
+    setSelectedAvatarFile(null);
+  };
+
+  // Xử lý lưu tất cả thay đổi
+  const handleSaveAll = async () => {
+    const promises = [];
+
+    // Lưu tên nếu đang chỉnh sửa tên
+    if (isEditingName && editingName.trim()) {
+      promises.push(
+        (async () => {
+          try {
+            const userDocRef = doc(db, "users", currentUser.uid);
+            await updateDoc(userDocRef, {
+              displayName: editingName.trim(),
+            });
+            await updateProfile(auth.currentUser, {
+              displayName: editingName.trim(),
+            });
+          } catch (err) {
+            console.error("Lỗi cập nhật tên:", err);
+            throw new Error("Không thể cập nhật tên hiển thị");
+          }
+        })()
+      );
+    }
+
+    // Lưu avatar nếu đang chỉnh sửa avatar
+    if (isEditingAvatar && selectedAvatarFile) {
+      promises.push(
+        (async () => {
+          try {
+            const uploadResult = await uploadImage(
+              selectedAvatarFile,
+              currentUser.uid
+            );
+            await updateProfile(auth.currentUser, {
+              photoURL: uploadResult.url,
+            });
+            const userDocRef = doc(db, "users", currentUser.uid);
+            await updateDoc(userDocRef, {
+              photoURL: uploadResult.url,
+            });
+          } catch (err) {
+            console.error("Lỗi upload ảnh đại diện:", err);
+            throw new Error("Không thể cập nhật ảnh đại diện");
+          }
+        })()
+      );
+    }
+
+    if (promises.length === 0) {
+      setIsEditMode(false);
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      await Promise.all(promises);
+      success("Đã cập nhật thông tin!");
+      setIsEditMode(false);
+      setIsEditingName(false);
+      setIsEditingAvatar(false);
+      setPreviewAvatar(null);
+      setSelectedAvatarFile(null);
+    } catch (err) {
+      error(err.message || "Không thể cập nhật thông tin");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Xử lý hủy edit mode
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    setIsEditingName(false);
+    setIsEditingAvatar(false);
+    setEditingName("");
+    setPreviewAvatar(null);
+    setSelectedAvatarFile(null);
+  };
+
+  // Xử lý chỉnh sửa tên hiển thị (chỉ khi ở edit mode)
+  const handleEditName = () => {
+    if (!isEditMode) return;
+    setEditingName(displayUser.displayName || "");
+    setIsEditingName(true);
+  };
+
+  // Xử lý chọn ảnh đại diện mới (chỉ khi ở edit mode)
+  const handleAvatarSelect = (file) => {
+    if (!file || !isEditMode) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewAvatar(e.target.result);
+    };
+    reader.readAsDataURL(file);
+    setSelectedAvatarFile(file);
+    setIsEditingAvatar(true);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      
+
       {/* Modal Content */}
       <div className="relative z-10 w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-slate-900">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-            {isOwnProfile ? 'Hồ sơ của tôi' : 'Hồ sơ người dùng'}
+            {isOwnProfile ? "Hồ sơ của tôi" : "Hồ sơ người dùng"}
           </h3>
-          <button
-            className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-            onClick={onClose}
-          >
-            <FaTimes />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Edit button for own profile */}
+            {isOwnProfile && !isEditMode && (
+              <button
+                className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                onClick={handleStartEdit}
+              >
+                <FaEdit />
+              </button>
+            )}
+
+            {/* Save and Cancel buttons when in edit mode */}
+            {isOwnProfile && isEditMode && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleSaveAll}
+                  disabled={isUploading}
+                  className="rounded-md bg-green-600 p-2 text-white transition hover:bg-green-700 disabled:opacity-50"
+                >
+                  <FaCheck className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  disabled={isUploading}
+                  className="rounded-md bg-red-600 p-2 text-white transition hover:bg-red-700 disabled:opacity-50"
+                >
+                  <FaTimesIcon className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            <button
+              className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+              onClick={onClose}
+            >
+              <FaTimes />
+            </button>
+          </div>
         </div>
 
         {/* Avatar Section */}
         <div className="mb-6 flex flex-col items-center">
           <div className="relative mb-4">
-            {displayUser.photoURL ? (
+            {/* Avatar preview when editing */}
+            {isEditingAvatar && previewAvatar ? (
+              <img
+                className="h-24 w-24 rounded-full object-cover ring-4 ring-skybrand-400/30"
+                src={previewAvatar}
+                alt="avatar preview"
+              />
+            ) : displayUser.photoURL ? (
               <img
                 className="h-24 w-24 rounded-full object-cover ring-4 ring-skybrand-400/30"
                 src={displayUser.photoURL}
@@ -223,12 +394,12 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
               />
             ) : (
               <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-skybrand-500 to-skybrand-600 text-white ring-4 ring-skybrand-400/30 text-2xl font-semibold">
-                {displayUser.displayName?.charAt(0)?.toUpperCase() || '?'}
+                {displayUser.displayName?.charAt(0)?.toUpperCase() || "?"}
               </div>
             )}
-            
-            {/* Camera icon for own profile */}
-            {isOwnProfile && (
+
+            {/* Camera icon for own profile - only show when in edit mode */}
+            {isOwnProfile && isEditMode && !isEditingAvatar && (
               <label className="absolute bottom-0 right-0 cursor-pointer rounded-full bg-skybrand-600 p-2 text-white shadow-lg transition hover:bg-skybrand-700">
                 <input
                   type="file"
@@ -236,14 +407,16 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) handleAvatarUpload(file);
+                    if (file) handleAvatarSelect(file);
                   }}
                   disabled={isUploading}
                 />
                 <FaCamera className="h-3 w-3" />
               </label>
             )}
-            
+
+            {/* Avatar preview indicator - no buttons */}
+
             {/* Upload indicator */}
             {isUploading && (
               <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
@@ -253,9 +426,36 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
           </div>
 
           {/* User Name */}
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-            {displayUser.displayName || displayUser.email || 'Người dùng không xác định'}
-          </h2>
+          <div className="flex items-center gap-2">
+            {isEditingName ? (
+              <input
+                type="text"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                className="rounded-md border border-gray-300 px-2 py-1 text-lg font-bold text-slate-800 dark:border-gray-600 dark:bg-slate-800 dark:text-slate-100"
+                placeholder="Nhập tên hiển thị"
+                maxLength={50}
+                autoFocus
+              />
+            ) : (
+              <>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                  {displayUser.displayName ||
+                    displayUser.email ||
+                    "Người dùng không xác định"}
+                </h2>
+                {/* Edit name button - only show when in edit mode */}
+                {isOwnProfile && isEditMode && (
+                  <button
+                    onClick={handleEditName}
+                    className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                  >
+                    <FaEdit className="h-4 w-4" />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* User Info */}
@@ -264,15 +464,19 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
           <div className="flex items-center gap-3 text-sm">
             <FaEnvelope className="h-4 w-4 text-slate-500" />
             <span className="text-slate-600 dark:text-slate-400">
-              {displayUser.email || 'Email không có sẵn'}
+              {displayUser.email || "Email không có sẵn"}
             </span>
           </div>
 
           {/* Online Status */}
           <div className="flex items-center gap-3 text-sm">
-            <FaCircle className={`h-3 w-3 ${isOnline ? 'text-emerald-500' : 'text-slate-400'}`} />
+            <FaCircle
+              className={`h-3 w-3 ${
+                isOnline ? "text-emerald-500" : "text-slate-400"
+              }`}
+            />
             <span className="text-slate-600 dark:text-slate-400">
-              {isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+              {isOnline ? "Đang hoạt động" : "Không hoạt động"}
             </span>
           </div>
 
@@ -281,12 +485,13 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
             <div className="flex items-center gap-3 text-sm">
               <FaCalendarAlt className="h-4 w-4 text-slate-500" />
               <span className="text-slate-600 dark:text-slate-400">
-                Tham gia: {formatJoinDate(
-                  displayUser.metadata?.creationTime 
+                Tham gia:{" "}
+                {formatJoinDate(
+                  displayUser.metadata?.creationTime
                     ? new Date(displayUser.metadata.creationTime)
-                    : displayUser.createdAt?.toDate 
-                      ? displayUser.createdAt.toDate()
-                      : new Date(displayUser.createdAt)
+                    : displayUser.createdAt?.toDate
+                    ? displayUser.createdAt.toDate()
+                    : new Date(displayUser.createdAt)
                 )}
               </span>
             </div>
@@ -314,10 +519,10 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
                   onClick={handleAddFriend}
                   disabled={isAddingFriend}
                   className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-skybrand-500 focus:ring-offset-1 ${
-                    hasPendingRequest 
-                      ? 'border-yellow-500 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20' 
-                      : 'border-skybrand-600 text-skybrand-600 hover:bg-skybrand-50 dark:hover:bg-skybrand-900/20'
-                  } ${isAddingFriend ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    hasPendingRequest
+                      ? "border-yellow-500 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20"
+                      : "border-skybrand-600 text-skybrand-600 hover:bg-skybrand-50 dark:hover:bg-skybrand-900/20"
+                  } ${isAddingFriend ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {isAddingFriend ? (
                     <div className="flex items-center justify-center gap-2">
@@ -325,9 +530,9 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
                       Đang gửi...
                     </div>
                   ) : hasPendingRequest ? (
-                    'Đã gửi lời mời'
+                    "Đã gửi lời mời"
                   ) : (
-                    'Kết bạn'
+                    "Kết bạn"
                   )}
                 </button>
               )}
@@ -338,20 +543,20 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
               onClick={handleToggleBlock}
               disabled={isBlockingUser}
               className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-1 ${
-                isBlockedByMe 
-                  ? 'border-orange-500 bg-orange-50 text-orange-600 hover:bg-orange-100 focus:ring-orange-500 dark:bg-orange-900/20 dark:hover:bg-orange-900/30'
-                  : 'border-red-500 bg-red-50 text-red-600 hover:bg-red-100 focus:ring-red-500 dark:bg-red-900/20 dark:hover:bg-red-900/30'
-              } ${isBlockingUser ? 'opacity-50 cursor-not-allowed' : ''}`}
+                isBlockedByMe
+                  ? "border-orange-500 bg-orange-50 text-orange-600 hover:bg-orange-100 focus:ring-orange-500 dark:bg-orange-900/20 dark:hover:bg-orange-900/30"
+                  : "border-red-500 bg-red-50 text-red-600 hover:bg-red-100 focus:ring-red-500 dark:bg-red-900/20 dark:hover:bg-red-900/30"
+              } ${isBlockingUser ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isBlockingUser ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                  {isBlockedByMe ? 'Đang bỏ chặn...' : 'Đang chặn...'}
+                  {isBlockedByMe ? "Đang bỏ chặn..." : "Đang chặn..."}
                 </>
               ) : (
                 <>
                   <FaBan className="h-4 w-4" />
-                  {isBlockedByMe ? 'Bỏ chặn' : 'Chặn người dùng'}
+                  {isBlockedByMe ? "Bỏ chặn" : "Chặn người dùng"}
                 </>
               )}
             </button>
@@ -374,11 +579,8 @@ function UserProfileModalComponent({ visible, onClose, targetUser, isOwnProfile 
 // Wrapper component that connects to AppContext
 export default function UserProfileModal() {
   const { user: currentUser } = useContext(AuthContext);
-  const { 
-    isUserProfileVisible, 
-    setIsUserProfileVisible, 
-    selectedUser 
-  } = useContext(AppContext);
+  const { isUserProfileVisible, setIsUserProfileVisible, selectedUser } =
+    useContext(AppContext);
 
   const handleClose = () => {
     setIsUserProfileVisible(false);
