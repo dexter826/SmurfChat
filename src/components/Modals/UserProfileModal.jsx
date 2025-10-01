@@ -150,7 +150,7 @@ function UserProfileModalComponent({
       });
       setChatType("direct");
       selectConversation(conversationId);
-      onClose();
+      handleCloseModal();
       success("Đã mở cuộc trò chuyện!");
     } catch (err) {
       console.error("Error creating conversation:", err);
@@ -169,7 +169,7 @@ function UserProfileModalComponent({
     try {
       await sendFriendRequest(currentUser.uid, targetUser.uid);
       success("Đã gửi lời mời kết bạn!");
-      onClose();
+      handleCloseModal();
     } catch (err) {
       console.error("Error sending friend request:", err);
       error(err.message || "Không thể gửi lời mời kết bạn");
@@ -202,7 +202,7 @@ function UserProfileModalComponent({
       } else {
         await blockUser(currentUser.uid, targetUser.uid);
         success(`Đã chặn ${targetUser.displayName}`);
-        onClose(); // Đóng modal sau khi chặn
+        handleCloseModal(); // Đóng modal sau khi chặn
       }
 
       // Refresh block status after action
@@ -274,7 +274,7 @@ function UserProfileModalComponent({
     }
 
     if (promises.length === 0) {
-      setIsEditMode(false);
+      handleCloseModal();
       return;
     }
 
@@ -282,11 +282,7 @@ function UserProfileModalComponent({
     try {
       await Promise.all(promises);
       success("Đã cập nhật thông tin!");
-      setIsEditMode(false);
-      setIsEditingName(false);
-      setIsEditingAvatar(false);
-      setPreviewAvatar(null);
-      setSelectedAvatarFile(null);
+      handleCloseModal();
     } catch (err) {
       error(err.message || "Không thể cập nhật thông tin");
     } finally {
@@ -302,6 +298,19 @@ function UserProfileModalComponent({
     setEditingName("");
     setPreviewAvatar(null);
     setSelectedAvatarFile(null);
+    handleCloseModal();
+  };
+
+  // Xử lý đóng modal và reset edit mode
+  const handleCloseModal = () => {
+    // Reset tất cả edit states khi đóng modal
+    setIsEditMode(false);
+    setIsEditingName(false);
+    setIsEditingAvatar(false);
+    setEditingName("");
+    setPreviewAvatar(null);
+    setSelectedAvatarFile(null);
+    onClose();
   };
 
   // Xử lý chỉnh sửa tên hiển thị (chỉ khi ở edit mode)
@@ -327,7 +336,10 @@ function UserProfileModalComponent({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={handleCloseModal}
+      />
 
       {/* Modal Content */}
       <div className="relative z-10 w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-slate-900">
@@ -369,7 +381,7 @@ function UserProfileModalComponent({
 
             <button
               className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-              onClick={onClose}
+              onClick={handleCloseModal}
             >
               <FaTimes />
             </button>
