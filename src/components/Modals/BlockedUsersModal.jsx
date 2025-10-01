@@ -1,10 +1,10 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { AuthContext } from '../../Context/AuthProvider';
-import { AppContext } from '../../Context/AppProvider';
-import { useAlert } from '../../Context/AlertProvider';
-import { getBlockedUsers, unblockUser } from '../../firebase/services';
-import { useUserSearch } from '../../hooks/useUserSearch';
-import { FaTimes, FaBan, FaSearch, FaUserSlash } from 'react-icons/fa';
+import React, { useState, useContext, useEffect } from "react";
+import { AuthContext } from "../../Context/AuthProvider";
+import { AppContext } from "../../Context/AppProvider";
+import { useAlert } from "../../Context/AlertProvider";
+import { getBlockedUsers, unblockUser } from "../../firebase/services";
+import { useUserSearch } from "../../hooks/useUserSearch";
+import { FaTimes, FaBan, FaSearch, FaUserSlash } from "react-icons/fa";
 
 function BlockedUsersModalComponent() {
   const { user } = useContext(AuthContext);
@@ -21,7 +21,7 @@ function BlockedUsersModalComponent() {
     handleSearchChange,
     clearSearch,
     filterUsersBySearch,
-    allUsers
+    allUsers,
   } = useUserSearch({ excludeCurrentUser: true });
 
   // Load blocked users list
@@ -58,11 +58,14 @@ function BlockedUsersModalComponent() {
   });
 
   // Filter blocked users based on search term using hook utility
-  const filteredBlockedUsers = searchTerm 
-    ? filterUsersBySearch(blockedUsersWithDetails.map(bu => ({
-        ...bu.userDetails,
-        originalData: bu // Keep original blocked user data
-      })), searchTerm).map(filtered => filtered.originalData)
+  const filteredBlockedUsers = searchTerm
+    ? filterUsersBySearch(
+        blockedUsersWithDetails.map((bu) => ({
+          ...bu.userDetails,
+          originalData: bu, // Keep original blocked user data
+        })),
+        searchTerm
+      ).map((filtered) => filtered.originalData)
     : blockedUsersWithDetails;
 
   // Handle unblock user
@@ -106,10 +109,7 @@ function BlockedUsersModalComponent() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={handleClose}
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
 
       {/* Modal Content */}
       <div className="relative z-10 w-full max-w-2xl mx-auto rounded-lg border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-slate-900 max-h-[90vh] flex flex-col">
