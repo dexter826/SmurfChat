@@ -144,7 +144,7 @@ export const sendMessage = async (collectionName = 'messages', messageData) => {
       }
     }
 
-    // Lưu trữ tin nhắn mà không mã hóa
+    // Lưu trữ tin nhắn
     const processedMessageData = { ...messageData };
 
     const docRef = collection(db, collectionName);
