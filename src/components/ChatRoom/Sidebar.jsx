@@ -17,120 +17,167 @@ import {
 import { isUserBlockedOptimized } from "../../firebase/utils/block.utils";
 
 // Icon components
-const ChevronDownIcon = () => (
+const ChevronDownIcon = ({ className = "h-4 w-4", ...props }) => (
   <svg
-    className="h-4 w-4 transition-transform duration-200"
+    className={`${className} transition-transform duration-200`}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
+    {...props}
   >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={2}
-      d="M19 9l-7 7-7-7"
+      strokeWidth={1.8}
+      d="M6 9l6 6 6-6"
     />
   </svg>
 );
 
-const SearchIcon = () => (
+const SearchIcon = ({ className = "h-4 w-4", ...props }) => (
   <svg
-    className="h-4 w-4"
+    className={className}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
+    {...props}
   >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={2}
-      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      strokeWidth={1.8}
+      d="M11 4a7 7 0 104.899 11.899L20 20"
     />
   </svg>
 );
 
-const UserPlusIcon = () => (
+const UserPlusIcon = ({ className = "h-4 w-4", ...props }) => (
   <svg
-    className="h-4 w-4"
+    className={className}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
+    {...props}
   >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={2}
-      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+      strokeWidth={1.8}
+      d="M15 6.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0z"
     />
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={2}
-      d="M20 8v6M23 11h-6"
+      strokeWidth={1.8}
+      d="M5.5 20.5v-.75A5.75 5.75 0 0111.25 14h1.5A5.75 5.75 0 0118.5 19.75v.75"
     />
-  </svg>
-);
-
-const UserFriendsIcon = () => (
-  <svg
-    className="h-4 w-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={2}
-      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a3 3 0 11-6 0 3 3 0 016 0z"
+      strokeWidth={1.8}
+      d="M19.5 7.5v6m3-3h-6"
     />
   </svg>
 );
 
-const MailIcon = () => (
+const UserFriendsIcon = ({ className = "h-4 w-4", ...props }) => (
   <svg
-    className="h-4 w-4"
+    className={className}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
+    {...props}
   >
+    <circle cx={12} cy={9} r={3} strokeWidth={1.8} />
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={2}
-      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+      strokeWidth={1.8}
+      d="M6 20.5v-.75A4.75 4.75 0 0110.75 15h2.5A4.75 4.75 0 0118 19.75v.75"
+    />
+    <circle cx={5.5} cy={9.5} r={2.5} strokeWidth={1.8} />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.8}
+      d="M3 20.5v-.75a3.5 3.5 0 012.5-3.37"
+    />
+    <circle cx={18.5} cy={9.5} r={2.5} strokeWidth={1.8} />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.8}
+      d="M21 20.5v-.75a3.5 3.5 0 00-2.5-3.37"
     />
   </svg>
 );
 
-const MessageCircleIcon = () => (
+const MailIcon = ({ className = "h-4 w-4", ...props }) => (
   <svg
-    className="h-4 w-4"
+    className={className}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
+    {...props}
   >
+    <rect x={3} y={5} width={18} height={14} rx={2.25} strokeWidth={1.8} />
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={2}
-      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z"
+      strokeWidth={1.8}
+      d="M4 7l8 5 8-5"
     />
   </svg>
 );
 
-const LogOutIcon = () => (
+const MessageCircleIcon = ({ className = "h-4 w-4", ...props }) => (
   <svg
-    className="h-4 w-4"
+    className={className}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
+    {...props}
   >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={2}
-      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+      strokeWidth={1.8}
+      d="M4.5 5.5h15a2 2 0 012 2v7a2 2 0 01-2 2H12l-4.5 3v-3h-3a2 2 0 01-2-2v-7a2 2 0 012-2z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.8}
+      d="M8 11.5h.01M12 11.5h.01M16 11.5h.01"
+    />
+  </svg>
+);
+
+const LogOutIcon = ({ className = "h-4 w-4", ...props }) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    {...props}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.8}
+      d="M15 16l4-4-4-4"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.8}
+      d="M19 12H9"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.8}
+      d="M12 19v1a3 3 0 01-3 3H7a3 3 0 01-3-3V4a3 3 0 013-3h2a3 3 0 013 3v1"
     />
   </svg>
 );
