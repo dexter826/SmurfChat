@@ -4,6 +4,7 @@ class ListenerManager {
     this.listenerCounts = new Map();
     this.listenerData = new Map();
     this.listenerCallbacks = new Map();
+    this.changeCallbacks = new Map(); // Callbacks cho docChanges events
   }
 
   generateKey(collectionName, condition, orderBy) {
@@ -16,11 +17,22 @@ class ListenerManager {
     return `${collectionName}_${conditionKey}_${orderKey}`;
   }
 
-  async subscribe(key, query, callback) {
-    if (!this.listenerCallbacks.has(key)) {
-      this.listenerCallbacks.set(key, new Set());
+  async subscribe(key, query, callback, options = {}) {
+    const { onChanges = false } = options; // Option để subscribe vào docChanges
+
+    if (onChanges) {
+      // Subscribe vào change events
+      if (!this.changeCallbacks.has(key)) {
+        this.changeCallbacks.set(key, new Set());
+      }
+      this.changeCallbacks.get(key).add(callback);
+    } else {
+      // Subscribe vào full data (existing behavior)
+      if (!this.listenerCallbacks.has(key)) {
+        this.listenerCallbacks.set(key, new Set());
+      }
+      this.listenerCallbacks.get(key).add(callback);
     }
-    this.listenerCallbacks.get(key).add(callback);
 
     const currentCount = this.listenerCounts.get(key) || 0;
     this.listenerCounts.set(key, currentCount + 1);
@@ -29,17 +41,25 @@ class ListenerManager {
       await this.createListener(key, query);
     }
 
-    if (this.listenerData.has(key)) {
+    // Return current data for non-change subscriptions
+    if (!onChanges && this.listenerData.has(key)) {
       callback(this.listenerData.get(key));
     }
 
-    return () => this.unsubscribe(key, callback);
+    return () => this.unsubscribe(key, callback, onChanges);
   }
 
-  unsubscribe(key, callback) {
-    const callbacks = this.listenerCallbacks.get(key);
-    if (callbacks) {
-      callbacks.delete(callback);
+  unsubscribe(key, callback, isChangeCallback = false) {
+    if (isChangeCallback) {
+      const callbacks = this.changeCallbacks.get(key);
+      if (callbacks) {
+        callbacks.delete(callback);
+      }
+    } else {
+      const callbacks = this.listenerCallbacks.get(key);
+      if (callbacks) {
+        callbacks.delete(callback);
+      }
     }
 
     const currentCount = this.listenerCounts.get(key) || 0;
@@ -65,9 +85,28 @@ class ListenerManager {
 
           this.listenerData.set(key, docs);
 
+          // Notify full data callbacks
           const callbacks = this.listenerCallbacks.get(key);
           if (callbacks) {
             callbacks.forEach(callback => callback(docs));
+          }
+
+          // Notify change callbacks with docChanges
+          const changeCallbacks = this.changeCallbacks.get(key);
+          if (changeCallbacks && changeCallbacks.size > 0) {
+            const changes = snapshot.docChanges().map(change => ({
+              type: change.type, // 'added', 'modified', 'removed'
+              doc: {
+                ...change.doc.data(),
+                id: change.doc.id,
+              },
+              oldIndex: change.oldIndex,
+              newIndex: change.newIndex,
+            }));
+
+            if (changes.length > 0) {
+              changeCallbacks.forEach(callback => callback(changes));
+            }
           }
         },
         (error) => {
@@ -102,6 +141,7 @@ class ListenerManager {
 
     this.listenerData.delete(key);
     this.listenerCallbacks.delete(key);
+    this.changeCallbacks.delete(key);
     this.listenerCounts.delete(key);
   }
 
@@ -116,6 +156,7 @@ class ListenerManager {
     this.listenerCounts.clear();
     this.listenerData.clear();
     this.listenerCallbacks.clear();
+    this.changeCallbacks.clear();
   }
 
   getStats() {

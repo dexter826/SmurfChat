@@ -3,6 +3,8 @@ import useOptimizedFirestore from "../hooks/useOptimizedFirestore";
 import { AuthContext } from "./AuthProvider";
 import { createOrUpdateConversation } from "../firebase/services";
 import { UserProvider, useUsers } from "./UserContext";
+import listenerManager from "../firebase/utils/listener.manager";
+import queryBuilder from "../firebase/utils/query.builder";
 
 export const AppContext = React.createContext();
 
@@ -136,11 +138,13 @@ function AppProviderInner({ children }) {
 
   const notifiedConversationsRef = useRef({});
   const notifiedRoomsRef = useRef({});
+  const notifiedMessageIdsRef = useRef(new Set());
   const audioRef = useRef(null);
   const originalTitleRef = useRef(document.title);
   const titleIntervalRef = useRef(null);
   const [, setUnreadCount] = useState(0);
   const isInitialLoadRef = useRef(true);
+  const debounceTimerRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -157,14 +161,21 @@ function AppProviderInner({ children }) {
   }, []);
 
   const playNotificationSound = React.useCallback(async () => {
-    const audio = audioRef.current;
-    if (audio) {
-      try {
-        audio.currentTime = 0;
-        await audio.play();
-        return;
-      } catch {}
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      const audio = audioRef.current;
+      if (audio) {
+        try {
+          audio.currentTime = 0;
+          await audio.play();
+        } catch (error) {
+          console.warn("Audio play blocked:", error);
+        }
+      }
+    }, 300);
   }, []);
 
   const updateTabTitle = React.useCallback((count) => {
@@ -337,118 +348,200 @@ function AppProviderInner({ children }) {
   ]);
 
   useEffect(() => {
-    if (!Array.isArray(conversations) || isInitialLoadRef.current) return;
+    if (isInitialLoadRef.current || !uid) return;
 
-    conversations.forEach((conv) => {
-      if (!conv) return;
-      const lastAt = conv.lastMessageAt;
-      const updatedBy = conv.updatedBy;
-      const lastSeen = conv.lastSeen?.[uid];
-      const lastAtDate = lastAt?.toDate
-        ? lastAt.toDate()
-        : lastAt
-        ? new Date(lastAt)
-        : null;
-      const lastSeenDate = lastSeen?.toDate
-        ? lastSeen.toDate()
-        : lastSeen
-        ? new Date(lastSeen)
-        : null;
-
-      // Remove unused isFromOther variable
-      const isUnread = !!(
-        lastAtDate &&
-        (!lastSeenDate || lastAtDate > lastSeenDate)
+    const setupChangeListeners = async () => {
+      const conversationsKey = queryBuilder.generateKey(
+        "conversations",
+        conversationsCondition,
+        "lastMessageAt",
+        "desc"
       );
-      const isMuted = !!(conv.mutedBy && conv.mutedBy[uid]);
-      const hasNotifiedForThisMessage =
-        notifiedConversationsRef.current[conv.id] &&
-        lastAtDate &&
-        notifiedConversationsRef.current[conv.id].getTime() ===
-          lastAtDate.getTime();
 
-      const shouldNotify =
-        lastAtDate &&
-        updatedBy &&
-        updatedBy !== uid &&
-        isUnread &&
-        !isMuted &&
-        !hasNotifiedForThisMessage &&
-        (!notifiedConversationsRef.current[conv.id] ||
-          lastAtDate > notifiedConversationsRef.current[conv.id]) &&
-        (chatType !== "direct" || selectedConversationId !== conv.id);
+      const conversationsQuery = await queryBuilder.buildQuery(
+        "conversations",
+        conversationsCondition,
+        "lastMessageAt",
+        "desc"
+      );
 
-      if (shouldNotify) {
-        notifiedConversationsRef.current[conv.id] = lastAtDate;
-        playNotificationSound();
-      }
-    });
+      const unsubConversations = await listenerManager.subscribe(
+        conversationsKey,
+        conversationsQuery,
+        (changes) => {
+          changes.forEach((change) => {
+            if (change.type === "modified") {
+              const conv = change.doc;
+              const lastAt = conv.lastMessageAt;
+              const updatedBy = conv.updatedBy;
+              const lastSeen = conv.lastSeen?.[uid];
+
+              const lastAtDate = lastAt?.toDate
+                ? lastAt.toDate()
+                : lastAt
+                ? new Date(lastAt)
+                : null;
+              const lastSeenDate = lastSeen?.toDate
+                ? lastSeen.toDate()
+                : lastSeen
+                ? new Date(lastSeen)
+                : null;
+
+              const isUnread = !!(
+                lastAtDate &&
+                (!lastSeenDate || lastAtDate > lastSeenDate)
+              );
+              const isMuted = !!(conv.mutedBy && conv.mutedBy[uid]);
+              const isFromOther = updatedBy && updatedBy !== uid;
+              const isCurrentChat =
+                chatType === "direct" && selectedConversationId === conv.id;
+
+              const messageKey = `${conv.id}_${lastAtDate?.getTime()}`;
+              const hasNotified = notifiedMessageIdsRef.current.has(messageKey);
+
+              const shouldNotify =
+                lastAtDate &&
+                isFromOther &&
+                isUnread &&
+                !isMuted &&
+                !hasNotified &&
+                !isCurrentChat;
+
+              if (shouldNotify) {
+                if (process.env.NODE_ENV === "development") {
+                  console.log("🔔 Notification (conversation):", {
+                    conversationId: conv.id,
+                    messageKey,
+                    updatedBy,
+                  });
+                }
+
+                notifiedMessageIdsRef.current.add(messageKey);
+                notifiedConversationsRef.current[conv.id] = lastAtDate;
+                playNotificationSound();
+
+                if (notifiedMessageIdsRef.current.size > 100) {
+                  const arr = Array.from(notifiedMessageIdsRef.current);
+                  notifiedMessageIdsRef.current = new Set(arr.slice(-100));
+                }
+              }
+            }
+          });
+        },
+        { onChanges: true }
+      );
+
+      const roomsKey = queryBuilder.generateKey(
+        "rooms",
+        roomsCondition,
+        "lastMessageAt",
+        "desc"
+      );
+
+      const roomsQuery = await queryBuilder.buildQuery(
+        "rooms",
+        roomsCondition,
+        "lastMessageAt",
+        "desc"
+      );
+
+      const unsubRooms = await listenerManager.subscribe(
+        roomsKey,
+        roomsQuery,
+        (changes) => {
+          changes.forEach((change) => {
+            if (change.type === "modified") {
+              const room = change.doc;
+              if (room.deleted) return;
+
+              const lastAt = room.lastMessageAt;
+              const updatedBy = room.updatedBy;
+              const lastSeen = room.lastSeen?.[uid];
+
+              const lastAtDate = lastAt?.toDate
+                ? lastAt.toDate()
+                : lastAt
+                ? new Date(lastAt)
+                : null;
+              const lastSeenDate = lastSeen?.toDate
+                ? lastSeen.toDate()
+                : lastSeen
+                ? new Date(lastSeen)
+                : null;
+
+              const isUnread = !!(
+                lastAtDate &&
+                (!lastSeenDate || lastAtDate > lastSeenDate)
+              );
+              const isMuted = !!(room.mutedBy && room.mutedBy[uid]);
+              const isFromOther = updatedBy && updatedBy !== uid;
+              const isCurrentChat =
+                chatType === "room" && selectedRoomId === room.id;
+
+              const messageKey = `${room.id}_${lastAtDate?.getTime()}`;
+              const hasNotified = notifiedMessageIdsRef.current.has(messageKey);
+
+              const shouldNotify =
+                lastAtDate &&
+                isFromOther &&
+                isUnread &&
+                !isMuted &&
+                !hasNotified &&
+                !isCurrentChat;
+
+              if (shouldNotify) {
+                if (process.env.NODE_ENV === "development") {
+                  console.log("🔔 Notification (room):", {
+                    roomId: room.id,
+                    messageKey,
+                    updatedBy,
+                  });
+                }
+
+                notifiedMessageIdsRef.current.add(messageKey);
+                notifiedRoomsRef.current[room.id] = lastAtDate;
+                playNotificationSound();
+
+                if (room.lastMessage && room.lastMessage.includes("@")) {
+                  const senderName = room.updatedBy || "Someone";
+                  const mentionTitle = `👤 ${senderName} đã mention bạn`;
+                  document.title = mentionTitle;
+                  setTimeout(() => {
+                    document.title = originalTitleRef.current;
+                  }, 5000);
+                }
+
+                if (notifiedMessageIdsRef.current.size > 100) {
+                  const arr = Array.from(notifiedMessageIdsRef.current);
+                  notifiedMessageIdsRef.current = new Set(arr.slice(-100));
+                }
+              }
+            }
+          });
+        },
+        { onChanges: true }
+      );
+
+      return () => {
+        unsubConversations();
+        unsubRooms();
+      };
+    };
+
+    const cleanup = setupChangeListeners();
+
+    return () => {
+      cleanup.then((fn) => fn && fn());
+    };
   }, [
-    conversations,
     uid,
-    playNotificationSound,
+    roomsCondition,
+    conversationsCondition,
     chatType,
+    selectedRoomId,
     selectedConversationId,
+    playNotificationSound,
   ]);
-
-  useEffect(() => {
-    if (!Array.isArray(rooms) || isInitialLoadRef.current) return;
-
-    rooms.forEach((room) => {
-      if (!room || room.deleted) return;
-      const lastAt = room.lastMessageAt;
-      const updatedBy = room.updatedBy;
-      const lastSeen = room.lastSeen?.[uid];
-      const lastAtDate = lastAt?.toDate
-        ? lastAt.toDate()
-        : lastAt
-        ? new Date(lastAt)
-        : null;
-      const lastSeenDate = lastSeen?.toDate
-        ? lastSeen.toDate()
-        : lastSeen
-        ? new Date(lastSeen)
-        : null;
-
-      const isFromOther = updatedBy && updatedBy !== uid;
-      const isUnread = !!(
-        lastAtDate &&
-        (!lastSeenDate || lastAtDate > lastSeenDate)
-      );
-      const isMuted = !!(room.mutedBy && room.mutedBy[uid]);
-      const hasNotifiedForThisMessage =
-        notifiedRoomsRef.current[room.id] &&
-        lastAtDate &&
-        notifiedRoomsRef.current[room.id].getTime() === lastAtDate.getTime();
-
-      const shouldNotify =
-        lastAtDate &&
-        isFromOther &&
-        isUnread &&
-        !isMuted &&
-        !hasNotifiedForThisMessage &&
-        (!notifiedRoomsRef.current[room.id] ||
-          lastAtDate > notifiedRoomsRef.current[room.id]) &&
-        (chatType !== "room" || selectedRoomId !== room.id);
-
-      if (shouldNotify) {
-        notifiedRoomsRef.current[room.id] = lastAtDate;
-        playNotificationSound();
-
-        // Check for mentions in the last message
-        if (room.lastMessage && room.lastMessage.includes("@")) {
-          // Get the actual message to check mentions
-          // This is a simplified check - in production you'd want to get the full message data
-          const senderName = room.updatedBy || "Someone";
-          const mentionTitle = `👤 ${senderName} đã mention bạn`;
-          document.title = mentionTitle;
-          setTimeout(() => {
-            document.title = originalTitleRef.current;
-          }, 5000);
-        }
-      }
-    });
-  }, [rooms, uid, playNotificationSound, chatType, selectedRoomId]);
 
   const clearState = () => {
     setSelectedRoomId("");
