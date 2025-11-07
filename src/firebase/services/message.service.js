@@ -65,10 +65,19 @@ export const recallMessage = async (messageId, collectionName = 'messages', user
       recallData.text = 'Tin nhắn đã được thu hồi';
     }
     await updateDoc(messageRef, recallData);
-    if (type === 'room' && messageData.roomId) {
-      await updateRoomLastMessage(messageData.roomId, 'Tin nhắn đã được thu hồi', userId);
-    } else if (type === 'direct' && messageData.conversationId) {
-      await updateConversationLastMessage(messageData.conversationId, 'Tin nhắn đã được thu hồi', userId);
+
+    const fallbackLastMessage = recallData.text || 'Tin nhắn đã được thu hồi';
+    const chatIdentifier =
+      messageData.chatId || messageData.roomId || messageData.conversationId || null;
+    const messageChatType = messageData.chatType || type;
+
+    if ((messageChatType === 'room' || type === 'room') && chatIdentifier) {
+      await updateRoomLastMessage(chatIdentifier, fallbackLastMessage, userId);
+    } else if (
+      (messageChatType === 'direct' || messageChatType === 'conversation' || type === 'direct') &&
+      chatIdentifier
+    ) {
+      await updateConversationLastMessage(chatIdentifier, fallbackLastMessage, userId);
     }
     logSuccess('recallMessage', { messageId, userId, type });
     return true;

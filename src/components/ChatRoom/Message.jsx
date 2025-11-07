@@ -276,12 +276,12 @@ const Message = React.memo(function Message({
     if (recalled) {
       const getRecallText = () => {
         if (currentContent.messageType === "file")
-          return "📁 File đã được thu hồi";
+          return "File đã được thu hồi";
         if (currentContent.messageType === "voice")
-          return "🎤 Tin nhắn thoại đã được thu hồi";
+          return "Tin nhắn thoại đã được thu hồi";
         if (currentContent.messageType === "location")
-          return "📍 Vị trí đã được thu hồi";
-        return currentContent.text || "💬 Tin nhắn đã được thu hồi";
+          return "Vị trí đã được thu hồi";
+        return currentContent.text || "Tin nhắn đã được thu hồi";
       };
       return (
         <div
