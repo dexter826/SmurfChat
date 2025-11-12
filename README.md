@@ -74,5 +74,5 @@ SmurfChat/
   <strong>🎓 Đồ án môn học NoSQL - Trường Đại học Công Thương TP.HCM</strong><br>
   Năm học 2025-2026<br>
   <em>Khoa Công Nghệ Thông Tin</em><br>
-  <em>Nhóm 15: Trần Công Minh, Lê Đức Trung, Tạ Nguyên Vũ</em>
+  <em>Nhóm 3: Trần Công Minh, Lê Đức Trung, Tạ Nguyên Vũ</em>
 </div>
