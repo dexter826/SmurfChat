@@ -67,6 +67,23 @@ export const deleteConversation = async (conversationId) => {
   }
 };
 
+// Xóa cuộc trò chuyện/phòng chat (chỉ ẩn tin nhắn cũ cho user hiện tại)
+export const deleteChatForUser = async (chatId, userId, isConversation = true) => {
+  try {
+    const collectionName = isConversation ? 'conversations' : 'rooms';
+    const docRef = doc(db, collectionName, chatId);
+
+    await updateDoc(docRef, {
+      [`deletedBy.${userId}`]: serverTimestamp(),
+    });
+
+    logSuccess('deleteChatForUser', { chatId, userId, isConversation });
+  } catch (error) {
+    const handledError = handleServiceError(error, 'deleteChatForUser');
+    throw handledError;
+  }
+};
+
 // Ghim/Bỏ ghim cuộc trò chuyện hoặc phòng
 export const togglePinChat = async (chatId, isPinned, isConversation = false) => {
   try {

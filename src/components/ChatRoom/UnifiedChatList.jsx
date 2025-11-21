@@ -5,15 +5,14 @@ import { useAlert } from "../../Context/AlertProvider";
 import { useUsers } from "../../Context/UserContext";
 import { useUserOnlineStatus } from "../../hooks/useOnlineStatus";
 import {
-  deleteConversation,
   togglePinChat,
-  dissolveRoom,
   updateLastSeen,
   blockUser,
   unblockUser,
   archiveChat,
   unarchiveChat,
   isChatArchived,
+  deleteChatForUser,
 } from "../../firebase/services";
 import { isUserBlockedOptimized } from "../../firebase/utils/block.utils";
 import {
@@ -330,27 +329,22 @@ export default function UnifiedChatList() {
 
   const handleDeleteChat = async (chatId, isConversation) => {
     try {
-      if (isConversation) {
-        // Clear selected conversation if it's the one being deleted
-        if (selectedConversationId === chatId) {
-          setSelectedConversationId("");
-        }
-        await deleteConversation(chatId);
-        success("Đã xóa cuộc trò chuyện");
-      } else {
-        // Clear selected room if it's the one being deleted
-        if (selectedRoomId === chatId) {
-          setSelectedRoomId("");
-        }
-        await dissolveRoom(chatId);
-        success("Đã xóa phòng chat");
+      // Clear selected chat if it's the one being deleted
+      if (isConversation && selectedConversationId === chatId) {
+        setSelectedConversationId("");
+      } else if (!isConversation && selectedRoomId === chatId) {
+        setSelectedRoomId("");
       }
+
+      // Set deletedBy timestamp for this user (lưu thời điểm xóa)
+      await deleteChatForUser(chatId, user.uid, isConversation);
+
+      success("Đã xóa đoạn chat");
     } catch (err) {
       console.error("Error deleting chat:", err);
       error("Có lỗi xảy ra khi xóa");
     }
   };
-
   const handleToggleMute = async (chat, isConversation) => {
     try {
       const collectionName = isConversation ? "conversations" : "rooms";
@@ -445,7 +439,29 @@ export default function UnifiedChatList() {
     };
 
     const roomItems = rooms
-      .filter((room) => !archivedStatus[room.id]) // Filter out archived rooms
+      .filter((room) => {
+        // Filter out archived rooms
+        if (archivedStatus[room.id]) return false;
+
+        // Nếu user đã xóa room, chỉ hiển thị nếu có tin nhắn mới sau khi xóa
+        if (room.deletedBy && room.deletedBy[user.uid]) {
+          const deletedAt = room.deletedBy[user.uid].toDate
+            ? room.deletedBy[user.uid].toDate()
+            : new Date(room.deletedBy[user.uid]);
+          const lastMessageAt = room.lastMessageAt?.toDate
+            ? room.lastMessageAt.toDate()
+            : room.lastMessageAt
+            ? new Date(room.lastMessageAt)
+            : null;
+
+          // Nếu không có tin nhắn mới sau khi xóa thì ẩn
+          if (!lastMessageAt || lastMessageAt <= deletedAt) {
+            return false;
+          }
+        }
+
+        return true;
+      })
       .map((room) => ({
         ...room,
         type: "room",
@@ -473,9 +489,28 @@ export default function UnifiedChatList() {
     const conversationItems = conversations
       .filter((conversation) => {
         // Filter out conversations with blocked users or archived chats
-        return (
-          !blockStatus[conversation.id] && !archivedStatus[conversation.id]
-        ); // Hide if the other user is blocked or chat is archived
+        if (blockStatus[conversation.id] || archivedStatus[conversation.id]) {
+          return false;
+        }
+
+        // Nếu user đã xóa conversation, chỉ hiển thị nếu có tin nhắn mới sau khi xóa
+        if (conversation.deletedBy && conversation.deletedBy[user.uid]) {
+          const deletedAt = conversation.deletedBy[user.uid].toDate
+            ? conversation.deletedBy[user.uid].toDate()
+            : new Date(conversation.deletedBy[user.uid]);
+          const lastMessageAt = conversation.lastMessageAt?.toDate
+            ? conversation.lastMessageAt.toDate()
+            : conversation.lastMessageAt
+            ? new Date(conversation.lastMessageAt)
+            : null;
+
+          // Nếu không có tin nhắn mới sau khi xóa thì ẩn
+          if (!lastMessageAt || lastMessageAt <= deletedAt) {
+            return false;
+          }
+        }
+
+        return true;
       })
       .map((conversation) => {
         const otherUser = getOtherParticipant(conversation);
@@ -783,6 +818,7 @@ export default function UnifiedChatList() {
                               } này?`
                             );
                             if (confirmed) {
+                              setOpenMenuId(null);
                               handleDeleteChat(
                                 chat.id,
                                 chat.type === "conversation"

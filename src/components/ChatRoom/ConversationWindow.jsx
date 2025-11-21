@@ -144,7 +144,7 @@ export default function ConversationWindow() {
 
   // Use paginated firestore instead of regular useFirestore
   const {
-    documents: messages,
+    documents: allMessages,
     loading: messagesLoading,
     hasMore,
     loadMore,
@@ -156,6 +156,25 @@ export default function ConversationWindow() {
     30, // page size
     true // real-time updates
   );
+
+  // Filter messages based on deletedBy timestamp
+  const messages = React.useMemo(() => {
+    if (!selectedConversation?.deletedBy?.[uid]) {
+      return allMessages;
+    }
+
+    const deletedAt = selectedConversation.deletedBy[uid].toDate
+      ? selectedConversation.deletedBy[uid].toDate()
+      : new Date(selectedConversation.deletedBy[uid]);
+
+    // Chỉ hiển thị messages có createdAt > deletedAt
+    return allMessages.filter((msg) => {
+      const msgCreatedAt = msg.createdAt?.toDate
+        ? msg.createdAt.toDate()
+        : new Date(msg.createdAt);
+      return msgCreatedAt > deletedAt;
+    });
+  }, [allMessages, selectedConversation, uid]);
 
   useEffect(() => {
     // scroll to bottom after message changed (only for new messages)

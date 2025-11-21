@@ -137,7 +137,7 @@ export default function ChatWindow() {
   }, [chatType, selectedRoom?.id, selectedConversation?.id]);
 
   const {
-    documents: messages,
+    documents: allMessages,
     loading: messagesLoading,
     hasMore,
     loadMore,
@@ -149,6 +149,28 @@ export default function ChatWindow() {
     30, // page size
     true // real-time
   );
+
+  // Filter messages based on deletedBy timestamp
+  const messages = React.useMemo(() => {
+    const currentChat =
+      chatType === "room" ? selectedRoom : selectedConversation;
+
+    if (!currentChat?.deletedBy?.[uid]) {
+      return allMessages;
+    }
+
+    const deletedAt = currentChat.deletedBy[uid].toDate
+      ? currentChat.deletedBy[uid].toDate()
+      : new Date(currentChat.deletedBy[uid]);
+
+    // Chễ hiển thị messages có createdAt > deletedAt
+    return allMessages.filter((msg) => {
+      const msgCreatedAt = msg.createdAt?.toDate
+        ? msg.createdAt.toDate()
+        : new Date(msg.createdAt);
+      return msgCreatedAt > deletedAt;
+    });
+  }, [allMessages, selectedRoom, selectedConversation, chatType, uid]);
 
   const votesCondition = React.useMemo(
     () => ({
