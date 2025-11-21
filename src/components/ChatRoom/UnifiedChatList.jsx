@@ -470,19 +470,32 @@ export default function UnifiedChatList() {
         avatar: room.avatar,
         isSelected: selectedRoomId === room.id,
         isMuted: !!(room.mutedBy && room.mutedBy[user.uid]),
-        hasUnread: !!(
-          room.lastMessageAt &&
-          room.lastSeen &&
-          room.lastSeen[user.uid] &&
-          room.lastMessage &&
-          room.lastMessage.trim() !== "" &&
-          (room.lastMessageAt?.toDate
+        hasUnread: (() => {
+          // Nếu không có tin nhắn gần đây hoặc tin nhắn rỗng
+          if (
+            !room.lastMessageAt ||
+            !room.lastMessage ||
+            room.lastMessage.trim() === ""
+          ) {
+            return false;
+          }
+
+          const lastMessageAt = room.lastMessageAt?.toDate
             ? room.lastMessageAt.toDate()
-            : new Date(room.lastMessageAt)) >
-            (room.lastSeen[user.uid]?.toDate
-              ? room.lastSeen[user.uid].toDate()
-              : new Date(room.lastSeen[user.uid]))
-        ),
+            : new Date(room.lastMessageAt);
+
+          // Nếu chưa có lastSeen cho user này, coi như chưa đọc
+          if (!room.lastSeen || !room.lastSeen[user.uid]) {
+            return true;
+          }
+
+          const lastSeen = room.lastSeen[user.uid]?.toDate
+            ? room.lastSeen[user.uid].toDate()
+            : new Date(room.lastSeen[user.uid]);
+
+          // Tin nhắn chưa đọc nếu lastMessageAt > lastSeen
+          return lastMessageAt > lastSeen;
+        })(),
         isPinned: room.pinned || false,
       }));
 
@@ -523,19 +536,32 @@ export default function UnifiedChatList() {
           isSelected: selectedConversationId === conversation.id,
           otherUser,
           isMuted: !!(conversation.mutedBy && conversation.mutedBy[user.uid]),
-          hasUnread: !!(
-            conversation.lastMessageAt &&
-            conversation.lastSeen &&
-            conversation.lastSeen[user.uid] &&
-            conversation.lastMessage &&
-            conversation.lastMessage.trim() !== "" &&
-            (conversation.lastMessageAt?.toDate
+          hasUnread: (() => {
+            // Nếu không có tin nhắn gần đây hoặc tin nhắn rỗng
+            if (
+              !conversation.lastMessageAt ||
+              !conversation.lastMessage ||
+              conversation.lastMessage.trim() === ""
+            ) {
+              return false;
+            }
+
+            const lastMessageAt = conversation.lastMessageAt?.toDate
               ? conversation.lastMessageAt.toDate()
-              : new Date(conversation.lastMessageAt)) >
-              (conversation.lastSeen[user.uid]?.toDate
-                ? conversation.lastSeen[user.uid].toDate()
-                : new Date(conversation.lastSeen[user.uid]))
-          ),
+              : new Date(conversation.lastMessageAt);
+
+            // Nếu chưa có lastSeen cho user này, coi như chưa đọc
+            if (!conversation.lastSeen || !conversation.lastSeen[user.uid]) {
+              return true;
+            }
+
+            const lastSeen = conversation.lastSeen[user.uid]?.toDate
+              ? conversation.lastSeen[user.uid].toDate()
+              : new Date(conversation.lastSeen[user.uid]);
+
+            // Tin nhắn chưa đọc nếu lastMessageAt > lastSeen
+            return lastMessageAt > lastSeen;
+          })(),
           isPinned: conversation.pinned || false,
         };
       });
